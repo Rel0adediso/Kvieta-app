@@ -15,6 +15,8 @@ public sealed class ApplicationRuleEnforcer : IDisposable
     private ControlSettings? _activeSettings;
     private readonly ManagementEventWatcher? _processStartWatcher;
 
+    public Guid? ReachedApplicationLimitRuleId { get; private set; }
+
     public ApplicationRuleEnforcer()
     {
         if (!OperatingSystem.IsWindows()) return;
@@ -34,6 +36,7 @@ public sealed class ApplicationRuleEnforcer : IDisposable
 
     public bool Enforce(ControlSettings settings, UsageLedger ledger, TimeSpan elapsed, SessionState sessionState)
     {
+        ReachedApplicationLimitRuleId = null;
         lock (_observationGate)
         {
             bool settingsChanged = !ReferenceEquals(_activeSettings, settings);
@@ -143,6 +146,10 @@ public sealed class ApplicationRuleEnforcer : IDisposable
                 long usedSeconds = ledger.AppUsedSeconds.GetValueOrDefault(rule.Id);
                 if (ShouldBlock(rule, usedSeconds, sessionState))
                 {
+                    if (rule.Mode == AppRuleMode.Limited)
+                    {
+                        ReachedApplicationLimitRuleId ??= rule.Id;
+                    }
                     TryTerminate(process.Process);
                 }
                 else runningTrackedRules.Add(rule.Id);
@@ -151,7 +158,16 @@ public sealed class ApplicationRuleEnforcer : IDisposable
             if (accruedSeconds <= 0) return false;
             foreach (Guid ruleId in runningTrackedRules)
             {
-                ledger.AppUsedSeconds[ruleId] = ledger.AppUsedSeconds.GetValueOrDefault(ruleId) + accruedSeconds;
+                long previous = ledger.AppUsedSeconds.GetValueOrDefault(ruleId);
+                long updated = previous + accruedSeconds;
+                ledger.AppUsedSeconds[ruleId] = updated;
+                AppRule? rule = _activeRules.LastOrDefault(candidate => candidate.Id == ruleId);
+                if (rule?.Mode == AppRuleMode.Limited &&
+                    previous < Math.Max(0, rule.DailyLimitMinutes) * 60L &&
+                    updated >= Math.Max(0, rule.DailyLimitMinutes) * 60L)
+                {
+                    ReachedApplicationLimitRuleId ??= ruleId;
+                }
             }
             return runningTrackedRules.Count > 0;
         }

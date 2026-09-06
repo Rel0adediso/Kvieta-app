@@ -52,6 +52,8 @@ Thread adminPinWindowThread = new(() =>
             recoveryCodeAvailable: false,
             managerDeviceName: "Test phone");
         _ = new Kvieta.App.BonusTimeWindow();
+        _ = new Kvieta.App.SessionPreviewWindow();
+        _ = new Kvieta.App.DataManagementWindow(new DataInventorySummary(0, null, null, false, false, 90));
         application.Shutdown();
     }
     catch (Exception exception)
@@ -542,6 +544,7 @@ SetupPlan keepSetup = new()
     Mode = UsageMode.Family,
     DeviceName = "Değişmemeli"
 };
+keepSetup.ApplyTemplate(SetupTemplate.FamilyRoutine);
 ControlSettings keptSettings = keepSetup.ComposeSettings(existingSetupSettings);
 Assert(ReferenceEquals(keptSettings, existingSetupSettings) &&
        keptSettings.Mode == UsageMode.Personal &&
@@ -551,6 +554,50 @@ Assert(ReferenceEquals(keptSettings, existingSetupSettings) &&
        RecoveryCodeService.TryConsume(keptSettings, existingRecoveryCodes[0]) &&
        keepSetup.LaunchArguments == string.Empty,
     "Kurucu mevcut ayarları koruma seçiminde politika alanlarını değiştirdi.");
+
+ControlSettings unprotectedTransitionSource = new()
+{
+    Mode = UsageMode.Insights,
+    PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+};
+ControlSettings familyTransitionTarget = new()
+{
+    Mode = UsageMode.Family,
+    LimitAction = LimitReachedAction.LockWindows,
+    Schedule = ControlSettings.CreateDefaultSchedule()
+};
+ProtectionTransitionSummary missingFamilyRecovery = ProtectionTransitionAnalyzer.Analyze(
+    unprotectedTransitionSource,
+    familyTransitionTarget);
+Assert(missingFamilyRecovery.TargetIsProtected && missingFamilyRecovery.IsTightening &&
+       missingFamilyRecovery.AppliesImmediately && missingFamilyRecovery.RequiresGuardian &&
+       missingFamilyRecovery.RequiresWindowsAdministrator && missingFamilyRecovery.RequiresUserPin &&
+       missingFamilyRecovery.RecoveryState == ProtectionRecoveryState.Missing &&
+       missingFamilyRecovery.LimitAction == LimitReachedAction.LockWindows &&
+       missingFamilyRecovery.EnabledPlanDays == 7,
+    "Aile koruması sonuç özeti gerçek policy, yönetici veya eksik kurtarma gereksinimini açıklamadı.");
+familyTransitionTarget.AdminPin = AdminPinService.Create("2468");
+_ = RecoveryCodeService.Generate(familyTransitionTarget);
+ProtectionTransitionSummary readyFamilyRecovery = ProtectionTransitionAnalyzer.Analyze(
+    unprotectedTransitionSource,
+    familyTransitionTarget);
+Assert(readyFamilyRecovery.RecoveryState == ProtectionRecoveryState.Ready,
+    "Hazır PIN ve kurtarma kodları koruma özetinde eksik göründü.");
+ProtectionTransitionSummary protectedPersonalRecovery = ProtectionTransitionAnalyzer.Analyze(
+    unprotectedTransitionSource,
+    new ControlSettings
+    {
+        Mode = UsageMode.Personal,
+        PersonalProtectionLevel = PersonalProtectionLevel.Protected
+    });
+Assert(protectedPersonalRecovery.RecoveryState == ProtectionRecoveryState.WindowsAdministrator &&
+       !protectedPersonalRecovery.RequiresUserPin,
+    "Korumalı Kişisel kullanımın Windows yönetici kurtarma sınırı yanlış modellendi.");
+ProtectionTransitionSummary unchangedProtection = ProtectionTransitionAnalyzer.Analyze(
+    familyTransitionTarget,
+    familyTransitionTarget);
+Assert(!unchangedProtection.IsTightening && !unchangedProtection.AppliesImmediately,
+    "Zaten korunan policy yeniden etkinleştirme gibi gösterildi.");
 Assert(new ProtectionHealthReport(ProtectionServiceState.Running, []).IsHealthy,
     "Eksiksiz çalışan Guardian sağlık raporu sağlıklı sayılmadı.");
 Assert(!new ProtectionHealthReport(
@@ -1230,9 +1277,104 @@ await File.WriteAllTextAsync(migrationUsagePath, """
 """);
 JsonUsageStore migrationUsageStore = new(migrationUsagePath);
 UsageLedger migratedUsage = await migrationUsageStore.LoadAsync();
-Assert(migratedUsage.SchemaVersion == 8 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 8'e taşınmadı.");
+Assert(migratedUsage.SchemaVersion == 9 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 9'a taşınmadı.");
 Assert(migratedUsage.AwarenessHourlyUsedSeconds.Count == 0, "Eski kullanım verisine sahte saatlik dağılım eklendi.");
 Assert(File.Exists(migrationUsageStore.BackupPath), "Migration sonrasında sağlam kullanım yedeği oluşturulmadı.");
+
+string legacyAwarenessUsagePath = Path.Combine(testDirectory, "legacy-awareness-usage.json");
+await File.WriteAllTextAsync(legacyAwarenessUsagePath, """
+{
+  "SchemaVersion": 8,
+  "LocalDay": "2026-08-24",
+  "AwarenessUsedSeconds": 30,
+  "History": [
+    { "LocalDay": "2026-08-23", "AwarenessUsedSeconds": 45 }
+  ]
+}
+""");
+UsageLedger migratedAwareness = await new JsonUsageStore(legacyAwarenessUsagePath).LoadAsync();
+Assert(migratedAwareness.AwarenessMeasurementAvailable &&
+       migratedAwareness.History.Single().AwarenessMeasurementAvailable,
+    "Eski pozitif farkındalık kayıtları şema 9'da ölçülmüş gün olarak korunmadı.");
+
+string corruptUsagePath = Path.Combine(testDirectory, "corrupt-usage.json");
+JsonUsageStore corruptUsageStore = new(corruptUsagePath);
+await corruptUsageStore.ReplaceAsync(new UsageLedger { AwarenessUsedSeconds = 10, AwarenessMeasurementAvailable = true });
+await corruptUsageStore.ReplaceAsync(new UsageLedger { AwarenessUsedSeconds = 20, AwarenessMeasurementAvailable = true });
+await File.WriteAllTextAsync(corruptUsagePath, "{ bozuk json");
+UsageLedger recoveredUsage = await corruptUsageStore.LoadAsync();
+Assert(recoveredUsage.AwarenessUsedSeconds == 20 && corruptUsageStore.LastLoadRecoveredFromBackup,
+    "Bozuk kullanım dosyası sağlam yerel yedekten kurtarılamadı veya durumu bildirilmedi.");
+await File.WriteAllTextAsync(corruptUsagePath, "{ ana dosya bozuk");
+await File.WriteAllTextAsync(corruptUsageStore.BackupPath, "{ yedek de bozuk");
+string unreadableViewSettingsPath = Path.Combine(testDirectory, "unreadable-view-settings.json");
+JsonSettingsStore unreadableViewSettingsStore = new(unreadableViewSettingsPath);
+await unreadableViewSettingsStore.SaveAsync(new ControlSettings
+{
+    SetupCompleted = true,
+    AwarenessTrackingEnabled = true
+});
+MainViewModel unreadableViewModel = new(unreadableViewSettingsStore, corruptUsageStore);
+await unreadableViewModel.InitializeAsync();
+Assert(unreadableViewModel.RhythmNextAction == RhythmFirstStepAction.RetryData &&
+       unreadableViewModel.HasRhythmFirstStep &&
+       unreadableViewModel.RhythmFirstStepActionText == "Yeniden dene" &&
+       unreadableViewModel.RhythmWeekChangeText == "—",
+    "Okunamayan kullanım verisi ayrı durum ve güvenli yeniden deneme eylemi göstermedi.");
+Assert(unreadableViewModel.MeasurementHealthText is "Hata" or "Error" &&
+       unreadableViewModel.LocalSaveHealthText is "Okuma hatası" or "Read error",
+    "Ölçüm ve yerel kayıt okuma hataları ayrı sağlık durumları olarak gösterilmedi.");
+string narrowMeasurementSettingsPath = Path.Combine(testDirectory, "narrow-measurement-settings.json");
+JsonSettingsStore narrowMeasurementSettingsStore = new(narrowMeasurementSettingsPath);
+await narrowMeasurementSettingsStore.SaveAsync(new ControlSettings
+{
+    SetupCompleted = true,
+    DeviceName = "Kayıtlı ad",
+    AwarenessTrackingEnabled = false
+});
+MainViewModel narrowMeasurementViewModel = new(
+    narrowMeasurementSettingsStore,
+    new JsonUsageStore(Path.Combine(testDirectory, "narrow-measurement-usage.json")));
+await narrowMeasurementViewModel.InitializeAsync();
+Assert(narrowMeasurementViewModel.MeasurementHealthText is "Kullanıcı tarafından kapalı" or "Disabled by user",
+    "Kullanıcının kapattığı ölçüm hata gibi gösterildi.");
+narrowMeasurementViewModel.DeviceName = "Kaydedilmemiş taslak";
+Assert(await narrowMeasurementViewModel.EnableAwarenessMeasurementAsync(),
+    "İlk hafta eylemi yerel ölçümü etkinleştiremedi.");
+ControlSettings narrowMeasurementSaved = await narrowMeasurementSettingsStore.LoadAsync();
+Assert(narrowMeasurementSaved.AwarenessTrackingEnabled && narrowMeasurementSaved.DeviceName == "Kayıtlı ad",
+    "Ölçümü etkinleştiren dar kapsamlı eylem ilgisiz ayar taslağını da kaydetti.");
+Assert(narrowMeasurementViewModel.MeasurementHealthText is "İlk ölçüm bekleniyor" or "Waiting for first measurement",
+    "Ölçüm etkinleşir etkinleşmez ilk gerçek gözlemden önce sağlıklı gösterildi.");
+
+string protectedTransitionSettingsPath = Path.Combine(testDirectory, "protected-transition-settings.json");
+JsonSettingsStore protectedTransitionSettingsStore = new(protectedTransitionSettingsPath);
+await protectedTransitionSettingsStore.SaveAsync(new ControlSettings
+{
+    SetupCompleted = true,
+    Mode = UsageMode.Insights,
+    AwarenessTrackingEnabled = true
+});
+MainViewModel protectedTransitionViewModel = new(
+    protectedTransitionSettingsStore,
+    new JsonUsageStore(Path.Combine(testDirectory, "protected-transition-usage.json")));
+await protectedTransitionViewModel.InitializeAsync();
+protectedTransitionViewModel.StageUsageMode(
+    UsageMode.Family,
+    PersonalProtectionLevel.Balanced,
+    newPin: "2468");
+Assert(!await protectedTransitionViewModel.SaveAsync() &&
+       (await protectedTransitionSettingsStore.LoadAsync()).Mode == UsageMode.Insights,
+    "Eksik kurtarma hazırlığı Aile policy'sini kısmen kaydetti.");
+IReadOnlyList<string> stagedFamilyCodes = protectedTransitionViewModel.PrepareStagedFamilyRecoveryCodes();
+Assert(stagedFamilyCodes.Count == 8 && await protectedTransitionViewModel.SaveAsync(),
+    "Onaylanmış Aile kurtarma hazırlığı policy taslağına aktarılamadı.");
+ControlSettings savedFamilyTransition = await protectedTransitionSettingsStore.LoadAsync();
+Assert(savedFamilyTransition.Mode == UsageMode.Family &&
+       AdminPinService.Verify("2468", savedFamilyTransition.AdminPin) &&
+       savedFamilyTransition.RecoveryCodes.Count == 8 &&
+       stagedFamilyCodes.All(code => !JsonSerializer.Serialize(savedFamilyTransition).Contains(code, StringComparison.Ordinal)),
+    "Aile geçişi PIN/kurtarma hazırlığını güvenli biçimde saklamadı veya açık kodu sızdırdı.");
 
 UsageLedger clockLedger = new();
 DateTimeOffset clockStart = new(2026, 8, 25, 10, 0, 0, TimeSpan.FromHours(2));
@@ -1450,11 +1592,12 @@ Assert(migratedPersonalSettings.PersonalProtectionLevel == PersonalProtectionLev
     "Eski kişisel ayar koruma seviyesine güvenli biçimde taşınmadı.");
 
 DateOnly rhythmToday = new(2026, 8, 24);
-ControlSettings rhythmSettings = new() { WeeklyReductionGoalPercent = 10 };
+ControlSettings rhythmSettings = new() { WeeklyReductionGoalPercent = 10, AwarenessTrackingEnabled = true };
 UsageLedger rhythmLedger = new()
 {
     LocalDay = rhythmToday,
     AwarenessUsedSeconds = 3600,
+    AwarenessMeasurementAvailable = true,
     UsedSeconds = 1800,
     FocusSessionCount = 1,
     FocusCompletedSeconds = 1200
@@ -1468,6 +1611,7 @@ for (int offset = 13; offset >= 1; offset--)
     {
         LocalDay = rhythmToday.AddDays(-offset),
         AwarenessUsedSeconds = previousWeek ? 7200 : 3600,
+        AwarenessMeasurementAvailable = true,
         UsedSeconds = 1800,
         AwarenessHourlyUsedSeconds = new Dictionary<int, long> { [previousWeek ? 21 : 20] = previousWeek ? 7200 : 3600 },
         ForegroundApplications =
@@ -1486,6 +1630,63 @@ Assert(rhythm.IsBaselineReady && rhythm.BaselineDays == 14, "Başlangıç ritmi 
 Assert(Math.Abs((rhythm.WeekChangePercent ?? 0) - (-50)) < 0.1, "Haftalık günlük ortalama karşılaştırması yanlış.");
 Assert(rhythm.PlanAlignedDays == 7, "Planla uyumlu günler yanlış hesaplandı.");
 Assert(rhythm.ReclaimedSeconds == 12600, "Başlangıç ritmine göre geri kazanılan süre yanlış.");
+Assert(rhythm.MeasurementState == RhythmMeasurementState.Ready && rhythm.CurrentObservedDays == 7 && rhythm.PreviousObservedDays == 7,
+    "Ölçülmüş günler karşılaştırma penceresine doğru aktarılmadı.");
+
+ControlSettings measurementDisabledSettings = new() { AwarenessTrackingEnabled = false };
+RhythmSummary measurementDisabled = RhythmAnalyzer.Analyze(measurementDisabledSettings, new UsageLedger { LocalDay = rhythmToday }, rhythmToday);
+Assert(measurementDisabled.MeasurementState == RhythmMeasurementState.Disabled && measurementDisabled.WeekChangePercent is null,
+    "Ölçüm reddi veri yok veya iyileşme olarak sunuldu.");
+RhythmSummary measurementMissing = RhythmAnalyzer.Analyze(
+    new ControlSettings { AwarenessTrackingEnabled = true },
+    new UsageLedger { LocalDay = rhythmToday },
+    rhythmToday);
+Assert(measurementMissing.MeasurementState == RhythmMeasurementState.NoData && measurementMissing.BaselineDays == 0,
+    "Henüz oluşmamış ölçüm gerçek sıfır gibi yorumlandı.");
+RhythmSummary clearedMeasurement = RhythmAnalyzer.Analyze(
+    new ControlSettings { AwarenessTrackingEnabled = true },
+    new UsageLedger { LocalDay = rhythmToday, DataGeneration = 1 },
+    rhythmToday);
+Assert(clearedMeasurement.MeasurementState == RhythmMeasurementState.Cleared && clearedMeasurement.WeekChangePercent is null,
+    "Silinmiş geçmiş temiz kurulumdan ayrılmadı veya karşılaştırmada kullanılmaya devam etti.");
+RhythmSummary confirmedZero = RhythmAnalyzer.Analyze(
+    new ControlSettings { AwarenessTrackingEnabled = true },
+    new UsageLedger { LocalDay = rhythmToday, AwarenessMeasurementAvailable = true },
+    rhythmToday);
+Assert(confirmedZero.MeasurementState == RhythmMeasurementState.ConfirmedZero && confirmedZero.CurrentObservedDays == 1 && confirmedZero.WeekChangePercent is null,
+    "Ölçülmüş sıfır gün sahte yüzde değişimine dönüştü.");
+UsageLedger threeDayLedger = new() { LocalDay = rhythmToday };
+threeDayLedger.History = Enumerable.Range(1, 3)
+    .Select(offset => new DailyUsageRecord
+    {
+        LocalDay = rhythmToday.AddDays(-offset),
+        AwarenessUsedSeconds = 600,
+        AwarenessMeasurementAvailable = true
+    })
+    .ToList();
+RhythmSummary threeDayRhythm = RhythmAnalyzer.Analyze(
+    new ControlSettings { AwarenessTrackingEnabled = true },
+    threeDayLedger,
+    rhythmToday);
+Assert(threeDayRhythm.MeasurementState == RhythmMeasurementState.Collecting &&
+       threeDayRhythm.BaselineDays == 3 && !threeDayRhythm.IsBaselineReady &&
+       threeDayRhythm.WeekChangePercent is null,
+    "Üç günlük eksik taban hazır karşılaştırma gibi sunuldu.");
+
+ControlSettings measurementRefusalPolicy = new()
+{
+    Mode = UsageMode.Family,
+    AwarenessTrackingEnabled = false,
+    Schedule = ControlSettings.CreateDefaultSchedule()
+};
+foreach (DaySchedule day in measurementRefusalPolicy.Schedule) day.DailyLimitMinutes = 1;
+SessionSnapshot refusalSnapshot = new SessionEngine(
+    measurementRefusalPolicy,
+    new UsageLedger { LocalDay = rhythmToday, UsedSeconds = 60 },
+    new DateTimeOffset(2026, 8, 24, 10, 0, 0, TimeSpan.FromHours(3)))
+    .GetSnapshot(new DateTimeOffset(2026, 8, 24, 10, 0, 0, TimeSpan.FromHours(3)));
+Assert(refusalSnapshot.State == SessionState.TimeExpired,
+    "Farkındalık ölçümünü reddetmek Aile planı güvenliğini devre dışı bıraktı.");
 ControlSettings reviewStreakSettings = new() { Mode = UsageMode.Insights };
 UsageLedger reviewStreakLedger = new() { LocalDay = rhythmToday, SummaryReviewed = true, AwarenessUsedSeconds = 60 };
 reviewStreakLedger.History =
@@ -1589,7 +1790,7 @@ DailyUsageRecord sessionTargetDay = new()
 {
     LocalDay = rhythmToday,
     UsedSeconds = 60,
-    FocusSessionCount = 2,
+    FocusSessionCount = 1,
     FocusCompletedSeconds = 10 * 60,
     RhythmGoal = RhythmGoalKind.CompleteFocus,
     RhythmFocusTargetKind = FocusRhythmTargetKind.Sessions,
@@ -1597,8 +1798,13 @@ DailyUsageRecord sessionTargetDay = new()
     RhythmMeasurementAvailable = true
 };
 RhythmStreakAnalyzer.FinalizeDay(sessionTargetDay);
+Assert(sessionTargetDay.RhythmOutcome == RhythmDayOutcome.Missed,
+    "Toplam süresi yeterli görünen kısa oturumlar iki uygun odak oturumu gibi sayıldı.");
+sessionTargetDay.FocusSessionCount = 2;
+sessionTargetDay.RhythmOutcome = null;
+RhythmStreakAnalyzer.FinalizeDay(sessionTargetDay);
 Assert(sessionTargetDay.RhythmOutcome == RhythmDayOutcome.Success,
-    "Oturum sayısı hedefi gerçek tamamlanan oturumları saymadı.");
+    "İki uygun odak oturumu oturum sayısı hedefini tamamlamadı.");
 DailyUsageRecord clippedBalanceDay = new()
 {
     LocalDay = rhythmToday,
@@ -1801,8 +2007,13 @@ Assert(awarenessViewModel.HistoryDailyAverageText.StartsWith($"{expectedAverageM
 awarenessViewModel.RetentionPeriod = awarenessViewModel.RetentionOptions[0];
 Assert(await awarenessViewModel.SaveAsync() && (await awarenessSettingsStore.LoadAsync()).UsageRetentionDays == 30,
     "Geçmiş saklama süresi kaydedilemedi.");
-Assert((await awarenessViewModel.ExportUsageJsonAsync()).Contains("SchemaVersion", StringComparison.Ordinal),
-    "Kullanım verisi JSON olarak dışa aktarılamadı.");
+string exportedJson = await awarenessViewModel.ExportUsageJsonAsync();
+Assert(exportedJson.Contains("ExportedAtUtc", StringComparison.Ordinal) &&
+       exportedJson.Contains("SessionSeconds", StringComparison.Ordinal) &&
+       !exportedJson.Contains("AdminPin", StringComparison.Ordinal) &&
+       !exportedJson.Contains("ActiveFocusSessionId", StringComparison.Ordinal) &&
+       !exportedJson.Contains("ClockRollback", StringComparison.Ordinal),
+    "Kullanım JSON dışa aktarımı açıklanan kapsamı aşarak güvenlik/oturum alanı içerdi.");
 string exportedCsv = await awarenessViewModel.ExportUsageCsvAsync();
 Assert(exportedCsv.StartsWith("date,type,name,seconds,minutes", StringComparison.Ordinal) &&
        exportedCsv.Contains(",session_total,\"\",3600,60", StringComparison.Ordinal) &&
@@ -1916,9 +2127,11 @@ await stagedModeViewModel.InitializeAsync();
 stagedModeViewModel.StageUsageMode(UsageMode.Family, PersonalProtectionLevel.Balanced, "4826");
 Assert((await stagedModeStore.LoadAsync()).Mode == UsageMode.Personal,
     "Korumalı mod Kaydet'e basılmadan etkinleşti.");
+IReadOnlyList<string> stagedModeRecoveryCodes = stagedModeViewModel.PrepareStagedFamilyRecoveryCodes();
 Assert(await stagedModeViewModel.SaveAsync(), "Hazırlanan korumalı mod kaydedilemedi.");
 ControlSettings savedStagedMode = await stagedModeStore.LoadAsync();
-Assert(savedStagedMode.Mode == UsageMode.Family && AdminPinService.Verify("4826", savedStagedMode.AdminPin),
+Assert(savedStagedMode.Mode == UsageMode.Family && AdminPinService.Verify("4826", savedStagedMode.AdminPin) &&
+       savedStagedMode.RecoveryCodes.Count == stagedModeRecoveryCodes.Count,
     "Korumalı mod Kaydet sonrasında uygulanmadı.");
 
 personalViewModel.AwarenessTrackingEnabled = true;
@@ -2055,6 +2268,7 @@ Assert(queuedGuardedExit.PersonalProtectionLevel == PersonalProtectionLevel.Prot
        queuedGuardedExit.PendingChange?.TargetSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced,
     "Sıkı kişisel moddan çıkış bekleme süresini atladı.");
 
+_ = personalViewModel.PrepareStagedFamilyRecoveryCodes();
 await personalViewModel.SetUsageModeAsync(UsageMode.Family, "4826");
 ControlSettings protectedFromGuarded = await personalSettingsStore.LoadAsync();
 Assert(protectedFromGuarded.Mode == UsageMode.Family && protectedFromGuarded.PendingChange is null,
@@ -2190,6 +2404,107 @@ Assert(limitHistoryEngine.StartOrResume(historyNow), "Limit geçmişi oturumu ba
 limitHistoryEngine.Accrue(TimeSpan.FromMinutes(1), historyNow.AddMinutes(1));
 Assert(limitHistoryLedger.LimitReachedCount == 1 && limitHistoryLedger.RecentEvents.Single().Kind == UsageEventKind.LimitReached,
     "Limit dolma olayı geçmişe kaydedilmedi.");
+
+string settingsBeforePreview = JsonSerializer.Serialize(settings);
+string ledgerBeforePreview = JsonSerializer.Serialize(limitHistoryLedger);
+SessionPreviewScenario previewScenario = SessionPreviewScenario.Create();
+Assert(previewScenario.IsSynthetic && previewScenario.FinalState == SessionState.TimeExpired &&
+       previewScenario.ExampleActionIds.SequenceEqual(["request-time", "save-work"]),
+    "Süre bitişi önizlemesi sabit sentetik senaryoyu üretmedi.");
+Assert(JsonSerializer.Serialize(settings) == settingsBeforePreview &&
+       JsonSerializer.Serialize(limitHistoryLedger) == ledgerBeforePreview,
+    "Önizleme senaryosu gerçek ayar veya kullanım verisini değiştirdi.");
+
+SessionOutcome completedOnly = SessionOutcomeResolver.Resolve("focus-1", true, false, SessionState.Active);
+Assert(completedOnly.FocusOutcome == SessionOutcomeKind.FocusCompleted &&
+       completedOnly.AccessOutcome == SessionOutcomeKind.None && completedOnly.CanContinueFocus,
+    "Tek başına odak tamamlanması erişim bitişi gibi modellendi.");
+SessionOutcome earlyEnd = SessionOutcomeResolver.Resolve("focus-2", false, true, SessionState.Active);
+Assert(earlyEnd.FocusOutcome == SessionOutcomeKind.FocusEndedEarly && !earlyEnd.HasAccessBoundary,
+    "Erken odak bitişi kullanılabilir süreyi sona erdirdi.");
+SessionOutcome simultaneousLimit = SessionOutcomeResolver.Resolve("focus-3", true, false, SessionState.TimeExpired);
+SessionOutcome repeatedLimit = SessionOutcomeResolver.Resolve("focus-3", true, false, SessionState.TimeExpired);
+Assert(simultaneousLimit.FocusOutcome == SessionOutcomeKind.FocusCompleted &&
+       simultaneousLimit.AccessOutcome == SessionOutcomeKind.DailyLimitReached &&
+       !simultaneousLimit.CanContinueFocus && simultaneousLimit.EventId == repeatedLimit.EventId,
+    "Eşzamanlı odak ve günlük limit bitişi tutarlı veya tekilleştirilebilir modellenmedi.");
+Assert(SessionOutcomeResolver.Resolve("focus-4", true, false, SessionState.OutsideSchedule).AccessOutcome == SessionOutcomeKind.PlanEnded &&
+       SessionOutcomeResolver.Resolve("app-1", false, false, SessionState.Active, applicationLimitReached: true).AccessOutcome == SessionOutcomeKind.ApplicationLimitReached,
+    "Plan sonu ve uygulama limiti ayrı olay türlerine ayrılmadı.");
+
+DateTimeOffset noticeNow = DateTimeOffset.UtcNow;
+UserNoticeCoordinator noticeCoordinator = new();
+UserNotice deferredNotice = new("suggestion:1", "suggestion", UserNoticePriority.WeeklySuggestion, noticeNow.AddHours(1));
+Assert(noticeCoordinator.Evaluate(deferredNotice, noticeNow, deferLowPriority: true) == UserNoticeDecision.Deferred &&
+       noticeCoordinator.Evaluate(deferredNotice, noticeNow.AddMinutes(1), deferLowPriority: false) == UserNoticeDecision.Present &&
+       noticeCoordinator.Evaluate(deferredNotice, noticeNow.AddMinutes(2), deferLowPriority: false) == UserNoticeDecision.Suppressed,
+    "Düşük öncelikli bildirim erteleme veya olay kimliği tekilleştirmesi çalışmadı.");
+Assert(noticeCoordinator.Evaluate(
+        new UserNotice("expired", "warning", UserNoticePriority.TimeWarning, noticeNow),
+        noticeNow, false) == UserNoticeDecision.Suppressed,
+    "Süresi geçmiş bildirim dönüşte atlanmadı.");
+Assert(noticeCoordinator.Evaluate(
+        new UserNotice("critical:1", "shared", UserNoticePriority.CriticalHealth, noticeNow.AddHours(1)),
+        noticeNow, false) == UserNoticeDecision.Present &&
+       noticeCoordinator.Evaluate(
+        new UserNotice("celebration:1", "shared", UserNoticePriority.RhythmCelebration, noticeNow.AddHours(1)),
+        noticeNow, false) == UserNoticeDecision.Suppressed,
+    "Kritik bildirim düşük öncelikli kutlamaya karşı korunmadı.");
+
+string scopedDataPath = Path.Combine(testDirectory, "scoped-data.json");
+JsonUsageStore scopedDataStore = new(scopedDataPath);
+UsageLedger scopedLedger = new()
+{
+    History = [new DailyUsageRecord { LocalDay = DateOnly.FromDateTime(DateTime.Today).AddDays(-1), UsedSeconds = 600, RhythmOutcome = RhythmDayOutcome.Success }],
+    UsedSeconds = 120,
+    RhythmCheckpoint = new RhythmCheckpoint { ProcessedThroughDay = DateOnly.FromDateTime(DateTime.Today).AddDays(-2), BestStreak = 8 },
+    ClockAnomalyRequiresRecovery = true
+};
+await scopedDataStore.ReplaceAsync(scopedLedger);
+DataInventorySummary inventory = DataInventoryAnalyzer.Analyze(settings, await scopedDataStore.LoadAsync());
+Assert(inventory.DetailedDayCount == 2 && inventory.HasRhythmSummary,
+    "Verilerim envanteri tarih ve ritim kategorilerini doğru açıklamadı.");
+UsageLedger detailedCleared = await scopedDataStore.ClearDetailedUsageAsync();
+Assert(detailedCleared.History.Count == 0 && detailedCleared.UsedSeconds == 0 &&
+       detailedCleared.RhythmCheckpoint.BestStreak == 8 && detailedCleared.ClockAnomalyRequiresRecovery,
+    "Ayrıntılı kullanım silme ritim özetini veya saat güvenliğini yanlış etkiledi.");
+await scopedDataStore.ReplaceAsync(scopedLedger);
+UsageLedger rhythmReset = await scopedDataStore.ResetRhythmAsync();
+Assert(rhythmReset.History.Single().UsedSeconds == 600 && rhythmReset.History.Single().RhythmOutcome is null &&
+       rhythmReset.RhythmCheckpoint.BestStreak == 0 && rhythmReset.RhythmExcused,
+    "Yalnız ritim sıfırlama ham kullanım geçmişini yanlış sildi veya ritmi korudu.");
+RhythmStreakSummary resetSummary = RhythmStreakAnalyzer.Analyze(settings, rhythmReset, DateOnly.FromDateTime(DateTime.Today));
+Assert(resetSummary.CurrentStreak == 0 && resetSummary.TodayOutcome == RhythmDayOutcome.Excused,
+    "Ritim sıfırlaması bugünün korunmuş ham kullanımından seriyi hemen yeniden üretti.");
+
+Guid historicalExportRuleId = Guid.NewGuid();
+string historicalExportSettingsPath = Path.Combine(testDirectory, "historical-export-settings.json");
+string historicalExportUsagePath = Path.Combine(testDirectory, "historical-export-usage.json");
+JsonSettingsStore historicalExportSettingsStore = new(historicalExportSettingsPath);
+await historicalExportSettingsStore.SaveAsync(new ControlSettings
+{
+    SetupCompleted = true,
+    AppRules = [new AppRule { Id = historicalExportRuleId, Name = "Archive App", ExecutablePath = "archive.exe" }]
+});
+JsonUsageStore historicalExportUsageStore = new(historicalExportUsagePath);
+await historicalExportUsageStore.ReplaceAsync(new UsageLedger
+{
+    History =
+    [
+        new DailyUsageRecord
+        {
+            LocalDay = DateOnly.FromDateTime(DateTime.Today).AddDays(-1),
+            Applications = [new AppUsageRecord { RuleId = historicalExportRuleId, UsedSeconds = 300 }]
+        }
+    ]
+});
+MainViewModel historicalExportViewModel = new(historicalExportSettingsStore, historicalExportUsageStore);
+await historicalExportViewModel.InitializeAsync();
+string historicalExportJson = await historicalExportViewModel.ExportUsageJsonAsync();
+string historicalExportCsv = await historicalExportViewModel.ExportUsageCsvAsync();
+Assert(historicalExportJson.Contains("Archive App", StringComparison.Ordinal) &&
+       historicalExportCsv.Contains("Archive App", StringComparison.Ordinal),
+    "Geçmiş kural kaydının uygulama adı JSON/CSV dışa aktarımında boş kaldı.");
 
 Directory.Delete(testDirectory, true);
 Console.WriteLine("Kvieta çekirdek kontrolleri başarılı.");

@@ -1,6 +1,6 @@
 # Kvieta kullanım ve kurtarma rehberi
 
-> Mevcut durum: **Kvieta Alpha 3**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
+> Mevcut durum: **Kvieta Alpha 4**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
 
 ## Kurulum ve güncelleme
 
@@ -51,6 +51,24 @@ Ayarlar altındaki sistem sağlığı bölümü uygulama, installer, Guardian ve
 - **Tanılama raporu:** PIN, kurtarma kodu, pencere başlığı ve içerik toplamayan bir JSON raporu dışa aktarır.
 
 Guardian eksik veya bozuksa korunan kullanım sessizce korumasız devam etmez. Onarımı yönetici olarak onaylayın; sorun sürerse tanılama raporuyla birlikte hata bildirimi oluşturun.
+
+## Verilerim
+
+Yerel veri kategorilerini, saklama süresini, tarih aralığını ve dışa aktarımda
+uygulama adı bulunup bulunmadığını görmek için **Ayarlar > Gizlilik ve veri >
+Verilerim** yolunu açın. JSON ve CSV dosyası yalnız hedefi siz seçtikten sonra
+oluşturulur; mevcut dosyanın üzerine yazmak ayrıca onay ister. PIN, kurtarma kodu,
+anahtar, odak niyeti ve tanılama dışa aktarıma eklenmez.
+
+Silme üç açık kapsamdadır: sınırlı Ritim özetini koruyarak ayrıntılı kullanım,
+ham kullanımı koruyarak yalnız Ritim Serisi/Koruyucular veya kullanım ve ritmin
+tamamı. Her kapsam onay ister. Planlar, uygulama kuralları, PIN durumu, güvenlik
+kimliği ve Guardian koruması bu işlemlerle kaldırılmaz.
+
+Süre uyarıları, odak sonuçları, ritim kutlamaları ve öneriler önceliklendirilip
+tekilleştirilir. Uyku/yeniden açılış sonrası süresi geçmiş mesajlar gösterilmez;
+düşük öncelikli bildirimler PIN penceresinin odağını çalmaz. Gerekli güncel eylem
+Bugün veya oturum yüzeyinde bulunmaya devam eder.
 
 ## Kaldırma
 

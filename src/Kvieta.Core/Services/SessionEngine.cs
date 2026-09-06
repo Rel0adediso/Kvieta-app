@@ -242,6 +242,7 @@ public sealed class SessionEngine
             Ledger.BonusMinutes = 0;
             Ledger.AppUsedSeconds.Clear();
             Ledger.AwarenessUsedSeconds = 0;
+            Ledger.AwarenessMeasurementAvailable = false;
             Ledger.ForegroundAppUsedSeconds.Clear();
             Ledger.AwarenessHourlyUsedSeconds.Clear();
             Ledger.BreakCount = 0;
@@ -356,6 +357,7 @@ public sealed class SessionEngine
             RhythmPlannedRest = Ledger.RhythmPlannedRest,
             RhythmMeasurementAvailable = Ledger.RhythmMeasurementAvailable,
             AwarenessUsedSeconds = Ledger.AwarenessUsedSeconds,
+            AwarenessMeasurementAvailable = Ledger.AwarenessMeasurementAvailable,
             AwarenessHourlyUsedSeconds = new Dictionary<int, long>(Ledger.AwarenessHourlyUsedSeconds),
             Applications = Ledger.AppUsedSeconds
                 .Where(item => item.Value > 0)

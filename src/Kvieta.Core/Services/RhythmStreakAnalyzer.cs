@@ -55,7 +55,8 @@ public static class RhythmStreakAnalyzer
                 RhythmDailyLimitMinutes = ledger.RhythmDailyLimitMinutes,
                 RhythmApprovedMinutes = ledger.RhythmApprovedMinutes,
                 RhythmPlannedRest = ledger.RhythmPlannedRest,
-                RhythmMeasurementAvailable = ledger.RhythmMeasurementAvailable
+                RhythmMeasurementAvailable = ledger.RhythmMeasurementAvailable,
+                AwarenessMeasurementAvailable = ledger.AwarenessMeasurementAvailable
             };
         }
 
@@ -306,7 +307,8 @@ public static class RhythmStreakAnalyzer
         RhythmDailyLimitMinutes = ledger.RhythmDailyLimitMinutes,
         RhythmApprovedMinutes = ledger.RhythmApprovedMinutes,
         RhythmPlannedRest = ledger.RhythmPlannedRest,
-        RhythmMeasurementAvailable = ledger.RhythmMeasurementAvailable
+        RhythmMeasurementAvailable = ledger.RhythmMeasurementAvailable,
+        AwarenessMeasurementAvailable = ledger.AwarenessMeasurementAvailable
     };
 
     private static (long Progress, long Target, FocusRhythmTargetKind? Kind) GetProgress(

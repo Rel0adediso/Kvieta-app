@@ -1,20 +1,32 @@
 # Kvieta — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 5 Eylül 2026
+**Son güncelleme:** 6 Eylül 2026
 
-**Mevcut yayın:** **Kvieta Alpha 3** community prerelease
+**Mevcut yayın:** **Kvieta Alpha 4** community prerelease
 
-**Aktif hedef:** Alpha 3 sonrası V1 doğruluk ve kullanıcı deneyimi iş paketleri,
-ardından final `v1.0.0` Windows doğrulama matrisi
+**Aktif hedef:** Alpha 4 saha doğrulaması ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 3](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-3)
+**Yayın:** [Kvieta Alpha 4](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-4)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
 bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
 öncelikle **Aktif çalışma planı** bölümü esas alınır.
 
-## Kvieta Alpha 3 — yayımlandı; saha testinde
+## Kvieta Alpha 4 — güncel community preview
+
+Alpha 4; V1-01–V1-08 ve V1-10–V1-15 yazılım paketlerini, son kaynak incelemesi
+düzeltmelerini ve bunların otomatik regresyonlarını bir araya getirir. Paket
+etiketi `Alpha-4`, GitHub etiketi `kvieta-alpha-4`; numerik MSI sürümü yerinde
+yükseltme uyumluluğu için `1.0.0` kalır.
+
+- [x] Planlanan V1 öncesi ürün yazılımı kapsamı ve kaynak incelemesi düzeltmeleri tamamlandı.
+- [x] Debug/Release, smoke, belge ve public-build kapıları geçti.
+- [x] Temiz release commit'inden Alpha 4 community paketi üretilip doğrulandı.
+- [x] `kvieta-alpha-4` prerelease'i Setup, MSI, checksum ve manifestle yayımlandı.
+- [ ] Gerçek cihaz Guardian, yükseltme, yaşam döngüsü, erişilebilirlik ve uzun kullanım matrisi tamamlanmalı.
+
+## Kvieta Alpha 3 — önceki community preview; saha testinde
 
 Alpha 3, V1 öncesi kullanıcı deneyimini amaç odaklı kurulum, yenilenen Bugün
 ekranı, genişletilmiş uygulama kuralları, sakin süre uyarıları ve yerel Ritim
@@ -196,8 +208,8 @@ Aşağıdaki maddeler alpha kullanım testini başlatmaya engel değildir; final
 
 ### V1 yeniden değerlendirmesi — 5 Eylül 2026
 
-**Durum:** Açık. Bu bölüm uygulanacak işlerin sözleşmesidir; maddeler henüz
-uygulanmış veya test edilmiş sayılmaz. Kaynak incelemesindeki bulgular ile
+**Durum:** Yazılım kapsamı tamamlandı; V1-09 fiziksel cihaz ve yayın kanıtı açık.
+Kaynak incelemesindeki bulgular ile
 çalıştırılarak doğrulanması gereken riskler ayrılmıştır. Önceki tamamlandı
 kayıtları Alpha 3'teki ilk uygulamayı anlatır; V1 kabulünde çelişki varsa bu
 bölümdeki ayrıntılı koşullar esas alınır. Mevcut P0/P1 yükümlülükleri korunur.
@@ -226,9 +238,9 @@ kurtarma V1'e eklenmez. Her paketin kimliği sonraki commit ve testlerde kullan�
 
 #### V1-01 — Adil ve kalıcı günlük ritim hesabı
 
-**Durum:** Devam ediyor; gün sonu öncesi `Pending`, geçmiş hedef anlık görüntüsü,
-şema 8 migration'ı ve saklama süresinden bağımsız checkpoint uygulandı. Veri
-silme seçimi, eksik ölçüm ayrıntıları ve kalan kabul matrisi açık. **Alanlar:**
+**Durum:** Tamamlandı; gün sonu öncesi `Pending`, geçmiş hedef anlık görüntüsü,
+şema 9 migration'ı, saklama süresinden bağımsız checkpoint ve kapsamlı veri
+silme seçimi uygulandı. Kalan fiziksel kabul matrisi V1-09'dadır. **Alanlar:**
 `RhythmStreakAnalyzer`, günlük kayıtlar, JSON saklama/migration ve ritim testleri.
 Kaynak bulgusu: tamamlanmamış bugünkü
 odak/farkındalık hedefi `Missed` olabiliyor; geçmiş mevcut mod/planla yorumlanıyor;
@@ -236,25 +248,25 @@ en iyi seri ve koruyucular en fazla 180 günlük eldeki geçmişten tekrar hesap
 
 - [x] Bugün tamamlanmayan hedefi `Pending` göster; gün kapanmadan seri kırma
   veya koruyucu tüketme. Başarı erken kazanılabilir; denge sonucu gün sonunda kesinleşir.
-- [ ] Günlük hedef türü/değeri, geçerli plan sürümü, ilerleme, sonuç ve gerekçe
+- [x] Günlük hedef türü/değeri, geçerli plan sürümü, ilerleme, sonuç ve gerekçe
   kodunu yerel ritim kaydında tut. Bugünün ayarı geçmiş günü değiştirmesin.
-- [ ] Hedef/dinlenme değişikliklerini sonraki yerel günden uygula; bugünkü ödül
+- [x] Hedef/dinlenme değişikliklerini sonraki yerel günden uygula; bugünkü ödül
   şartını geriye dönük kolaylaştırma. Koruma policy'sinin yürürlük ve yönetici
   onayı kuralları bağımsız kalsın; bugünkü/yarınki hedef görünümünü ayır.
-- [ ] Gün kapatma, koruyucu ve kilometre taşı olaylarını gün/olay kimliğiyle
+- [x] Gün kapatma, koruyucu ve kilometre taşı olaylarını gün/olay kimliğiyle
   tekilleştir; restart ve eşzamanlı yazma ikinci ödül üretmesin.
 - [x] En iyi seri ve bakiyeyi ham uygulama geçmişinin saklama penceresinden
   bağımsız, sürümlü ve sınırlı özet/checkpoint ile koru. Yeniden hesaplama bu
   özet ve sonraki doğrulanmış günlerden deterministik yapılsın.
-- [ ] Ayrıntılı geçmiş silme ile ritim sıfırlamanın etkisini ayrı açıkla.
+- [x] Ayrıntılı geçmiş silme ile ritim sıfırlamanın etkisini ayrı açıkla.
   Tüm verileri silmek ritim özetini de silsin; gizli kalıcı geçmiş bırakma.
 - [x] Migration eski günün bilinmeyen hedefini bugünkü ayardan uydurmasın.
   Güvenilir alanları koru; belirsiz günleri açıklanabilir, ödül/ceza üretmeyen
   değerlendirilemedi durumuyla taşı. Migration tekrar güvenli olsun.
-- [ ] Doğrulanmış sıfır kullanım ile ölçüm kapalı/bozuk veya veri eksik durumunu
+- [x] Doğrulanmış sıfır kullanım ile ölçüm kapalı/bozuk veya veri eksik durumunu
   ayır. İlki mevcut denge/dinlenme kuralına uysun; ikincisi sahte başarı veya
   ceza üretmeden, seriyi artırmadan korusun.
-- [ ] Ek süre, geçici izin ve recovery etkisini ilgili hedef/zaman aralığıyla
+- [x] Ek süre, geçici izin ve recovery etkisini ilgili hedef/zaman aralığıyla
   kaydet; izin var diye bütün günü koşulsuz muaf sayma. Tamamlanan odak başarısını
   silme. Ritim dinlenmesi ile uygulama erişim planını ayrı kavramlar olarak tut.
 
@@ -266,8 +278,8 @@ saatte kesinleştirme ertelenir ve nedeni görünür olur.
 
 #### V1-02 — Günlük toplamdan bağımsız odak sayacı
 
-**Durum:** Devam ediyor; bağımsız aktif süre, gece yarısı bölme, kayıtlı oturumu
-geri yükleme ve tekrar güvenli tamamlanma uygulandı. Gerçek uyku/kilit/crash
+**Durum:** Yazılım tamamlandı; bağımsız aktif süre, gece yarısı bölme, kayıtlı
+oturumu geri yükleme ve tekrar güvenli tamamlanma uygulandı. Gerçek uyku/kilit/crash
 matrisi `V1-09` kapsamında açık. **Alanlar:** `FocusSessionGoal`, `SessionEngine`,
 `SessionViewModel`, yaşam döngüsü ve kullanım saklama.
 
@@ -388,21 +400,27 @@ gevşetmez; seri ödülü yetki vermez.
 
 #### V1-08 — İlk hafta ve ölçümün dürüst anlatılması
 
-**Durum:** Açık. Henüz oluşmamış analiz yerine anlamlı ilk adım sunulur.
+**Durum:** Tamamlandı. Henüz oluşmamış analiz yerine ölçüm durumuna ve kullanım
+biçimine bağlı tek anlamlı ilk adım sunuluyor; öneriler yalnız karşılaştırılabilir
+ölçülmüş günlerden üretiliyor.
 
-- [ ] İlk gün/eksik haftada boş grafik yerine neden ve tek uygun eylem göster:
+- [x] İlk gün/eksik haftada boş grafik yerine neden ve tek uygun eylem göster:
   ölçümü etkinleştir, ilk odağı başlat veya bugünkü planı incele.
-- [ ] Ölçüm kapalı, veri yok, gerçek sıfır ve veri okunamadı durumlarını ayır;
+- [x] Ölçüm kapalı, veri yok, gerçek sıfır ve veri okunamadı durumlarını ayır;
   hepsini sıfır dakika veya yüzde 100 iyileşme olarak sunma.
-- [ ] Farkındalık, kural/oturum sayacı ve odak süresinin neyi ölçtüğünü açıkla;
+- [x] Farkındalık, kural/oturum sayacı ve odak süresinin neyi ölçtüğünü açıkla;
   farklı metrikleri aynı toplam gibi adlandırma.
-- [ ] Karşılaştırmada dönem ve geçerli gün sayısını göster; yeterli tabana
+- [x] Karşılaştırmada dönem ve geçerli gün sayısını göster; yeterli tabana
   kadar azaltma önerisini kapatıp nedenini söyle.
-- [ ] Şablon değiştirilebilir öneri olsun; upgrade mevcut ayarı yeniden
+- [x] Şablon değiştirilebilir öneri olsun; upgrade mevcut ayarı yeniden
   şablonla ezmesin. Ölçüm reddi normal çalışmayı/güvenliği bozmasın.
 
 Kabul: Temiz kurulum, ölçüm reddi, üç günlük geçmiş, silinmiş geçmiş ve bozuk
 dosya doğru/farklı durum gösterir. İki dilde ilk anlamlı eyleme iki dakikada ulaşılır.
+Otomatik kabul; temiz/verisiz, reddedilmiş, ölçülmüş sıfır, üç günlük eksik
+taban, legacy migration, yedekten kurtarma, tamamen okunamayan dosya ve Aile
+planının ölçüm reddinde de uygulanması örneklerini kapsar. Son görsel/erişilebilirlik
+cihaz kanıtı `V1-09` içinde tutulur.
 
 #### V1-09 — Kapanış kanıtı ve geliştirme sınırları
 
@@ -411,7 +429,7 @@ dosya doğru/farklı durum gösterir. İki dilde ilk anlamlı eyleme iki dakikad
 - [ ] Önce başarısız davranışı/kabul örneğini teste çevir; yanlış sonucu
   onaylayan testi koruma. Yeni ritim, zaman, persistence ve policy testlerini
   konu bazlı ayır; mevcut smoke kapsamını kaybetme.
-- [ ] V1-01–V1-08 ve V1-10–V1-15 otomatik ve gerçek cihaz senaryolarını matrise kimlikleriyle
+- [x] V1-01–V1-08 ve V1-10–V1-15 otomatik ve gerçek cihaz senaryolarını matrise kimlikleriyle
   bağla. Build SHA, tarih, ön koşul, beklenen/gerçek sonuç ve kanıt kaydet.
 - [ ] Kaynak metinleri ve kullanıcı rehberlerini aynı değişiklikte TR/EN
   eşle. Klavye, ekran okuyucu, yüksek kontrast, dar pencere, yüzde 100–200 DPI,
@@ -430,124 +448,159 @@ build başarısı iddia edilmez; commit/tag/paket ayrıca yayın görevidir.
 
 #### V1-10 — Korumayı açmadan önce sonuç ve kurtarma özeti
 
-**Durum:** Açık; yeni fikir, doğrulanmış kod hatası değildir. **Bağlantı:** V1-07
-durum modeli ve mevcut kurulum/PIN/recovery akışları. Yeni güvenlik mekanizması kurulmaz.
+**Durum:** Tamamlandı. Kurucu ve mevcut ayardan geçiş aynı policy sonuç
+modelini kullanıyor; bilgilendirme onayı, PIN/kurtarma hazırlığı, Guardian ve
+Windows yönetici onayı birbirinden ayrı kalıyor.
 
-- [ ] Korumalı/Aile etkinleştirmeden önce süre dolunca ne olacağını, hangi
+- [x] Korumalı/Aile etkinleştirmeden önce süre dolunca ne olacağını, hangi
   ayarın hemen veya bekleyerek değişeceğini ve yönetici gerektiren işlemleri göster.
-- [ ] Seçilen gerçek policy üzerinden sonuç özeti üret; pazarlama metniyle
+- [x] Seçilen gerçek policy üzerinden sonuç özeti üret; pazarlama metniyle
   teknik davranış çelişmesin. Standart kullanıcı/ayrı yönetici sınırını açıkla.
-- [ ] Mevcut kurtarma hazırlığını kontrol et; eksik ön koşulu ve giderme yolunu
+- [x] Mevcut kurtarma hazırlığını kontrol et; eksik ön koşulu ve giderme yolunu
   göster. Recovery kodu/PIN gibi sırları özete, tanılamaya veya ekran kartına koyma.
-- [ ] Sonuç onayı ile mevcut yetkilendirmeyi ayrı tut; bilgi onayı PIN yerine
+- [x] Sonuç onayı ile mevcut yetkilendirmeyi ayrı tut; bilgi onayı PIN yerine
   geçmesin. İptal, yetki reddi veya kayıt hatası yeni policy'yi kısmen etkinleştirmesin.
-- [ ] Zaten korunan cihazda bu ekranı kapatmak mevcut korumayı kaldırmasın;
+- [x] Zaten korunan cihazda bu ekranı kapatmak mevcut korumayı kaldırmasın;
   yeniden yapılandırma aynı yetki ve bekleme kurallarına uysun.
 
 Kabul: İlk kurulum ve mevcut ayardan Korumalı/Aile geçişinde kullanıcı sonuçları
 önceden görür. Eksik kurtarma hazırlığı açıklanır; yanlış PIN, iptal, Guardian
 erişim hatası ve kayıt hatası güvenlik seviyesini sessizce değiştirmez.
+Otomatik kapsam; gerçek limit eylemi/plan günü özeti, eksik ve hazır Aile
+kurtarması, Korumalı Kişisel Windows yöneticisi sınırı, zaten korunan policy,
+eksik hazırlıkta atomik ret ve açık kurtarma kodunun ayar JSON'una sızmamasını
+doğrular. Son paket üzerindeki UAC/Guardian iptal kanıtı `V1-09` matrisinde tutulur.
 
 #### V1-11 — Güvenli süre bitişi tanıtımı
 
-**Durum:** Açık; V1 kapsamı yalnız mevcut uyarı/bitiş görünümünün küçük
+**Durum:** Tamamlandı; V1 kapsamı yalnız mevcut uyarı/bitiş görünümünün küçük
 önizlemesidir. Etkileşimli tur, ayrı demo motoru ve gerçek kilitleme kapsam dışıdır.
 **Bağlantı:** V1-10; isteğe bağlı kullanıcı adımıdır, zorunlu kurulum adımı değildir.
 
-- [ ] Uyarı ve süre bitişini açıkça “Önizleme” etiketli, kolay kapatılabilir
+- [x] Uyarı ve süre bitişini açıkça “Önizleme” etiketli, kolay kapatılabilir
   normal bir pencerede göster; gerçek oturum yüzeyi/ekran kalkanı başlatma.
-- [ ] Sentetik veri kullan; sayaç, ayar, seri, PIN, Guardian, Windows kilidi,
+- [x] Sentetik veri kullan; sayaç, ayar, seri, PIN, Guardian, Windows kilidi,
   bildirim zamanlayıcısı ve uygulama engelleme üzerinde yan etki oluşturma.
-- [ ] Eylemleri açıklayıcı örnek olarak göster; gerçek ek süre/kurtarma veya
+- [x] Eylemleri açıklayıcı örnek olarak göster; gerçek ek süre/kurtarma veya
   yetki değiştirme komutuna bağlama. Metinleri gerçek ekranlarla ortak kaynaklardan al.
-- [ ] Mevcut koruma izin vermiyorsa tanıtımı açma; önizleme korunan oturumdan
+- [x] Mevcut koruma izin vermiyorsa tanıtımı açma; önizleme korunan oturumdan
   masaüstüne kaçış veya development bypass yolu olmasın.
 
 Kabul: Aç/kapat ve örnek düğmelere basma öncesi/sonrası gerçek durum değişmez.
 Public pakette demo üzerinden koruma atlanamaz; iki dilde önizleme olduğu
 anlaşılır ve klavyeyle kapanır. Daha kapsamlı tanıtım V1 sonrasına bırakılır.
 
+Uygulama notu: Ayarlar içindeki önizleme sabit `SessionPreviewScenario` verisiyle
+normal bir pencere açar. Örnek düğmeler yalnız açıklama metnini değiştirir; hiçbir
+store, oturum motoru, bildirim veya koruma komutuna sahip değildir. Korumalı modda
+Guardian sağlıksızsa pencere açılmaz; `Esc`, kapatma düğmesi ve pencere çarpısı
+aynı yan etkisiz kapanışı kullanır.
+
 
 #### V1-12 — Anlaşılır çalışma sağlığı
 
-**Durum:** Açık; mevcut sağlık/tanılama altyapısını görünür kılma, yeni telemetri
+**Durum:** Tamamlandı; mevcut sağlık/tanılama altyapısını görünür kılma, yeni telemetri
 değildir. **Bağlantı:** V1-07 ve V1-08.
 
-- [ ] Ölçüm, koruma/Guardian ve son başarılı yerel kayıt durumlarını ayrı göster;
+- [x] Ölçüm, koruma/Guardian ve son başarılı yerel kayıt durumlarını ayrı göster;
   tek yeşil noktayla hepsinin sağlıklı olduğu izlenimini verme.
-- [ ] Kullanıcı kapatmış, bu modda gerekmiyor, kontrol ediliyor, durum güncel
+- [x] Kullanıcı kapatmış, bu modda gerekmiyor, kontrol ediliyor, durum güncel
   değil ve hata durumlarını ayır; son kontrol/kayıt bilgisini anlaşılır sun.
-- [ ] Yazma hatası veya Guardian sorunu sessizce kaybolmasın. Mevcut güvenli
+- [x] Yazma hatası veya Guardian sorunu sessizce kaybolmasın. Mevcut güvenli
   tekrar dene/onar/tanılama yolunu göster; yetkili işlem gerekiyorsa aynı onayı iste.
-- [ ] Mevcut sağlık olayları/kontrollerini kullan; ikinci agresif polling döngüsü
+- [x] Mevcut sağlık olayları/kontrollerini kullan; ikinci agresif polling döngüsü
   kurma. Tanılama dışarı otomatik gönderilmesin, sır veya içerik kaydetmesin.
 
 Kabul: Farkındalıkta Guardian gerekmemesi hata değildir. Disk yazma hatası,
 servis erişim kaybı ve eski durum bilgisi sağlıklı gösterilmez. İyileşme sonrası
 durum güncellenir; sağlık kartı korumayı devre dışı bırakan kısa yol oluşturmaz.
 
+Uygulama notu: Çalışma sağlığı kartı ölçüm, Guardian ve son yerel kaydı üç ayrı
+sütunda gösterir. Kullanıcının kapattığı ölçüm ve Guardian gerektirmeyen mod hata
+sayılmaz; ilk kayıt, eski kayıt, kurtarılan yedek, okuma/yazma hatası ve kontrol
+ediliyor durumları ayrıdır. “Denetimleri yinele” mevcut yerel yükleme ve Guardian
+sağlık sorgusunu bir kez çalıştırır; onarım ve tanılama mevcut yetkili akışlarda kalır.
+
 #### V1-13 — Odak tamamlanması ile kullanım hakkının bitişini ayırma
 
-**Durum:** Açık; V1-02/V1-06 kapanış akışının ürün sözleşmesini tamamlar.
+**Durum:** Tamamlandı; V1-02/V1-06 kapanış akışının ürün sözleşmesini tamamlar.
 
-- [ ] Odak tamamlandı, günlük süre doldu, uygulama limiti doldu ve plan sona
+- [x] Odak tamamlandı, günlük süre doldu, uygulama limiti doldu ve plan sona
   erdi olaylarını ayrı türlerle modelle; başlık, simge, isteğe bağlı ses ve eylemler
   olayın anlamını taşısın. Yalnız renk/ses farkına dayanma.
-- [ ] Odak bitişi başarı ve uygun devam/mola eylemi sunsun; tek başına Windows
+- [x] Odak bitişi başarı ve uygun devam/mola eylemi sunsun; tek başına Windows
   kilidi veya kullanım hakkının bitmesi anlamına gelmesin.
-- [ ] Odak ve erişim sınırı aynı anda dolarsa başarıyı kaybetmeden sınırı uygula:
+- [x] Odak ve erişim sınırı aynı anda dolarsa başarıyı kaybetmeden sınırı uygula:
   tek tutarlı görünümde her iki sonucu açıkla; izin yokken devam düğmesi sunma.
-- [ ] Olayları aynı kimlikle tekilleştir; yinelenen timer/pencere olayları
+- [x] Olayları aynı kimlikle tekilleştir; yinelenen timer/pencere olayları
   ikinci kutlama veya çelişkili ekran üretmesin.
 
 Kabul: Odak erken bittiğinde kullanılabilir süre korunur. Günlük limit önce
 dolarsa odak yanlışlıkla tamamlanmış sayılmaz. Aynı anda bitişte sayaç/seri doğru
 kalır ve erişim sınırı uygulanır; TR/EN bütün yüzeylerde aynı anlamı taşır.
 
+Uygulama notu: `SessionOutcomeResolver` odak sonucu ile erişim sınırını ayrı
+eksenlerde üretir ve kaynak kimliğinden kararlı olay kimliği oluşturur. Görünüm
+modeli aynı kimliği yalnız bir kez işler. Normal başarı devam/mola sunarken günlük
+limit veya plan sonuyla eşzamanlı başarı korunur, nedeni birlikte açıklanır ve
+devam eylemi kapatılır. Uygulama limiti de ayrı erişim sonucu olarak modellenmiştir.
+
 
 #### V1-14 — Bildirim önceliği ve tekrar kontrolü
 
-**Durum:** Açık. **Bağlantı:** V1-04 erteleme, V1-05 kutlama, V1-13 olay türleri.
+**Durum:** Tamamlandı. **Bağlantı:** V1-04 erteleme, V1-05 kutlama, V1-13 olay türleri.
 V1 sonrasındaki kişisel hatırlatma/sessiz saat tasarımının yerine geçmez.
 
-- [ ] Önceliği kritik koruma/kayıt sorunu, erişim sınırı ve süre uyarısı,
+- [x] Önceliği kritik koruma/kayıt sorunu, erişim sınırı ve süre uyarısı,
   odak sonucu, ritim kutlaması, haftalık öneri olarak tanımla. Düşük öncelikli
   mesaj kritik bilgi veya PIN/kurtarma penceresini örtmesin, odağı çalmasın.
-- [ ] Olay kimliği, geçerlilik süresi ve birleştirme kuralıyla tekrarları ele;
+- [x] Olay kimliği, geçerlilik süresi ve birleştirme kuralıyla tekrarları ele;
   eski 15/5/1 dakika uyarılarını sırayla oynatmak yerine güncel durumu göster.
-- [ ] Kilit/uyku sırasında kaçırılmış kutlama ve önerileri dönüşte yağdırma;
+- [x] Kilit/uyku sırasında kaçırılmış kutlama ve önerileri dönüşte yağdırma;
   süresi geçmiş olanı atla, hâlâ ilgili olanı tek özetle sun.
-- [ ] Mola ve modal doğrulama sırasında düşük öncelikli bildirimleri ertele;
+- [x] Mola ve modal doğrulama sırasında düşük öncelikli bildirimleri ertele;
   kritik durum erişilebilir kalırken enforcement bildirim kuyruğunu beklemesin.
-- [ ] Ekran okuyucu duyurularını da tekilleştir; bildirim kaybolsa bile gerekli
+- [x] Ekran okuyucu duyurularını da tekilleştir; bildirim kaybolsa bile gerekli
   durum/eylem Bugün veya ilgili ekranda tekrar bulunabilsin.
 
 Kabul: Aynı anda süre uyarısı, hedef başarısı ve öneri oluşunca çelişkili üç
 pencere açılmaz. Uyku/yeniden açılış geçmiş bildirimleri yağdırmaz. Kritik
 enforcement zamanında çalışır; PIN penceresinin odağı korunur.
 
+Uygulama notu: Ortak `UserNoticeCoordinator` kritik sağlık, erişim sınırı, süre
+uyarısı, odak sonucu, ritim kutlaması ve öneri önceliklerini olay kimliği,
+birleştirme anahtarı ve geçerlilik süresiyle değerlendirir. Oturum uyarıları ve
+kilometre taşları bu kapıdan geçer; modal sırasında düşük öncelik ertelenir,
+süresi geçmiş olay ve aynı erişilebilir duyuru ikinci kez sunulmaz.
+
 #### V1-15 — Verilerim: saklama, silme ve dışa aktarma açıklığı
 
-**Durum:** Açık; mevcut gizlilik kontrollerini anlaşılır kılma işidir.
+**Durum:** Tamamlandı; mevcut gizlilik kontrollerini anlaşılır kılma işidir.
 **Bağlantı:** V1-01 saklama/ritim ayrımı, V1-08 ölçüm açıklığı. Yeni bulut veya
 genel yedek/içe aktarma sistemi V1'e eklenmez.
 
-- [ ] Saklanan veri kategorilerini, amaçlarını, saklama sürelerini ve cihazda
+- [x] Saklanan veri kategorilerini, amaçlarını, saklama sürelerini ve cihazda
   kalma sınırını göster. Kullanım geçmişi, ritim özeti ve tanılamayı ayır;
   PIN/anahtar/kurtarma içeriğini görüntüleme.
-- [ ] Silme öncesinde hangi grafik, seri ve özetlerin etkileneceğini göster;
+- [x] Silme öncesinde hangi grafik, seri ve özetlerin etkileneceğini göster;
   kapsam seçimini mevcut V1-01 sözleşmesine bağla. İptal veri değiştirmesin.
-- [ ] Kullanım verisi silme ile güvenlik kimliği/policy kaldırmayı ayır;
+- [x] Kullanım verisi silme ile güvenlik kimliği/policy kaldırmayı ayır;
   gizlilik ekranı PIN veya Guardian korumasını yetkisiz kaldıramasın.
-- [ ] Dışa aktarmadan önce dosyanın veri kategorileri, tarih aralığı ve
+- [x] Dışa aktarmadan önce dosyanın veri kategorileri, tarih aralığı ve
   uygulama adları içerip içermediğini göster. Desteklenen kapsamı açıkça anlat;
   kimlik sırlarını ve varsayılan özel odak niyetini dosyaya ekleme.
-- [ ] Hedef dosyayı kullanıcı seçsin; üzerine yazmada onay iste. Yazma/silme
+- [x] Hedef dosyayı kullanıcı seçsin; üzerine yazmada onay iste. Yazma/silme
   başarısızlığını başarı gibi sunma; kısmi sonuç varsa açıkça bildir.
 
 Kabul: Geçmiş silme/ritim sıfırlama/tüm ilgili verileri silme sonuçları onayla
 eşleşir. İptal ve disk hatası yanlış başarı üretmez. Dışa aktarılan içerik
 önizlemeyle eşleşir, sır içermez ve hiçbir dosya otomatik dışarı gönderilmez.
+
+Uygulama notu: Ayarlar > Gizlilik ve veri içindeki `Verilerim` penceresi yerel
+envanteri, saklama süresini, tarih aralığını ve uygulama adı kapsamını dışa
+aktarmadan önce gösterir. Ayrıntılı kullanım, yalnız ritim veya kullanım+ritim
+ayrı onaylı kapsamdır. Saat güvenliği ile plan/PIN/Guardian policy silme kapsamına
+girmez; JSON/CSV yalnız kullanıcının seçtiği hedefe ve üzerine yazma onayıyla gider.
 
 
 ### P0 — `v1.0.0` release engelleri

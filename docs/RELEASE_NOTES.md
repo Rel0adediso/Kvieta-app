@@ -1,6 +1,71 @@
 # Kvieta release notes
 
-## Unreleased V1 work
+## Kvieta Alpha 4 — Current community preview
+
+Kvieta Alpha 4 completes the planned pre-V1 product software packages around
+honest measurement, daily Rhythm goals, focus closure, policy explanation,
+runtime health, notice priority, and local-data control. The numeric MSI version
+remains `1.0.0` for in-place servicing; the public package label is `Alpha-4`
+and the GitHub tag is `kvieta-alpha-4`.
+
+### Notice priority and My data
+
+- Adds a shared notice priority, event identity, merge key, and expiration model.
+  Current time warnings replace stale ones, duplicate announcements are suppressed,
+  expired notices do not flood the user after sleep, and low-priority celebration
+  UI does not take focus from authorization dialogs.
+- Adds **Settings > Privacy and data > My data**, showing local categories,
+  retention and date range before export or deletion. JSON/CSV previews explicitly
+  disclose application-name inclusion and excluded secrets.
+- Separates deletion of detailed usage, reset of Rhythm Streak/Protectors, and
+  deletion of all usage plus rhythm. Confirmation is required and none of these
+  scopes removes plans, PIN state, clock safety, security identity, or Guardian policy.
+
+### Safe preview, visible health, and coherent endings
+
+- Adds a clearly labelled, synthetic time-expiry preview that never starts a
+  session, schedules notifications, changes local data, or invokes protection.
+  Example actions only explain behavior, and protected modes refuse the preview
+  while Guardian health needs attention.
+- Separates measurement, Guardian, and latest local-save health. Disabled,
+  not-required, checking, stale, recovered, and error states no longer collapse
+  into one reassuring indicator; retry, repair, and diagnostics keep their
+  existing local authorization boundaries.
+- Models focus completion/early ending separately from daily limit, plan end,
+  and application limit. Simultaneous focus success and an access boundary now
+  retain the success while suppressing an invalid continue action, with stable
+  event identities preventing duplicate outcomes.
+
+### Protection outcome and recovery review
+
+- Adds a shared policy-derived outcome model for setup and in-app transitions
+  into Family or Protected Personal use. It explains the actual time-expiry
+  action, active plan days, immediate protection increase, Guardian requirement,
+  and the standard-user/separate-administrator boundary.
+- Keeps acknowledgement informational: it cannot replace PIN verification,
+  recovery preparation, Guardian provisioning, or Windows administrator consent.
+- Requires first-time Family transitions to prepare and explicitly acknowledge
+  one-time recovery codes before the policy can be saved. Plain codes are shown
+  only for delivery; settings retain verifier records rather than code content.
+- Rejects a Family transition atomically when its PIN or recovery preparation is
+  missing, while update/repair cancellation leaves an existing protected policy
+  unchanged.
+
+### Honest first-week measurement
+
+- Separates measurement disabled, no observation yet, confirmed measured zero,
+  collecting baseline, ready comparison, backup recovery, and unreadable local
+  data instead of presenting every missing state as zero usage or improvement.
+- Adds one mode-appropriate first action for incomplete weeks: enable local
+  measurement, start a 25-minute focus, review today's plan, or review today's
+  summary. Measurement remains optional and does not weaken plans or protection.
+- Shows the exact current and previous seven-day periods with their valid-day
+  counts, explains awareness, app-rule, and focus counters as separate metrics,
+  and withholds reduction suggestions until both periods are comparable.
+- Migrates usage data to schema 9 with an explicit awareness-observation marker;
+  positive legacy records remain measured while unknown legacy zeroes stay neutral.
+- Keeps setup templates editable and verifies that update/repair flows preserving
+  existing settings do not reapply a selected template over user choices.
 
 ### Focus closure and explainable policy state
 
@@ -43,7 +108,7 @@
 - Snapshots the daily Rhythm goal, balance limit, planned-rest state, approved
   allowance, and final outcome in the local usage record. Later mode or schedule
   changes no longer reinterpret finalized days.
-- Migrates local usage data to schema 8. Legacy days without a trustworthy goal
+- Migrates local usage data to schema 9. Legacy days without a trustworthy goal
   snapshot remain neutral instead of being rewarded or penalized using today's settings.
 - Preserves current streak, best streak, Protector balance, and successful-day
   count in a compact checkpoint when detailed usage history is trimmed.
@@ -66,7 +131,32 @@
 - Clarifies in both languages that deleting usage data also resets the current
   and best Rhythm Streak and Rhythm Protectors while leaving plans and protection unchanged.
 
-## Kvieta Alpha 3 — Current community preview
+### Alpha 4 correctness and security fixes
+
+- Derives in-app protection-transition copy from the actual target mode, expiry
+  action, Guardian requirement, and recovery state instead of claiming Windows
+  lock or increased protection for every transition.
+- Counts only completed focus sessions of at least five minutes toward a
+  session-count Rhythm goal; shorter custom sessions still retain their elapsed
+  focus time without inflating the streak target.
+- Prevents a Rhythm-only reset from immediately recreating today's streak from
+  activity recorded before the reset while preserving raw local usage.
+- Keeps measurement health in the waiting state until a real local observation
+  exists, even when another ledger write has a recent timestamp.
+- Resolves historical rule application names for JSON and CSV exports and uses
+  an explicit deleted-application fallback instead of exporting blank names.
+
+### Alpha 4 validation and known limits
+
+- Debug and Release builds and smoke-test configurations pass with zero warnings
+  and zero errors. Documentation, public-build bypass, installer metadata,
+  embedded MSI, checksum, and manifest gates are required for the tagged package.
+- This remains an unsigned community prerelease. Windows SmartScreen may show an
+  unknown-publisher warning; the package is not Authenticode-signed.
+- Final V1 still requires the documented real-device Guardian, lifecycle,
+  upgrade, accessibility, multi-monitor/DPI, and long-running usage matrix.
+
+## Kvieta Alpha 3 — Previous community preview
 
 Kvieta Alpha 3 brings the pre-V1 product experience into one coherent,
 purpose-led flow. It keeps the numeric MSI version at `1.0.0` so existing Alpha

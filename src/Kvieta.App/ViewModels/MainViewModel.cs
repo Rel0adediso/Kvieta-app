@@ -6,11 +6,22 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Globalization;
 using Kvieta.Core.Models;
 using Kvieta.Core.Services;
 using Kvieta.App.Services;
 
 namespace Kvieta.App.ViewModels;
+
+public enum RhythmFirstStepAction
+{
+    None,
+    EnableMeasurement,
+    StartFocus,
+    ReviewPlan,
+    ReviewSummary,
+    RetryData
+}
 
 public sealed class MainViewModel : ObservableObject
 {
@@ -51,9 +62,14 @@ public sealed class MainViewModel : ObservableObject
     private UsageLedger? _lastUsageLedger;
     private string _selectedHistoryDaySummaryText = "—";
     private AdminCredential? _stagedAdminCredential;
+    private List<RecoveryCodeRecord>? _stagedRecoveryCodes;
     private string _dailyRhythmGoal = "25 dk odak";
     private string _selectedRhythmDayText = "—";
     private int? _suggestedReductionPercent;
+    private bool _usageReadFailed;
+    private string? _usageReadFailureMessage;
+    private bool _localWriteFailed;
+    private string? _localWriteFailureMessage;
 
     public MainViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -246,11 +262,47 @@ public sealed class MainViewModel : ObservableObject
         }
     }
     public string LocalDataHealthText =>
-        _settingsStore.LastLoadRecoveredFromBackup || _usageStore.LastLoadRecoveredFromBackup
+        _usageReadFailed
+            ? L("Okunamadı", "Unreadable")
+            : _settingsStore.LastLoadRecoveredFromBackup || _usageStore.LastLoadRecoveredFromBackup
             ? L("Yedekten kurtarıldı", "Recovered from backup")
             : _settingsStore.LastLoadMigrated || _usageStore.LastLoadMigrated
                 ? L("Taşındı ve doğrulandı", "Migrated and verified")
                 : L("Doğrulandı", "Verified");
+    public string MeasurementHealthText => _usageReadFailed
+        ? L("Hata", "Error")
+        : !AwarenessTrackingEnabled
+            ? L("Kullanıcı tarafından kapalı", "Disabled by user")
+            : _lastUsageLedger is null || !_lastUsageLedger.AwarenessMeasurementAvailable
+                ? L("İlk ölçüm bekleniyor", "Waiting for first measurement")
+                : DateTimeOffset.UtcNow - _lastUsageLedger.LastUpdatedUtc > TimeSpan.FromHours(24)
+                    ? L("Güncel değil", "Not current")
+                    : L("Çalışıyor", "Working");
+    public string MeasurementHealthDetailText => _usageReadFailed
+        ? _usageReadFailureMessage ?? L("Yerel kullanım verisi okunamadı.", "Local usage data could not be read.")
+        : !AwarenessTrackingEnabled
+            ? L("Ölçüm isteğe bağlı olarak kapatıldı; plan ve koruma çalışmaya devam eder.", "Measurement was disabled by choice; plans and protection keep working.")
+            : _lastUsageLedger is null || !_lastUsageLedger.AwarenessMeasurementAvailable
+                ? L("Henüz yerel gözlem kaydı oluşmadı.", "No local observation has been recorded yet.")
+                : string.Format(L("Son ölçüm: {0:g}", "Last measurement: {0:g}"), _lastUsageLedger.LastUpdatedUtc.ToLocalTime());
+    public string LocalSaveHealthText => _localWriteFailed
+        ? L("Kaydetme hatası", "Save error")
+        : _usageReadFailed
+            ? L("Okuma hatası", "Read error")
+            : _settingsStore.LastLoadRecoveredFromBackup || _usageStore.LastLoadRecoveredFromBackup
+                ? L("Yedekten kurtarıldı", "Recovered from backup")
+                : _lastUsageLedger is null || _lastUsageLedger.LastUpdatedUtc == DateTimeOffset.MinValue
+                    ? L("Henüz kayıt yok", "Not saved yet")
+                    : DateTimeOffset.UtcNow - _lastUsageLedger.LastUpdatedUtc > TimeSpan.FromHours(24)
+                        ? L("Eski kayıt", "Stale save")
+                        : L("Yerelde kayıtlı", "Saved locally");
+    public string LocalSaveHealthDetailText => _localWriteFailed
+        ? _localWriteFailureMessage ?? L("Son yerel yazma tamamlanamadı.", "The latest local write did not complete.")
+        : _usageReadFailed
+            ? _usageReadFailureMessage ?? L("Yerel veri okunamadı.", "Local data could not be read.")
+            : _lastUsageLedger is null || _lastUsageLedger.LastUpdatedUtc == DateTimeOffset.MinValue
+                ? L("İlk kullanım kaydı bekleniyor.", "Waiting for the first usage save.")
+                : string.Format(L("Son yerel kayıt: {0:g}", "Latest local save: {0:g}"), _lastUsageLedger.LastUpdatedUtc.ToLocalTime());
     public bool IsPersonalMode => SelectedUsageMode == UsageMode.Personal;
     public bool IsFamilyMode => SelectedUsageMode == UsageMode.Family;
     public bool IsInsightsMode => SelectedUsageMode == UsageMode.Insights;
@@ -357,6 +409,13 @@ public sealed class MainViewModel : ObservableObject
     public string RhythmProtectorText { get; private set; } = "0/2";
     public string RhythmTodayProgressText { get; private set; } = "—";
     public string RhythmSuggestionPreviewText { get; private set; } = "—";
+    public string RhythmComparisonPeriodText { get; private set; } = "—";
+    public string RhythmMetricExplanationText { get; private set; } = "—";
+    public string RhythmFirstStepTitle { get; private set; } = "—";
+    public string RhythmFirstStepText { get; private set; } = "—";
+    public string RhythmFirstStepActionText { get; private set; } = "—";
+    public RhythmFirstStepAction RhythmNextAction { get; private set; }
+    public bool HasRhythmFirstStep => RhythmNextAction != RhythmFirstStepAction.None;
     public string RhythmWeekSymbolsText { get; private set; } = "—";
     public bool CanApplyRhythmSuggestion { get; private set; }
     public int? RhythmReachedMilestone { get; private set; }
@@ -385,6 +444,7 @@ public sealed class MainViewModel : ObservableObject
         {
             _settings = await _settingsStore.LoadAsync();
             _stagedAdminCredential = null;
+            _stagedRecoveryCodes = null;
             bool settingsRecovered = _settingsStore.LastLoadRecoveredFromBackup;
             DeviceName = _settings.DeviceName is "Kardeş Bilgisayarı" or "Oyun Bilgisayarı" or "Bu Bilgisayar" or "This Computer"
                 ? LocalizationService.Get("DefaultDeviceName")
@@ -414,9 +474,11 @@ public sealed class MainViewModel : ObservableObject
             await ReloadUsageAsync();
             bool usageRecovered = _usageStore.LastLoadRecoveredFromBackup;
             RefreshOverview();
-            StatusMessage = settingsRecovered || usageRecovered
-                ? L("Veriler son sağlam yedekten kurtarıldı", "Data was recovered from the last known good backup")
-                : L("Ayarlar yüklendi", "Settings loaded");
+            StatusMessage = _usageReadFailed
+                ? $"{L("Kullanım verisi okunamadı", "Usage data could not be read")}: {_usageReadFailureMessage}"
+                : settingsRecovered || usageRecovered
+                    ? L("Veriler son sağlam yedekten kurtarıldı", "Data was recovered from the last known good backup")
+                    : L("Ayarlar yüklendi", "Settings loaded");
         }
         catch (Exception exception)
         {
@@ -426,14 +488,31 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task ReloadUsageAsync()
     {
-        UsageLedger ledger = await _usageStore.LoadAsync();
         DateOnly today = DateOnly.FromDateTime(DateTime.Today);
-        _lastUsageLedger = ledger;
-        UsedTodayMinutes = ledger.LocalDay == today
-            ? (int)((IsInsightsMode ? ledger.AwarenessUsedSeconds : ledger.UsedSeconds) / 60)
-            : 0;
-        BuildUsageHistory(ledger);
-        BuildRhythm(ledger);
+        try
+        {
+            UsageLedger ledger = await _usageStore.LoadAsync();
+            _usageReadFailed = false;
+            _usageReadFailureMessage = null;
+            _lastUsageLedger = ledger;
+            UsedTodayMinutes = ledger.LocalDay == today
+                ? (int)((IsInsightsMode ? ledger.AwarenessUsedSeconds : ledger.UsedSeconds) / 60)
+                : 0;
+            BuildUsageHistory(ledger);
+            BuildRhythm(ledger);
+        }
+        catch (Exception exception)
+        {
+            _usageReadFailed = true;
+            _usageReadFailureMessage = exception.Message;
+            UsageLedger unavailable = new() { LocalDay = today };
+            _lastUsageLedger = unavailable;
+            UsedTodayMinutes = 0;
+            BuildUsageHistory(unavailable);
+            BuildRhythm(unavailable);
+        }
+
+        NotifyRuntimeHealth();
     }
 
     public async Task MarkTodaySummaryReviewedAsync()
@@ -441,6 +520,33 @@ public sealed class MainViewModel : ObservableObject
         await _usageStore.MarkSummaryReviewedAsync(DateOnly.FromDateTime(DateTime.Today));
         await ReloadUsageAsync();
         StatusMessage = L("Günlük özet değerlendirildi; bugünün ritmine işlendi.", "Daily summary reviewed and recorded in today's rhythm.");
+    }
+
+    public async Task<bool> EnableAwarenessMeasurementAsync()
+    {
+        try
+        {
+            _settings = await _settingsStore.UpdateAsync(current =>
+            {
+                current.AwarenessTrackingEnabled = true;
+                return current;
+            });
+            AwarenessTrackingEnabled = true;
+            if (_lastUsageLedger is not null) BuildRhythm(_lastUsageLedger);
+            _localWriteFailed = false;
+            _localWriteFailureMessage = null;
+            NotifyRuntimeHealth();
+            StatusMessage = L("Yerel ölçüm etkinleştirildi.", "Local measurement enabled.");
+            return true;
+        }
+        catch (Exception exception)
+        {
+            _localWriteFailed = true;
+            _localWriteFailureMessage = exception.Message;
+            NotifyRuntimeHealth();
+            StatusMessage = $"{L("Ölçüm etkinleştirilemedi", "Measurement could not be enabled")}: {exception.Message}";
+            return false;
+        }
     }
 
     public async Task<bool> ApplyRhythmSuggestionAsync()
@@ -525,12 +631,20 @@ public sealed class MainViewModel : ObservableObject
                 FocusRhythmTargetKind = FromDisplayDailyRhythmGoal(DailyRhythmGoal).Kind,
                 FocusRhythmTargetValue = FromDisplayDailyRhythmGoal(DailyRhythmGoal).Value,
                 AdminPin = _stagedAdminCredential ?? _settings.AdminPin,
-                RecoveryCodes = CloneRecoveryCodes(_settings.RecoveryCodes),
+                RecoveryCodes = CloneRecoveryCodes(_stagedRecoveryCodes ?? _settings.RecoveryCodes),
                 WarningMinutes = [15, 5, 1],
                 Schedule = schedule,
                 TemporaryAllowances = TemporaryAllowances.Select(row => row.ToModel()).ToList(),
                 AppRules = AppRules.Select(row => row.ToModel()).ToList()
             };
+            if (_settings.Mode != UsageMode.Family && desired.Mode == UsageMode.Family &&
+                (!desired.AdminPin.IsConfigured || !desired.RecoveryCodes.Any(code => code.UsedAtUtc is null)))
+            {
+                StatusMessage = L(
+                    "Aile koruması kaydedilmeden önce PIN ve kurtarma kodu hazırlığını tamamla.",
+                    "Complete PIN and recovery-code preparation before saving Family protection.");
+                return false;
+            }
             bool policyChanged = !SettingsEquivalent(_settings, desired);
 
             if (SelectedUsageMode == UsageMode.Personal && SettingsPolicyComparer.HasRelaxation(_settings, desired))
@@ -555,6 +669,7 @@ public sealed class MainViewModel : ObservableObject
                 _settings = immediate;
                 await SaveUserSettingsAsync(_settings);
                 _stagedAdminCredential = null;
+                _stagedRecoveryCodes = null;
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
                 if (policyChanged)
                 {
@@ -567,6 +682,9 @@ public sealed class MainViewModel : ObservableObject
                 LoadPolicyRows(_settings);
                 NotifyPendingChange();
                 RefreshOverview();
+                _localWriteFailed = false;
+                _localWriteFailureMessage = null;
+                NotifyRuntimeHealth();
                 StatusMessage = BuildPendingStatusMessage();
                 return true;
             }
@@ -591,6 +709,7 @@ public sealed class MainViewModel : ObservableObject
 
             await SaveUserSettingsAsync(_settings);
             _stagedAdminCredential = null;
+            _stagedRecoveryCodes = null;
             await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
             if (policyChanged)
             {
@@ -599,11 +718,17 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(AppliedStartWithWindows));
             NotifyPendingChange();
             RefreshOverview();
+            _localWriteFailed = false;
+            _localWriteFailureMessage = null;
+            NotifyRuntimeHealth();
             StatusMessage = $"{L("Kaydedildi", "Saved")} · {DateTime.Now:HH:mm:ss}";
             return true;
         }
         catch (Exception exception)
         {
+            _localWriteFailed = true;
+            _localWriteFailureMessage = exception.Message;
+            NotifyRuntimeHealth();
             StatusMessage = $"{L("Kaydetme başarısız", "Save failed")}: {exception.Message}";
             return false;
         }
@@ -741,37 +866,55 @@ public sealed class MainViewModel : ObservableObject
     public async Task<string> ExportUsageJsonAsync()
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
-        return JsonSerializer.Serialize(ledger, IndentedJsonOptions);
+        List<DailyUsageRecord> days = BuildExportDays(ledger);
+        var export = new
+        {
+            ExportedAtUtc = DateTimeOffset.UtcNow,
+            RetentionDays = _settings.UsageRetentionDays,
+            Days = days.OrderBy(day => day.LocalDay).Select(day => new
+            {
+                Date = day.LocalDay,
+                SessionSeconds = day.UsedSeconds,
+                ForegroundSeconds = day.AwarenessUsedSeconds,
+                day.FocusSessionCount,
+                day.FocusCompletedSeconds,
+                RhythmOutcome = day.RhythmOutcome?.ToString(),
+                Applications = day.Applications.Select(app => new { app.Name, app.UsedSeconds }),
+                ForegroundApplications = day.ForegroundApplications.Select(app => new { app.Name, app.UsedSeconds }),
+                HourlyForegroundSeconds = day.AwarenessHourlyUsedSeconds
+            })
+        };
+        return JsonSerializer.Serialize(export, IndentedJsonOptions);
+    }
+
+    public async Task<DataInventorySummary> GetDataInventoryAsync()
+    {
+        UsageLedger ledger = await _usageStore.LoadAsync();
+        return DataInventoryAnalyzer.Analyze(_settings, ledger);
+    }
+
+    public async Task DeleteDataAsync(DataDeletionScope scope)
+    {
+        UsageLedger ledger = scope switch
+        {
+            DataDeletionScope.DetailedUsage => await _usageStore.ClearDetailedUsageAsync(),
+            DataDeletionScope.RhythmSummary => await _usageStore.ResetRhythmAsync(),
+            _ => await _usageStore.ClearAsync()
+        };
+        _lastUsageLedger = ledger;
+        UsedTodayMinutes = ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today)
+            ? (int)((IsInsightsMode ? ledger.AwarenessUsedSeconds : ledger.UsedSeconds) / 60)
+            : 0;
+        BuildUsageHistory(ledger);
+        BuildRhythm(ledger);
+        NotifyRuntimeHealth();
+        StatusMessage = LocalizationService.Get("DataDeleted");
     }
 
     public async Task<string> ExportUsageCsvAsync()
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
-        List<DailyUsageRecord> days = [.. ledger.History];
-        if (ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today))
-        {
-            Dictionary<Guid, string> ruleNames = _settings.AppRules.ToDictionary(rule => rule.Id, rule => rule.Name);
-            days.RemoveAll(day => day.LocalDay == ledger.LocalDay);
-            days.Add(new DailyUsageRecord
-            {
-                LocalDay = ledger.LocalDay,
-                UsedSeconds = ledger.UsedSeconds,
-                AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
-                AwarenessHourlyUsedSeconds = new Dictionary<int, long>(ledger.AwarenessHourlyUsedSeconds),
-                Applications = ledger.AppUsedSeconds.Select(item => new AppUsageRecord
-                {
-                    RuleId = item.Key,
-                    Name = ruleNames.GetValueOrDefault(item.Key, L("Uygulama", "Application")),
-                    UsedSeconds = item.Value
-                }).ToList(),
-                ForegroundApplications = ledger.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
-                {
-                    ApplicationId = item.Key,
-                    Name = Path.GetFileNameWithoutExtension(item.Key),
-                    UsedSeconds = item.Value
-                }).ToList()
-            });
-        }
+        List<DailyUsageRecord> days = BuildExportDays(ledger);
 
         StringBuilder csv = new("date,type,name,seconds,minutes\r\n");
         foreach (DailyUsageRecord day in days.OrderBy(item => item.LocalDay))
@@ -792,6 +935,47 @@ public sealed class MainViewModel : ObservableObject
             }
         }
         return csv.ToString();
+    }
+
+    private List<DailyUsageRecord> BuildExportDays(UsageLedger ledger)
+    {
+        List<DailyUsageRecord> days = [.. ledger.History];
+        Dictionary<Guid, string> ruleNames = _settings.AppRules.ToDictionary(rule => rule.Id, rule => rule.Name);
+        foreach (AppUsageRecord application in days.SelectMany(day => day.Applications))
+        {
+            if (string.IsNullOrWhiteSpace(application.Name))
+            {
+                application.Name = ruleNames.GetValueOrDefault(
+                    application.RuleId,
+                    L("Silinmiş uygulama", "Deleted application"));
+            }
+        }
+        if (ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today))
+        {
+            days.RemoveAll(day => day.LocalDay == ledger.LocalDay);
+            days.Add(new DailyUsageRecord
+            {
+                LocalDay = ledger.LocalDay,
+                UsedSeconds = ledger.UsedSeconds,
+                AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
+                FocusSessionCount = ledger.FocusSessionCount,
+                FocusCompletedSeconds = ledger.FocusCompletedSeconds,
+                AwarenessHourlyUsedSeconds = new Dictionary<int, long>(ledger.AwarenessHourlyUsedSeconds),
+                Applications = ledger.AppUsedSeconds.Select(item => new AppUsageRecord
+                {
+                    RuleId = item.Key,
+                    Name = ruleNames.GetValueOrDefault(item.Key, L("Uygulama", "Application")),
+                    UsedSeconds = item.Value
+                }).ToList(),
+                ForegroundApplications = ledger.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
+                {
+                    ApplicationId = item.Key,
+                    Name = Path.GetFileNameWithoutExtension(item.Key),
+                    UsedSeconds = item.Value
+                }).ToList()
+            });
+        }
+        return days;
     }
 
     public async Task<string> ExportDiagnosticsJsonAsync()
@@ -1004,7 +1188,7 @@ public sealed class MainViewModel : ObservableObject
         {
             _settings.PendingChange = null;
         }
-        await SaveAsync();
+        if (!await SaveAsync()) return;
         StatusMessage = mode switch
         {
             UsageMode.Family => L("Aile kullanımına geçildi", "Switched to family use"),
@@ -1022,6 +1206,11 @@ public sealed class MainViewModel : ObservableObject
         PersonalProtectionLevel normalizedPersonalLevel = mode == UsageMode.Personal
             ? personalProtectionLevel
             : PersonalProtectionLevel.Balanced;
+
+        if (mode != UsageMode.Family)
+        {
+            _stagedRecoveryCodes = null;
+        }
 
         if (!string.IsNullOrWhiteSpace(newPin))
         {
@@ -1046,6 +1235,16 @@ public sealed class MainViewModel : ObservableObject
             "Mod seçildi · Uygulamak için Kaydet'e bas.",
             "Mode selected · Press Save to apply.");
     }
+
+    public IReadOnlyList<string> PrepareStagedFamilyRecoveryCodes()
+    {
+        ControlSettings staging = new();
+        IReadOnlyList<string> plainCodes = RecoveryCodeService.Generate(staging);
+        _stagedRecoveryCodes = CloneRecoveryCodes(staging.RecoveryCodes);
+        return plainCodes;
+    }
+
+    public void DiscardStagedFamilyRecoveryCodes() => _stagedRecoveryCodes = null;
 
     public void RefreshOverview()
     {
@@ -1355,13 +1554,43 @@ public sealed class MainViewModel : ObservableObject
         }
         RhythmWeekSymbolsText = string.Join("  ", RhythmDays.Select(day => $"{day.DayText} {day.SymbolText}"));
 
-        if (!_settings.AwarenessTrackingEnabled)
+        if (_usageReadFailed)
+        {
+            RhythmInsightText = L(
+                "Kullanım dosyası ve yedeği okunamadı; mevcut olmayan veriden sonuç üretilmedi.",
+                "The usage file and its backup could not be read; no result was inferred from unavailable data.");
+        }
+        else if (_usageStore.LastLoadRecoveredFromBackup)
+        {
+            RhythmInsightText = L(
+                "Ana kullanım dosyası okunamadı; ritim son sağlam yerel yedekten kurtarıldı.",
+                "The primary usage file was unreadable; rhythm data was recovered from the last healthy local backup.");
+        }
+        else if (summary.MeasurementState == RhythmMeasurementState.Disabled)
         {
             RhythmInsightText = L(
                 "Ritim farkındalığını açtığında karşılaştırmalar yalnız cihazında oluşur.",
                 "Enable rhythm awareness to build private, on-device comparisons.");
         }
-        else if (!summary.IsBaselineReady)
+        else if (summary.MeasurementState == RhythmMeasurementState.NoData)
+        {
+            RhythmInsightText = L(
+                "Ölçüm açık, fakat henüz geçerli bir gözlem kaydedilmedi; bu değer sıfır dakika anlamına gelmez.",
+                "Measurement is on, but no valid observation has been recorded yet; this does not mean zero minutes.");
+        }
+        else if (summary.MeasurementState == RhythmMeasurementState.Cleared)
+        {
+            RhythmInsightText = L(
+                "Kullanım geçmişi silindi; önceki dönem yok sayıldı ve yeni başlangıç ritmi sıfırdan oluşacak.",
+                "Usage history was cleared; the previous period was discarded and a new starting rhythm will be built from scratch.");
+        }
+        else if (summary.MeasurementState == RhythmMeasurementState.ConfirmedZero)
+        {
+            RhythmInsightText = L(
+                $"Ölçüm çalıştı; son dönemde {summary.CurrentObservedDays} geçerli günde ön plan süresi kaydedilmedi.",
+                $"Measurement worked; no foreground time was recorded across {summary.CurrentObservedDays} valid days in the current period.");
+        }
+        else if (summary.MeasurementState == RhythmMeasurementState.Collecting)
         {
             RhythmInsightText = L(
                 $"Başlangıç ritmin oluşuyor · {summary.BaselineDays}/7 gün tamamlandı.",
@@ -1387,16 +1616,35 @@ public sealed class MainViewModel : ObservableObject
             RhythmInsightText += L($" En çok azalan: {falling}.", $" Biggest decrease: {falling}.");
         }
 
-        _suggestedReductionPercent = summary.IsBaselineReady && summary.WeekChangePercent is > 0
+        bool hasComparablePeriods = summary.CurrentObservedDays >= 3 && summary.PreviousObservedDays >= 3;
+        _suggestedReductionPercent = summary.IsBaselineReady && hasComparablePeriods && summary.WeekChangePercent is > 0
             ? summary.WeekChangePercent >= 20 ? 10 : 5
             : null;
         CanApplyRhythmSuggestion = _suggestedReductionPercent is { } suggestion &&
             suggestion != _settings.WeeklyReductionGoalPercent;
         RhythmSuggestionPreviewText = _suggestedReductionPercent is { } suggested
             ? L(
-                $"Dayanak: son 7 gün · {_settings.WeeklyReductionGoalPercent}% → {suggested}% daha az · yalnız bu hedef şimdi değişir",
-                $"Basis: last 7 days · {_settings.WeeklyReductionGoalPercent}% → {suggested}% less · only this goal changes now")
-            : L("Yeni öneri için yeterli ve anlamlı değişim bekleniyor.", "Waiting for enough meaningful change for a new suggestion.");
+                $"Dayanak: {summary.CurrentObservedDays} geçerli gün · {_settings.WeeklyReductionGoalPercent}% → {suggested}% daha az · yalnız bu hedef şimdi değişir",
+                $"Basis: {summary.CurrentObservedDays} valid days · {_settings.WeeklyReductionGoalPercent}% → {suggested}% less · only this goal changes now")
+            : _usageReadFailed
+                ? L("Veri okunamadığı için öneri kapalı.", "Suggestion is disabled because the data could not be read.")
+                : summary.MeasurementState == RhythmMeasurementState.Disabled
+                    ? L("Ölçüm kapalı olduğu için öneri oluşturulmadı.", "No suggestion was created because measurement is off.")
+                    : summary.BaselineDays < 7
+                        ? L($"Öneri için {7 - summary.BaselineDays} geçerli gün daha gerekli.", $"{7 - summary.BaselineDays} more valid days are needed for a suggestion.")
+                        : !hasComparablePeriods
+                            ? L("Öneri için mevcut ve önceki dönemde en az üçer geçerli gün gerekli.", "A suggestion needs at least three valid days in both the current and previous periods.")
+                            : L("Yeni öneri için anlamlı bir yükseliş bekleniyor.", "Waiting for a meaningful increase before offering a new suggestion.");
+
+        CultureInfo periodCulture = CultureInfo.GetCultureInfo(
+            _settings.Language == LanguagePreference.English ? "en-US" : "tr-TR");
+        RhythmComparisonPeriodText = L(
+            $"Karşılaştırma · {summary.CurrentPeriodFrom.ToString("dd MMM", periodCulture)}–{summary.CurrentPeriodUntil.ToString("dd MMM", periodCulture)}: {summary.CurrentObservedDays}/7 geçerli gün · önceki {summary.PreviousPeriodFrom.ToString("dd MMM", periodCulture)}–{summary.PreviousPeriodUntil.ToString("dd MMM", periodCulture)}: {summary.PreviousObservedDays}/7",
+            $"Comparison · {summary.CurrentPeriodFrom.ToString("MMM dd", periodCulture)}–{summary.CurrentPeriodUntil.ToString("MMM dd", periodCulture)}: {summary.CurrentObservedDays}/7 valid days · previous {summary.PreviousPeriodFrom.ToString("MMM dd", periodCulture)}–{summary.PreviousPeriodUntil.ToString("MMM dd", periodCulture)}: {summary.PreviousObservedDays}/7");
+        RhythmMetricExplanationText = L(
+            "Farkındalık ön plandaki uygulama süresini; kural sayacı yalnız eşleşen uygulama erişimini; odak ise etkin odak oturumunu ölçer.",
+            "Awareness measures foreground app time; the rule counter measures only matching app access; focus measures an active focus session.");
+        BuildRhythmFirstStep(summary);
 
         RhythmGoalStatusText = FromDisplayGoal(ReductionGoal) == 0
             ? BuildStreakStatus(streak)
@@ -1439,9 +1687,90 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(RhythmProtectorText));
         OnPropertyChanged(nameof(RhythmTodayProgressText));
         OnPropertyChanged(nameof(RhythmSuggestionPreviewText));
+        OnPropertyChanged(nameof(RhythmComparisonPeriodText));
+        OnPropertyChanged(nameof(RhythmMetricExplanationText));
+        OnPropertyChanged(nameof(RhythmFirstStepTitle));
+        OnPropertyChanged(nameof(RhythmFirstStepText));
+        OnPropertyChanged(nameof(RhythmFirstStepActionText));
+        OnPropertyChanged(nameof(RhythmNextAction));
+        OnPropertyChanged(nameof(HasRhythmFirstStep));
         OnPropertyChanged(nameof(RhythmWeekSymbolsText));
         OnPropertyChanged(nameof(CanApplyRhythmSuggestion));
         OnPropertyChanged(nameof(RhythmReachedMilestone));
+    }
+
+    private void NotifyRuntimeHealth()
+    {
+        OnPropertyChanged(nameof(LocalDataHealthText));
+        OnPropertyChanged(nameof(MeasurementHealthText));
+        OnPropertyChanged(nameof(MeasurementHealthDetailText));
+        OnPropertyChanged(nameof(LocalSaveHealthText));
+        OnPropertyChanged(nameof(LocalSaveHealthDetailText));
+    }
+
+    private void BuildRhythmFirstStep(RhythmSummary summary)
+    {
+        if (_usageReadFailed)
+        {
+            SetRhythmFirstStep(
+                L("Veriye ulaşılamıyor", "Data is unavailable"),
+                L("Ritim sonuçları tahmin edilmedi. Dosya erişimini düzelttikten sonra yeniden dene.", "Rhythm results were not guessed. Try again after fixing file access."),
+                RhythmFirstStepAction.RetryData,
+                L("Yeniden dene", "Try again"));
+            return;
+        }
+
+        if (summary.MeasurementState == RhythmMeasurementState.Disabled)
+        {
+            SetRhythmFirstStep(
+                L("İlk adım: yerel ölçümü aç", "First step: enable local measurement"),
+                L("Veri yalnız bu cihazda tutulur. Ölçümü reddetmen planları ve korumayı devre dışı bırakmaz.", "Data stays on this device. Declining measurement does not disable plans or protection."),
+                RhythmFirstStepAction.EnableMeasurement,
+                L("Ölçümü etkinleştir", "Enable measurement"));
+            return;
+        }
+
+        if (summary.MeasurementState == RhythmMeasurementState.Ready && !_usageStore.LastLoadRecoveredFromBackup)
+        {
+            SetRhythmFirstStep("—", "—", RhythmFirstStepAction.None, "—");
+            return;
+        }
+
+        RhythmFirstStepAction action = IsInsightsMode
+            ? RhythmFirstStepAction.ReviewSummary
+            : IsFamilyMode
+                ? RhythmFirstStepAction.ReviewPlan
+                : RhythmFirstStepAction.StartFocus;
+        string actionText = action switch
+        {
+            RhythmFirstStepAction.ReviewSummary => L("Bugünü değerlendir", "Review today"),
+            RhythmFirstStepAction.ReviewPlan => L("Bugünkü planı incele", "Review today's plan"),
+            _ => L("25 dk odak başlat", "Start 25 min focus")
+        };
+        string detail = _usageStore.LastLoadRecoveredFromBackup
+            ? L("Veri yerel yedekten kurtarıldı. Devam etmeden önce bugünkü akışı gözden geçir.", "Data was recovered from a local backup. Review today's flow before continuing.")
+            : summary.MeasurementState == RhythmMeasurementState.Cleared
+                ? L("Geçmiş silme tamamlandı. Yeni ritim ancak bundan sonraki ölçülmüş günlerden oluşur.", "History deletion is complete. A new rhythm will use only measured days from now on.")
+                : summary.MeasurementState == RhythmMeasurementState.ConfirmedZero
+                ? L("Bu gerçek bir ölçülmüş sıfırdır; iyileşme yüzdesi olarak yorumlanmadı.", "This is a confirmed measured zero; it was not presented as an improvement percentage.")
+                : L($"{summary.BaselineDays}/7 geçerli gün hazır. Küçük bir adım at; ritim gerisini baskı kurmadan tamamlar.", $"{summary.BaselineDays}/7 valid days are ready. Take one small step and let rhythm fill in without pressure.");
+        SetRhythmFirstStep(
+            L("İlk haftan şekilleniyor", "Your first week is taking shape"),
+            detail,
+            action,
+            actionText);
+    }
+
+    private void SetRhythmFirstStep(
+        string title,
+        string text,
+        RhythmFirstStepAction action,
+        string actionText)
+    {
+        RhythmFirstStepTitle = title;
+        RhythmFirstStepText = text;
+        RhythmNextAction = action;
+        RhythmFirstStepActionText = actionText;
     }
 
     public void SelectRhythmDay(RhythmDayRow selected)

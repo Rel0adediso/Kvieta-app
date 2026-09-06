@@ -1,6 +1,6 @@
 # Kvieta usage and recovery guide
 
-> Current status: **Kvieta Alpha 3**. Community packages are unsigned previews intended for validation; they are not final public releases.
+> Current status: **Kvieta Alpha 4**. Community packages are unsigned previews intended for validation; they are not final public releases.
 
 ## Installation and update
 
@@ -51,6 +51,24 @@ The system health section under Settings reports application, installer, Guardia
 - **Diagnostic report:** Exports JSON that excludes PINs, recovery codes, window titles, and content.
 
 If Guardian is missing or unhealthy, protected use does not silently continue without protection. Approve repair as an administrator; if the problem remains, attach the diagnostic report to a bug report.
+
+## My data
+
+Open **Settings > Privacy and data > My data** to see the local categories,
+retention period, available date range, and whether an export includes application
+names. JSON and CSV exports are created only after you choose a destination; an
+existing file requires overwrite confirmation. Exports exclude PINs, recovery
+codes, keys, focus intentions, and diagnostics.
+
+Deletion has three explicit scopes: detailed usage while retaining the compact
+Rhythm summary, only the Rhythm Streak/Protectors while retaining raw usage, or
+all usage and rhythm data. Every scope requires confirmation. None removes plans,
+application rules, PIN state, security identity, or Guardian protection.
+
+Time warnings, focus results, rhythm celebrations, and suggestions are prioritized
+and deduplicated. Expired notices are discarded after sleep/restart, low-priority
+notices do not steal focus from PIN dialogs, and the current required action remains
+available on Today or the session surface.
 
 ## Uninstall
 

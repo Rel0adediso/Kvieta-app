@@ -6,6 +6,7 @@
     <sys:String x:Key="Today">Today</sys:String><sys:String x:Key="Plan">Plan</sys:String><sys:String x:Key="Applications">Applications</sys:String><sys:String x:Key="Settings">Settings</sys:String><sys:String x:Key="OnlyThisDevice">Only on this device</sys:String>
     <sys:String x:Key="SessionScreen">Session screen</sys:String><sys:String x:Key="Save">Save</sys:String><sys:String x:Key="TodayDescription">See today's status and remaining time at a glance.</sys:String><sys:String x:Key="RemainingTime">TIME LEFT</sys:String><sys:String x:Key="TodayTracked">TRACKED TODAY</sys:String><sys:String x:Key="TodayTrackedDescription">Time spent in foreground applications</sys:String><sys:String x:Key="Used">Used</sys:String><sys:String x:Key="Total">Total</sys:String><sys:String x:Key="RightNow">RIGHT NOW</sys:String><sys:String x:Key="TodayLimit">Today's limit</sys:String><sys:String x:Key="AppRule">App rules</sys:String><sys:String x:Key="FullyBlocked">Fully blocked</sys:String>
     <sys:String x:Key="QuickFocus">Quick focus</sys:String><sys:String x:Key="QuickFocusDescription">Choose a duration and start focusing in two clicks.</sys:String><sys:String x:Key="CustomFocus">Custom</sys:String><sys:String x:Key="RepeatLastFocus">Last: {0} min</sys:String><sys:String x:Key="LastFocus">Last focus</sys:String><sys:String x:Key="CustomFocusTitle">Choose a focus duration</sys:String><sys:String x:Key="CustomFocusDescription">Set a target from 1 to 1440 minutes for this session.</sys:String><sys:String x:Key="StartFocus">Start focus</sys:String><sys:String x:Key="GrantTime">Grant time</sys:String><sys:String x:Key="StartFocusMinutes">Start a {0}-minute focus</sys:String><sys:String x:Key="FocusCompletedState">FOCUS COMPLETE</sys:String><sys:String x:Key="FocusCompletedHeadline">You reached your goal.</sys:String><sys:String x:Key="FocusCompletedDescription">This focus session is complete. Return to Control Center when you're ready.</sys:String>
+    <sys:String x:Key="FocusCompletedAccessEndedState">FOCUS COMPLETE · ACCESS ENDED</sys:String><sys:String x:Key="FocusCompletedLimitHeadline">Focus complete; your daily time has ended.</sys:String><sys:String x:Key="FocusCompletedPlanHeadline">Focus complete; the plan has ended.</sys:String><sys:String x:Key="FocusCompletedLimitDescription">Daily access has ended; use the existing permission flow to continue.</sys:String><sys:String x:Key="FocusCompletedPlanDescription">The allowed plan window has ended; a new focus cannot be started.</sys:String><sys:String x:Key="FocusCompletedApplicationLimitDescription">The application limit has ended; your focus success is kept but application access is not opened.</sys:String>
     <sys:String x:Key="TodayOverview">Today's overview</sys:String><sys:String x:Key="ComparedWithYesterday">Compared with yesterday</sys:String><sys:String x:Key="NextPlan">Next plan</sys:String><sys:String x:Key="MostUsedToday">Most used today</sys:String><sys:String x:Key="NoTodayApplications">No application usage has been measured today yet.</sys:String><sys:String x:Key="CreateRule">Create rule</sys:String><sys:String x:Key="DailyAppLimit">Daily limit</sys:String><sys:String x:Key="DailyAppLimitDescription">Choose how many minutes this application can be used each day.</sys:String><sys:String x:Key="AllowInPlan">Allow only in plan</sys:String><sys:String x:Key="BlockDuringFocus">Block during focus</sys:String>
     <sys:String x:Key="WeeklyPlan">Weekly plan</sys:String><sys:String x:Key="WeeklyPlanDescription">Choose the days and hours when this device can be used.</sys:String><sys:String x:Key="EnabledUpper">ON</sys:String><sys:String x:Key="DayUpper">DAY</sys:String><sys:String x:Key="StartUpper">START</sys:String><sys:String x:Key="EndUpper">END</sys:String><sys:String x:Key="DailyLimitUpper">DAILY LIMIT (MIN)</sys:String>
     <sys:String x:Key="HourUpper">HOUR</sys:String><sys:String x:Key="MinuteUpper">MINUTE</sys:String>
@@ -73,6 +74,7 @@
     <sys:String x:Key="ManagerDevice">Manager device (local network only)</sys:String>
     <sys:String x:Key="RecoveryCodesTitle">One-time recovery codes</sys:String>
     <sys:String x:Key="RecoveryCodesDescription">Store these codes somewhere safe. Each code works once and will not be shown again.</sys:String>
+    <sys:String x:Key="RecoveryCodesAcknowledgement">I saved the codes somewhere safe outside this device.</sys:String>
     <sys:String x:Key="CopyRecoveryCodes">Copy codes</sys:String>
     <sys:String x:Key="SaveRecoveryCodes">Save to file</sys:String>
     <sys:String x:Key="RecoveryCodesSaveFailed">Recovery codes could not be saved to the file.</sys:String>
@@ -171,4 +173,40 @@
     <sys:String x:Key="DailyGoalProgressFormat">Daily goal progress: {0}/{1} {2}</sys:String>
     <sys:String x:Key="ContinueFocus">Continue with same duration</sys:String>
     <sys:String x:Key="TakeBreak">Take a break</sys:String>
+    <sys:String x:Key="SessionPreviewBadge">PREVIEW · SAMPLE DATA</sys:String>
+    <sys:String x:Key="SessionPreviewTitle">Time-expiry preview</sys:String>
+    <sys:String x:Key="SessionPreviewDescription">See how warning and time-expiry screens work without starting a real session.</sys:String>
+    <sys:String x:Key="SessionPreviewWarningTitle">Upcoming warning</sys:String>
+    <sys:String x:Key="SessionPreviewWarningRemaining">{0} minutes remaining</sys:String>
+    <sys:String x:Key="SessionPreviewWarningDescription">This is only an example; counters do not advance and no notification is sent.</sys:String>
+    <sys:String x:Key="SessionPreviewExpiredTitle">Time is up</sys:String>
+    <sys:String x:Key="SessionPreviewExpiredDescription">On the real screen, the access decision follows the active protection policy.</sys:String>
+    <sys:String x:Key="SessionPreviewRequestExample">Example: the time-request flow is explained; no real request was created.</sys:String>
+    <sys:String x:Key="SessionPreviewSavedExample">Example: the work-saved message is shown; session state did not change.</sys:String>
+    <sys:String x:Key="SessionPreviewNoChanges">Settings, PIN, streak, usage, Guardian, and application blocking stay unchanged. Press Esc to close.</sys:String>
+    <sys:String x:Key="OpenSessionPreview">Preview time expiry</sys:String>
+    <sys:String x:Key="SessionPreviewBlocked">Preview was not opened: restore healthy device protection first.</sys:String>
+    <sys:String x:Key="WorkHealth">Runtime health</sys:String>
+    <sys:String x:Key="WorkHealthDescription">Check measurement, Guardian, and the latest local save separately.</sys:String>
+    <sys:String x:Key="MeasurementHealth">Measurement</sys:String>
+    <sys:String x:Key="GuardianHealth">Guardian</sys:String>
+    <sys:String x:Key="LocalSaveHealth">Latest local save</sys:String>
+    <sys:String x:Key="RetryHealthChecks">Retry checks</sys:String>
+    <sys:String x:Key="HealthChecksRefreshed">Runtime health was checked again.</sys:String>
+    <sys:String x:Key="MyData">My data</sys:String>
+    <sys:String x:Key="MyDataTitle">My data</sys:String>
+    <sys:String x:Key="MyDataDescription">See what Kvieta stores on this device, export it, or delete a chosen scope.</sys:String>
+    <sys:String x:Key="StoredDataTitle">Stored on this device</sys:String>
+    <sys:String x:Key="StoredDataSafety">Usage history, rhythm summary, and diagnostics are separate. PINs, keys, and recovery-code content are not shown here.</sys:String>
+    <sys:String x:Key="ExportPreviewTitle">Export preview</sys:String>
+    <sys:String x:Key="DeleteDataTitle">Deletion scope</sys:String>
+    <sys:String x:Key="DeleteDetailedUsage">Delete detailed usage history</sys:String>
+    <sys:String x:Key="DeleteDetailedUsageDescription">Deletes days, application names, and counters while retaining the limited rhythm summary.</sys:String>
+    <sys:String x:Key="ResetRhythmOnly">Reset only the Rhythm Streak</sys:String>
+    <sys:String x:Key="ResetRhythmOnlyDescription">Resets current/best streak and Protectors while keeping usage history.</sys:String>
+    <sys:String x:Key="DeleteUsageAndRhythm">Delete all usage and rhythm data</sys:String>
+    <sys:String x:Key="DeleteUsageAndRhythmDescription">Deletes all usage records and rhythm summary; plans, PIN, and Guardian protection stay unchanged.</sys:String>
+    <sys:String x:Key="DeleteSelectedData">Delete selected data</sys:String>
+    <sys:String x:Key="DeleteDataConfirmation">Permanently delete the selected local-data scope? Plans, PIN, security identity, and Guardian policy stay unchanged.</sys:String>
+    <sys:String x:Key="DataDeleted">The selected local data was deleted.</sys:String>
 </ResourceDictionary>

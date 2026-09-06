@@ -591,6 +591,19 @@ public partial class SetupWindow : Window
             ReadPreferences();
             ControlSettings settings = _plan.ComposeSettings(_existingSettings);
             bool requiresGuardian = settings.RequiresGuardian;
+            ProtectionTransitionSummary transition = ProtectionTransitionAnalyzer.Analyze(
+                _existingSettings ?? new ControlSettings
+                {
+                    Mode = UsageMode.Insights,
+                    PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+                },
+                settings);
+            if (transition.IsTightening && transition.RecoveryState == ProtectionRecoveryState.Missing)
+            {
+                throw new InvalidOperationException(T(
+                    "Koruma etkinleştirilmeden önce PIN ve kurtarma hazırlığını tamamla.",
+                    "Complete PIN and recovery preparation before enabling protection."));
+            }
             settingsSnapshot = await CaptureSettingsSnapshotAsync();
             await _settingsStore.SaveAsync(settings);
             settingsStaged = true;
@@ -822,6 +835,19 @@ public partial class SetupWindow : Window
             SummaryDeviceValue.Text = _existingSettings.DeviceName;
             SummaryLimitValue.Text = FormatMinutes(_existingSettings.DefaultDailyLimitMinutes, english);
             SummaryOptionsValue.Text = T("Yalnız uygulama dosyaları yenilenecek", "Only application files will be refreshed");
+            SummaryConsequenceBox.Visibility = _existingSettings.RequiresGuardian
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            if (_existingSettings.RequiresGuardian)
+            {
+                SummaryConsequenceTitle.Text = T("Mevcut koruma değişmeyecek", "Existing protection will remain unchanged");
+                SummaryConsequenceText.Text = T(
+                    "Bu güncelleme planı, Guardian'ı veya yetkilendirme kurallarını yeniden yapılandırmaz. Kurulumu iptal etmek mevcut korumayı kaldırmaz.",
+                    "This update does not reconfigure the plan, Guardian, or authorization rules. Cancelling setup does not remove existing protection.");
+                SummaryRecoveryText.Text = T(
+                    "PIN veya kurtarma kodu içeriği bu özette gösterilmez.",
+                    "No PIN or recovery-code content is shown in this summary.");
+            }
             return;
         }
 
@@ -846,6 +872,36 @@ public partial class SetupWindow : Window
         if (_plan.RequiresUserPin) options.Add(T("8 tek kullanımlık kurtarma kodu", "8 one-time recovery codes"));
         if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall) options.Add(T("isteğe bağlı telefon eşleştirme", "optional phone pairing"));
         SummaryOptionsValue.Text = options.Count == 0 ? T("Ek seçenek yok", "No optional features") : string.Join(" · ", options);
+
+        ControlSettings target = _plan.ComposeSettings(null);
+        ControlSettings current = _existingSettings ?? new ControlSettings
+        {
+            Mode = UsageMode.Insights,
+            PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+        };
+        ProtectionTransitionSummary consequence = ProtectionTransitionAnalyzer.Analyze(current, target);
+        SummaryConsequenceBox.Visibility = consequence.TargetIsProtected
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        if (consequence.TargetIsProtected)
+        {
+            string expiry = consequence.LimitAction == LimitReachedAction.ShowBlockScreen
+                ? T("koruma ekranı açılır", "the protection screen opens")
+                : T("Windows kilitlenir", "Windows is locked");
+            SummaryConsequenceTitle.Text = T("Koruma sonucu", "Protection outcome");
+            SummaryConsequenceText.Text = T(
+                $"Süre dolunca {expiry}. {consequence.EnabledPlanDays} günlük etkin plan başarılı kurulumdan sonra hemen uygulanır. Guardian için Windows yönetici onayı gerekir; açıklamayı kabul etmek PIN veya yetki yerine geçmez.",
+                $"When time expires, {expiry}. The {consequence.EnabledPlanDays}-day active plan applies immediately after successful installation. Guardian requires Windows administrator approval; accepting this explanation does not replace a PIN or authorization.");
+            SummaryRecoveryText.Text = consequence.RecoveryState switch
+            {
+                ProtectionRecoveryState.Ready when english => "Recovery preparation is ready. Keep the one-time codes outside this device; their contents are not repeated here.",
+                ProtectionRecoveryState.Ready => "Kurtarma hazırlığı tamam. Tek kullanımlık kodları bu cihazın dışında sakla; içerikleri burada tekrarlanmaz.",
+                ProtectionRecoveryState.WindowsAdministrator when english => "Protected Personal recovery uses a separate Windows administrator account. A standard Windows user account is recommended.",
+                ProtectionRecoveryState.WindowsAdministrator => "Korumalı Kişisel kurtarma ayrı Windows yönetici hesabını kullanır. Standart Windows kullanıcı hesabı önerilir.",
+                _ when english => "Recovery preparation is missing; go back and complete the PIN and recovery-code step.",
+                _ => "Kurtarma hazırlığı eksik; geri dönüp PIN ve kurtarma kodu adımını tamamla."
+            };
+        }
     }
 
     private void SetSummaryLimitVisibility(bool visible)
@@ -1022,7 +1078,7 @@ public partial class SetupWindow : Window
         PairManagerDeviceHint.Text = T("İsteğe bağlıdır; PIN kurtarma yetkisi daha sonra da eklenebilir.", "Optional; PIN recovery access can also be added later.");
         RecoveryBackButton.Content = BackText;
         RecoveryNextButton.Content = ContinueText;
-        SummaryTitle.Text = T("Kuruluma hazır", "Ready to install"); SummaryDescription.Text = T("Seçimlerini kontrol et. Kur düğmesi yönetici izni isteyecek.", "Review your choices. Install will request administrator permission.");
+        SummaryTitle.Text = T("Kuruluma hazır", "Ready to install"); SummaryDescription.Text = T("Seçimlerini ve gerçek sistem sonuçlarını kontrol et. Kur düğmesi gerektiğinde ayrıca yönetici izni isteyecek.", "Review your choices and real system outcomes. Install will separately request administrator approval when required.");
         SummaryModeLabel.Text = T("Kullanım biçimi", "Usage mode"); SummaryDeviceLabel.Text = T("Cihaz", "Device"); SummaryLimitLabel.Text = T("Günlük süre", "Daily time"); SummaryOptionsLabel.Text = T("Seçenekler", "Options"); SummaryBackButton.Content = BackText; InstallButton.Content = T("Kvieta'yı kur", "Install Kvieta");
         InstallingEyebrow.Text = T("KVIETA KURULUYOR", "INSTALLING KVIETA"); InstallingTitle.Text = T("Her şeyi senin için hazırlıyoruz.", "We're preparing everything for you."); InstallingDescription.Text = T("Bu pencereyi kapatma. Windows yönetici izni isteyebilir.", "Keep this window open. Windows may request administrator permission.");
         ErrorTitle.Text = T("Kurulum tamamlanamadı.", "Setup could not be completed."); ErrorBackButton.Content = T("Geri dön", "Go back"); RetryButton.Content = T("Tekrar dene", "Try again");

@@ -34,6 +34,14 @@
                 </Grid>
                 <Grid Grid.Row="3" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="128" /><ColumnDefinition Width="*" /><ColumnDefinition Width="128" /></Grid.ColumnDefinitions><Button Content="{DynamicResource Back}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinWidth="108" Padding="14,7" Click="Back_Click" /><TextBlock Grid.Column="1" Text="{DynamicResource PersonalLevelCanChangeLater}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" /><Button Grid.Column="2" Content="{DynamicResource ConfirmModeSelection}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Right" MinWidth="128" Padding="14,7" Click="ConfirmPersonal_Click" /></Grid>
             </Grid>
+            <Grid x:Name="ProtectionSummaryPanel" Grid.Row="1" Margin="42,24,42,30" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <TextBlock x:Name="ProtectionSummaryTitle" FontSize="24" FontWeight="SemiBold"/>
+                <TextBlock x:Name="ProtectionSummaryDescription" Grid.Row="1" Foreground="{DynamicResource MutedTextBrush}" FontSize="11.5" TextWrapping="Wrap" Margin="0,7,0,14"/>
+                <Border Grid.Row="2" Background="{DynamicResource SurfaceHoverBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="16,12"><StackPanel><TextBlock x:Name="ProtectionOutcomeText" FontSize="11.5" TextWrapping="Wrap" LineHeight="18"/><TextBlock x:Name="ProtectionBoundaryText" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" LineHeight="16" Margin="0,10,0,0"/><TextBlock x:Name="ProtectionRecoveryText" Foreground="{DynamicResource PrimaryBrush}" FontSize="10.5" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="16" Margin="0,10,0,0"/></StackPanel></Border>
+                <CheckBox x:Name="ProtectionAcknowledgement" Grid.Row="3" Margin="2,12,0,0" Checked="ProtectionAcknowledgement_Changed" Unchecked="ProtectionAcknowledgement_Changed"/>
+                <Grid Grid.Row="4" Margin="0,14,0,0"><Button x:Name="ProtectionBackButton" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinWidth="108" Padding="14,7" Click="ProtectionBack_Click"/><Button x:Name="ProtectionContinueButton" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Right" MinWidth="150" Padding="14,7" IsEnabled="False" Click="ProtectionContinue_Click"/></Grid>
+            </Grid>
         </Grid>
     </Border>
 </Window>

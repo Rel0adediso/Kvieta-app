@@ -400,6 +400,17 @@ public partial class SessionSurfaceWindow : Window
             _shownWarningMinutes);
         if (due is null) return;
 
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        UserNoticeDecision noticeDecision = UserNoticeBus.Current.Evaluate(
+            new UserNotice(
+                $"time-warning:{today:yyyyMMdd}:{due.Value}",
+                $"time-warning:{today:yyyyMMdd}",
+                UserNoticePriority.TimeWarning,
+                now.AddMinutes(Math.Max(1, due.Value))),
+            now,
+            deferLowPriority: _modalDialogOpen);
+        if (noticeDecision != UserNoticeDecision.Present) return;
+
         _shownWarningMinutes.Add(due.Value);
         GentleWarningTitle.Text = IsEnglish
             ? $"{due.Value} minutes left"
@@ -407,6 +418,9 @@ public partial class SessionSurfaceWindow : Window
         GentleWarningDescription.Text = IsEnglish
             ? "Wrap up calmly or choose what should happen next."
             : "İşini sakince toparla veya sıradaki adımı seç.";
+        System.Windows.Automation.AutomationProperties.SetName(
+            GentleWarningPanel,
+            $"{GentleWarningTitle.Text}. {GentleWarningDescription.Text}");
         GentleWarningPanel.Visibility = Visibility.Visible;
         _forceSurfaceVisible = true;
         MotionService.Enter(GentleWarningPanel, 0, 6, 180);

@@ -1,0 +1,31 @@
+<Window x:Class="Kvieta.App.DataManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kvieta" Width="650" Height="590" MinWidth="560" MinHeight="520"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource BackgroundBrush}" KeyDown="Window_KeyDown">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="28">
+        <TextBlock Text="{DynamicResource MyDataTitle}" FontSize="24" FontWeight="SemiBold"/>
+        <TextBlock Text="{DynamicResource MyDataDescription}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,18"/>
+        <Border Style="{StaticResource PanelStyle}" Padding="18"><StackPanel>
+            <TextBlock Text="{DynamicResource StoredDataTitle}" FontSize="14" FontWeight="SemiBold"/>
+            <TextBlock x:Name="InventoryText" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            <TextBlock Text="{DynamicResource StoredDataSafety}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        </StackPanel></Border>
+        <Border Style="{StaticResource PanelStyle}" Padding="18" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="{DynamicResource ExportPreviewTitle}" FontSize="14" FontWeight="SemiBold"/>
+            <TextBlock x:Name="ExportPreviewText" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,12"/>
+            <StackPanel Orientation="Horizontal"><Button Content="JSON" Tag="json" Style="{StaticResource SecondaryButtonStyle}" Click="Export_Click" Margin="0,0,8,0"/><Button Content="CSV" Tag="csv" Style="{StaticResource SecondaryButtonStyle}" Click="Export_Click"/></StackPanel>
+        </StackPanel></Border>
+        <Border Style="{StaticResource PanelStyle}" Padding="18" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="{DynamicResource DeleteDataTitle}" FontSize="14" FontWeight="SemiBold"/>
+            <RadioButton x:Name="DetailedUsageOption" GroupName="scope" IsChecked="True" Content="{DynamicResource DeleteDetailedUsage}" Margin="0,12,0,0"/>
+            <TextBlock Text="{DynamicResource DeleteDetailedUsageDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" Margin="24,4,0,0"/>
+            <RadioButton x:Name="RhythmOption" GroupName="scope" Content="{DynamicResource ResetRhythmOnly}" Margin="0,10,0,0"/>
+            <TextBlock Text="{DynamicResource ResetRhythmOnlyDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" Margin="24,4,0,0"/>
+            <RadioButton x:Name="AllUsageOption" GroupName="scope" Content="{DynamicResource DeleteUsageAndRhythm}" Margin="0,10,0,0"/>
+            <TextBlock Text="{DynamicResource DeleteUsageAndRhythmDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" Margin="24,4,0,12"/>
+            <Button Content="{DynamicResource DeleteSelectedData}" Style="{StaticResource SecondaryButtonStyle}" Foreground="{DynamicResource WarningBrush}" Click="Delete_Click" HorizontalAlignment="Left"/>
+        </StackPanel></Border>
+        <Button Content="{DynamicResource Close}" Style="{StaticResource SecondaryButtonStyle}" Click="Close_Click" HorizontalAlignment="Right" Margin="0,16,0,0"/>
+    </StackPanel></ScrollViewer>
+</Window>

@@ -51,7 +51,7 @@ public sealed class JsonUsageStore
     public Task<UsageLedger> ClearAsync(CancellationToken cancellationToken = default) =>
         _file.UpdateAsync(current => new UsageLedger
         {
-            SchemaVersion = 8,
+            SchemaVersion = 9,
             DataGeneration = checked(current.DataGeneration + 1),
             RetainedFromDay = current.RetainedFromDay,
             LocalDay = DateOnly.FromDateTime(DateTime.Today),
@@ -66,6 +66,61 @@ public sealed class JsonUsageStore
         _file.UpdateAsync(ledger =>
         {
             ClockIntegrityMonitor.ClearAnomaly(ledger, now, systemUptime, bootId);
+            return ledger;
+        }, cancellationToken);
+
+    public Task<UsageLedger> ClearDetailedUsageAsync(CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(ledger =>
+        {
+            RhythmCheckpoint checkpoint = ledger.RhythmCheckpoint;
+            UsageLedger cleared = new()
+            {
+                SchemaVersion = 9,
+                DataGeneration = checked(ledger.DataGeneration + 1),
+                LocalDay = DateOnly.FromDateTime(DateTime.Today),
+                RhythmCheckpoint = checkpoint,
+                ClockRollbackUntilUtc = ledger.ClockRollbackUntilUtc,
+                LastTrustedUtc = ledger.LastTrustedUtc,
+                EstimatedBootUtc = ledger.EstimatedBootUtc,
+                LastMonotonicMilliseconds = ledger.LastMonotonicMilliseconds,
+                LastBootId = ledger.LastBootId,
+                LastUtcOffsetMinutes = ledger.LastUtcOffsetMinutes,
+                LastClockChange = ledger.LastClockChange,
+                ClockChangeDetectedAtUtc = ledger.ClockChangeDetectedAtUtc,
+                ClockAnomalyRequiresRecovery = ledger.ClockAnomalyRequiresRecovery,
+                LastUpdatedUtc = DateTimeOffset.UtcNow
+            };
+            return cleared;
+        }, cancellationToken);
+
+    public Task<UsageLedger> ResetRhythmAsync(CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(ledger =>
+        {
+            ledger.RhythmCheckpoint = new RhythmCheckpoint();
+            ledger.RhythmGoal = null;
+            ledger.RhythmFocusTargetKind = null;
+            ledger.RhythmGoalTarget = 0;
+            ledger.RhythmDailyLimitMinutes = null;
+            ledger.RhythmApprovedMinutes = 0;
+            ledger.RhythmPlannedRest = false;
+            ledger.RhythmMeasurementAvailable = false;
+            // Keep today's raw usage, but do not let activity recorded before the reset
+            // immediately recreate the streak that the user just cleared.
+            ledger.RhythmExcused = ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today);
+            foreach (DailyUsageRecord day in ledger.History)
+            {
+                day.RhythmGoal = null;
+                day.RhythmFocusTargetKind = null;
+                day.RhythmGoalTarget = 0;
+                day.RhythmOutcome = null;
+                day.RhythmDailyLimitMinutes = null;
+                day.RhythmApprovedMinutes = 0;
+                day.RhythmPlannedRest = false;
+                day.RhythmMeasurementAvailable = false;
+                day.RhythmExcused = false;
+            }
+            ledger.DataGeneration = checked(ledger.DataGeneration + 1);
+            ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
             return ledger;
         }, cancellationToken);
 
@@ -139,7 +194,7 @@ public sealed class JsonUsageStore
 
         UsageLedger newest = incoming.LastUpdatedUtc >= current.LastUpdatedUtc ? incoming : current;
         UsageLedger other = ReferenceEquals(newest, incoming) ? current : incoming;
-        newest.SchemaVersion = 8;
+        newest.SchemaVersion = 9;
         newest.RetainedFromDay = retainedFromDay;
         newest.UsedSeconds = Math.Max(newest.UsedSeconds, other.UsedSeconds);
         newest.BonusMinutes = Math.Max(newest.BonusMinutes, other.BonusMinutes);
@@ -154,6 +209,7 @@ public sealed class JsonUsageStore
         newest.RhythmApprovedMinutes = Math.Max(newest.RhythmApprovedMinutes, other.RhythmApprovedMinutes);
         CopyCurrentRhythmSnapshot(current.RhythmGoal is not null ? current : incoming, newest);
         newest.AwarenessUsedSeconds = Math.Max(newest.AwarenessUsedSeconds, other.AwarenessUsedSeconds);
+        newest.AwarenessMeasurementAvailable |= other.AwarenessMeasurementAvailable;
         newest.LastUpdatedUtc = newest.LastUpdatedUtc >= other.LastUpdatedUtc ? newest.LastUpdatedUtc : other.LastUpdatedUtc;
         if (other.ClockRollbackUntilUtc is { } otherRollback &&
             (newest.ClockRollbackUntilUtc is null || otherRollback > newest.ClockRollbackUntilUtc))
@@ -252,7 +308,7 @@ public sealed class JsonUsageStore
 
     private static void AddCurrentDayToHistory(UsageLedger target, UsageLedger source)
     {
-        if (source.UsedSeconds <= 0 && source.AppUsedSeconds.Count == 0 && source.AwarenessUsedSeconds <= 0 && source.BreakCount == 0 &&
+        if (source.UsedSeconds <= 0 && source.AppUsedSeconds.Count == 0 && source.AwarenessUsedSeconds <= 0 && !source.AwarenessMeasurementAvailable && source.BreakCount == 0 &&
             source.LimitReachedCount == 0 && source.ExtraTimeGrantCount == 0 && !source.SummaryReviewed && source.FocusSessionCount == 0 &&
             !source.RhythmExcused && source.RhythmGoal is null)
         {
@@ -279,6 +335,7 @@ public sealed class JsonUsageStore
             RhythmPlannedRest = source.RhythmPlannedRest,
             RhythmMeasurementAvailable = source.RhythmMeasurementAvailable,
             AwarenessUsedSeconds = source.AwarenessUsedSeconds,
+            AwarenessMeasurementAvailable = source.AwarenessMeasurementAvailable,
             AwarenessHourlyUsedSeconds = new Dictionary<int, long>(source.AwarenessHourlyUsedSeconds),
             Applications = source.AppUsedSeconds.Select(item => new AppUsageRecord
             {
@@ -321,6 +378,7 @@ public sealed class JsonUsageStore
             RhythmPlannedRest = values.Any(item => item.RhythmPlannedRest),
             RhythmMeasurementAvailable = values.Any(item => item.RhythmMeasurementAvailable),
             AwarenessUsedSeconds = values.Max(item => item.AwarenessUsedSeconds),
+            AwarenessMeasurementAvailable = values.Any(item => item.AwarenessMeasurementAvailable),
             AwarenessHourlyUsedSeconds = values
                 .SelectMany(item => item.AwarenessHourlyUsedSeconds)
                 .GroupBy(item => item.Key)
@@ -356,24 +414,26 @@ public sealed class JsonUsageStore
         static () => new UsageLedger(),
         static ledger =>
         {
-            if (ledger.SchemaVersion > 8)
+            if (ledger.SchemaVersion > 9)
             {
                 throw new InvalidDataException($"Desteklenmeyen kullanım şeması: {ledger.SchemaVersion}");
             }
 
-            bool changed = ledger.SchemaVersion < 8;
-            ledger.SchemaVersion = 8;
+            bool changed = ledger.SchemaVersion < 9;
+            ledger.SchemaVersion = 9;
             ledger.AppUsedSeconds ??= [];
             ledger.ForegroundAppUsedSeconds ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             ledger.AwarenessHourlyUsedSeconds ??= [];
             ledger.History ??= [];
             ledger.RhythmCheckpoint ??= new RhythmCheckpoint();
+            ledger.AwarenessMeasurementAvailable |= ledger.AwarenessUsedSeconds > 0;
             NormalizeActiveFocus(ledger);
             foreach (DailyUsageRecord day in ledger.History)
             {
                 day.Applications ??= [];
                 day.ForegroundApplications ??= [];
                 day.AwarenessHourlyUsedSeconds ??= [];
+                day.AwarenessMeasurementAvailable |= day.AwarenessUsedSeconds > 0;
             }
             ledger.RecentEvents ??= [];
             return new MigrationResult<UsageLedger>(ledger, changed);

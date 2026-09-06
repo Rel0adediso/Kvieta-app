@@ -2,7 +2,18 @@ using Kvieta.Core.Models;
 
 namespace Kvieta.Core.Services;
 
+public enum RhythmMeasurementState
+{
+    Disabled,
+    NoData,
+    Cleared,
+    ConfirmedZero,
+    Collecting,
+    Ready
+}
+
 public sealed record RhythmSummary(
+    RhythmMeasurementState MeasurementState,
     int BaselineDays,
     bool IsBaselineReady,
     long BaselineDailyAverageSeconds,
@@ -25,7 +36,11 @@ public sealed record RhythmSummary(
     long WeekdayDailyAverageSeconds,
     int WeekendObservedDays,
     long WeekendDailyAverageSeconds,
-    double? WeekendDifferencePercent);
+    double? WeekendDifferencePercent,
+    DateOnly CurrentPeriodFrom,
+    DateOnly CurrentPeriodUntil,
+    DateOnly PreviousPeriodFrom,
+    DateOnly PreviousPeriodUntil);
 
 public static class RhythmAnalyzer
 {
@@ -46,6 +61,7 @@ public static class RhythmAnalyzer
                 UsedSeconds = ledger.UsedSeconds,
                 BonusMinutes = ledger.BonusMinutes,
                 AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
+                AwarenessMeasurementAvailable = ledger.AwarenessMeasurementAvailable,
                 SummaryReviewed = ledger.SummaryReviewed,
                 FocusSessionCount = ledger.FocusSessionCount,
                 FocusCompletedSeconds = ledger.FocusCompletedSeconds,
@@ -62,12 +78,15 @@ public static class RhythmAnalyzer
 
         records = records
             .GroupBy(record => record.LocalDay)
-            .Select(group => group.OrderByDescending(record => record.AwarenessUsedSeconds).First())
+            .Select(group => group
+                .OrderByDescending(record => record.AwarenessMeasurementAvailable)
+                .ThenByDescending(record => record.AwarenessUsedSeconds)
+                .First())
             .OrderBy(record => record.LocalDay)
             .ToList();
 
         List<DailyUsageRecord> observed = records
-            .Where(record => record.AwarenessUsedSeconds > 0)
+            .Where(record => record.AwarenessMeasurementAvailable)
             .ToList();
         List<DailyUsageRecord> baseline = observed.Take(14).ToList();
         int baselineDays = Math.Min(14, baseline.Count);
@@ -79,11 +98,11 @@ public static class RhythmAnalyzer
         DateOnly previousUntil = today.AddDays(-7);
         List<DailyUsageRecord> current = records.Where(record => record.LocalDay >= currentFrom && record.LocalDay <= today).ToList();
         List<DailyUsageRecord> previous = records.Where(record => record.LocalDay >= previousFrom && record.LocalDay <= previousUntil).ToList();
-        int currentObservedDays = current.Count(record => record.AwarenessUsedSeconds > 0);
-        int previousObservedDays = previous.Count(record => record.AwarenessUsedSeconds > 0);
+        int currentObservedDays = current.Count(record => record.AwarenessMeasurementAvailable);
+        int previousObservedDays = previous.Count(record => record.AwarenessMeasurementAvailable);
         long currentSeconds = current.Sum(record => record.AwarenessUsedSeconds);
         long previousSeconds = previous.Sum(record => record.AwarenessUsedSeconds);
-        double? changePercent = previousSeconds > 0 && previousObservedDays > 0 && currentObservedDays > 0
+        double? changePercent = previousSeconds > 0 && currentSeconds > 0 && previousObservedDays > 0 && currentObservedDays > 0
             ? ((currentSeconds / (double)currentObservedDays) - (previousSeconds / (double)previousObservedDays)) /
               (previousSeconds / (double)previousObservedDays) * 100
             : null;
@@ -123,7 +142,7 @@ public static class RhythmAnalyzer
             .Cast<KeyValuePair<int, long>?>()
             .FirstOrDefault();
         List<DailyUsageRecord> comparisonWindow = records
-            .Where(record => record.LocalDay >= today.AddDays(-27) && record.LocalDay <= today && record.AwarenessUsedSeconds > 0)
+            .Where(record => record.LocalDay >= today.AddDays(-27) && record.LocalDay <= today && record.AwarenessMeasurementAvailable)
             .ToList();
         List<DailyUsageRecord> weekdays = comparisonWindow
             .Where(record => record.LocalDay.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday))
@@ -137,7 +156,21 @@ public static class RhythmAnalyzer
             ? (weekendAverage - weekdayAverage) / (double)weekdayAverage * 100
             : null;
 
+        bool awarenessEnabled = settings.Mode == UsageMode.Insights || settings.AwarenessTrackingEnabled;
+        RhythmMeasurementState measurementState = !awarenessEnabled
+            ? RhythmMeasurementState.Disabled
+            : observed.Count == 0
+                ? ledger.DataGeneration > 0
+                    ? RhythmMeasurementState.Cleared
+                    : RhythmMeasurementState.NoData
+                : currentObservedDays > 0 && currentSeconds == 0
+                    ? RhythmMeasurementState.ConfirmedZero
+                    : baselineReady
+                        ? RhythmMeasurementState.Ready
+                        : RhythmMeasurementState.Collecting;
+
         return new RhythmSummary(
+            measurementState,
             baselineDays,
             baselineReady,
             baselineAverage,
@@ -160,7 +193,11 @@ public static class RhythmAnalyzer
             weekdayAverage,
             weekends.Count,
             weekendAverage,
-            weekendDifference);
+            weekendDifference,
+            currentFrom,
+            today,
+            previousFrom,
+            previousUntil);
     }
 
     private static string? FindTrendApplication(

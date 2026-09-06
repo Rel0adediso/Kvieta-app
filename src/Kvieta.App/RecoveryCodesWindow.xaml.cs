@@ -5,11 +5,18 @@ namespace Kvieta.App;
 
 public partial class RecoveryCodesWindow : Window
 {
-    public RecoveryCodesWindow(IEnumerable<string> codes)
+    private readonly bool _requiresAcknowledgement;
+
+    public RecoveryCodesWindow(IEnumerable<string> codes, bool requiresAcknowledgement = false)
     {
         InitializeComponent();
+        _requiresAcknowledgement = requiresAcknowledgement;
         CodesTextBox.Text = string.Join(Environment.NewLine, codes);
+        AcknowledgementBox.Visibility = requiresAcknowledgement ? Visibility.Visible : Visibility.Collapsed;
+        DoneButton.IsEnabled = !requiresAcknowledgement;
     }
+
+    public bool WasAcknowledged { get; private set; }
 
     private void Copy_Click(object sender, RoutedEventArgs e)
     {
@@ -47,5 +54,19 @@ public partial class RecoveryCodesWindow : Window
         }
     }
 
-    private void Done_Click(object sender, RoutedEventArgs e) => Close();
+    private void Acknowledgement_Changed(object sender, RoutedEventArgs e) =>
+        DoneButton.IsEnabled = !_requiresAcknowledgement || AcknowledgementBox.IsChecked == true;
+
+    private void Done_Click(object sender, RoutedEventArgs e)
+    {
+        WasAcknowledged = !_requiresAcknowledgement || AcknowledgementBox.IsChecked == true;
+        if (_requiresAcknowledgement)
+        {
+            DialogResult = WasAcknowledged;
+        }
+        else
+        {
+            Close();
+        }
+    }
 }

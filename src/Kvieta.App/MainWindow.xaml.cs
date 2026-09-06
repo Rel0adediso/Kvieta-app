@@ -258,6 +258,15 @@ public partial class MainWindow : Window
             if (_viewModel.RhythmReachedMilestone is not { } milestone) return;
             RhythmPreferences preferences = await _rhythmPreferencesStore.LoadAsync();
             if (preferences.LastCelebratedStreakMilestone >= milestone) return;
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            if (UserNoticeBus.Current.Evaluate(
+                    new UserNotice($"rhythm-milestone:{milestone}", "rhythm-milestone",
+                        UserNoticePriority.RhythmCelebration, now.AddDays(7)),
+                    now,
+                    deferLowPriority: !IsActive) != UserNoticeDecision.Present)
+            {
+                return;
+            }
             await _rhythmPreferencesStore.MarkMilestoneCelebratedAsync(milestone);
             if (!_viewModel.AnimationsEnabled) return;
 
@@ -585,12 +594,18 @@ public partial class MainWindow : Window
     private async void ExportUsage_Click(object sender, RoutedEventArgs e)
     {
         bool csv = sender is System.Windows.Controls.Button { Tag: "csv" };
+        await ExportUsageToFileAsync(csv);
+    }
+
+    private async Task ExportUsageToFileAsync(bool csv)
+    {
         Microsoft.Win32.SaveFileDialog dialog = new()
         {
             Title = LocalizationService.Get("ExportUsage"),
             FileName = $"kvieta-usage-{DateTime.Now:yyyy-MM-dd}",
             DefaultExt = csv ? ".csv" : ".json",
-            Filter = csv ? "CSV (*.csv)|*.csv" : "JSON (*.json)|*.json"
+            Filter = csv ? "CSV (*.csv)|*.csv" : "JSON (*.json)|*.json",
+            OverwritePrompt = true
         };
         if (dialog.ShowDialog(this) != true)
         {
@@ -769,6 +784,44 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void MyData_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            DataManagementWindow window = new(await _viewModel.GetDataInventoryAsync()) { Owner = this };
+            if (window.ShowDialog() != true) return;
+            if (window.SelectedAction == DataManagementAction.ExportJson)
+            {
+                await ExportUsageToFileAsync(csv: false);
+                return;
+            }
+            if (window.SelectedAction == DataManagementAction.ExportCsv)
+            {
+                await ExportUsageToFileAsync(csv: true);
+                return;
+            }
+            if (window.SelectedAction != DataManagementAction.Delete) return;
+
+            MessageBoxResult confirmation = System.Windows.MessageBox.Show(
+                this,
+                LocalizationService.Get("DeleteDataConfirmation"),
+                LocalizationService.Get("DeleteDataTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (confirmation != MessageBoxResult.Yes) return;
+            await _viewModel.DeleteDataAsync(window.SelectedDeletionScope);
+            if (_backgroundSessionWindow is not null)
+            {
+                await _backgroundSessionWindow.ReloadUsageAfterClearAsync();
+            }
+            _viewModel.RefreshOverview();
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{LocalizationService.Get("ClearHistoryFailed")}: {exception.Message}";
+        }
+    }
+
     private async void RhythmSuggestionLater_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -831,6 +884,36 @@ public partial class MainWindow : Window
 
     private async void ReviewSummary_Click(object sender, RoutedEventArgs e) =>
         await _viewModel.MarkTodaySummaryReviewedAsync();
+
+    private async void RhythmFirstStep_Click(object sender, RoutedEventArgs e)
+    {
+        switch (_viewModel.RhythmNextAction)
+        {
+            case RhythmFirstStepAction.EnableMeasurement:
+                if (await _viewModel.EnableAwarenessMeasurementAsync() && await SyncProtectedPolicyAsync())
+                {
+                    if (_backgroundSessionWindow is not null)
+                    {
+                        await _backgroundSessionWindow.ReloadSettingsAsync();
+                    }
+                    await _viewModel.ReloadUsageAsync();
+                }
+                break;
+            case RhythmFirstStepAction.StartFocus:
+                await StartQuickFocusAsync(25);
+                break;
+            case RhythmFirstStepAction.ReviewPlan:
+                _viewModel.SelectedPageIndex = 1;
+                break;
+            case RhythmFirstStepAction.ReviewSummary:
+                await _viewModel.MarkTodaySummaryReviewedAsync();
+                break;
+            case RhythmFirstStepAction.RetryData:
+                await _viewModel.ReloadUsageAsync();
+                _viewModel.StatusMessage = _viewModel.LocalDataHealthText;
+                break;
+        }
+    }
 
     private void RhythmDay_Click(object sender, RoutedEventArgs e)
     {
@@ -1269,6 +1352,35 @@ public partial class MainWindow : Window
         }
     }
 
+    private void SessionPreview_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sessionSurfaceTransitionInProgress)
+        {
+            return;
+        }
+
+        if (_viewModel.IsGuardianRequired && !ProtectionServiceManager.GetHealthReport().IsHealthy)
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("SessionPreviewBlocked");
+            return;
+        }
+
+        new SessionPreviewWindow { Owner = this }.ShowDialog();
+    }
+
+    private async void RetryHealth_Click(object sender, RoutedEventArgs e)
+    {
+        HealthGuardianText.Text = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "Checking"
+            : "Denetleniyor";
+        HealthGuardianDetailText.Text = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "Reading the existing local health signals…"
+            : "Mevcut yerel sağlık sinyalleri okunuyor…";
+        await _viewModel.ReloadUsageAsync();
+        RefreshProtectionStatus();
+        _viewModel.StatusMessage = LocalizationService.Get("HealthChecksRefreshed");
+    }
+
     private async Task<string?> RecoverAdminPinAsync(Window owner)
     {
         string? newPin = await ((App)System.Windows.Application.Current)
@@ -1293,7 +1405,8 @@ public partial class MainWindow : Window
     {
         ModeSelectionWindow selection = new(
             _viewModel.SelectedUsageMode,
-            _viewModel.PersonalProtectionLevel)
+            _viewModel.PersonalProtectionLevel,
+            _viewModel.CreateSettingsSnapshot())
         {
             Owner = this,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -1336,6 +1449,16 @@ public partial class MainWindow : Window
             }
 
             newPin = setup.ResultPin;
+            IReadOnlyList<string> recoveryCodes = _viewModel.PrepareStagedFamilyRecoveryCodes();
+            RecoveryCodesWindow recoveryWindow = new(recoveryCodes, requiresAcknowledgement: true)
+            {
+                Owner = this
+            };
+            if (recoveryWindow.ShowDialog() != true || !recoveryWindow.WasAcknowledged)
+            {
+                _viewModel.DiscardStagedFamilyRecoveryCodes();
+                return;
+            }
             _managementPin = newPin;
         }
         else if (targetMode == UsageMode.Personal &&
@@ -1441,6 +1564,25 @@ public partial class MainWindow : Window
         ProtectionActionButton.IsEnabled = !health.IsHealthy && !_protectionActionInProgress;
         ProtectionStatusDot.Background = (System.Windows.Media.Brush)FindResource(
             health.IsHealthy ? "SuccessBrush" : "WarningBrush");
+
+        if (HealthGuardianText is not null && HealthGuardianDetailText is not null)
+        {
+            bool english = LocalizationService.CurrentLanguage == LanguagePreference.English;
+            if (!_viewModel.IsGuardianRequired)
+            {
+                HealthGuardianText.Text = english ? "Not required" : "Bu modda gerekli değil";
+                HealthGuardianDetailText.Text = english
+                    ? "The selected mode does not require privileged enforcement."
+                    : "Seçili mod ayrıcalıklı koruma gerektirmiyor.";
+            }
+            else
+            {
+                HealthGuardianText.Text = health.IsHealthy
+                    ? (english ? "Healthy" : "Sağlıklı")
+                    : (english ? "Needs attention" : "İlgilenmek gerekiyor");
+                HealthGuardianDetailText.Text = $"{BuildProtectionHealthDetails(health)} · {DateTime.Now:HH:mm}";
+            }
+        }
     }
 
     private static string BuildProtectionHealthDetails(ProtectionHealthReport health)

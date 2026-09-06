@@ -31,6 +31,9 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     private readonly int? _requestedFocusDurationMinutes;
     private string _focusIntention = string.Empty;
     private FocusSessionClosure? _focusClosure;
+    private SessionOutcome? _sessionOutcome;
+    private readonly HashSet<string> _handledOutcomeIds = new(StringComparer.Ordinal);
+    private bool _applicationLimitReachedThisTick;
 
     public SessionViewModel(
         JsonSettingsStore? settingsStore = null,
@@ -54,7 +57,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     public bool HasFocusSession => _focusGoal is not null && _focusClosure is null;
     public bool HasFocusClosure => _focusClosure is not null;
     public bool CanContinueAfterFocus => HasFocusClosure && IsFlexiblePersonalMode &&
-        State is SessionState.Ready or SessionState.Paused;
+        _sessionOutcome?.CanContinueFocus == true && State is SessionState.Ready or SessionState.Paused;
     public string FocusIntention
     {
         get => _focusIntention;
@@ -65,11 +68,32 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         }
     }
     public string FocusClosureTitle => _focusClosure?.Completed == true
-        ? LocalizationService.Get("FocusCompletedHeadline")
+        ? _sessionOutcome?.AccessOutcome switch
+        {
+            SessionOutcomeKind.DailyLimitReached => LocalizationService.Get("FocusCompletedLimitHeadline"),
+            SessionOutcomeKind.PlanEnded => LocalizationService.Get("FocusCompletedPlanHeadline"),
+            _ => LocalizationService.Get("FocusCompletedHeadline")
+        }
         : LocalizationService.Get("FocusEndedEarlyHeadline");
-    public string FocusClosureSummary => _focusClosure is null ? string.Empty :
-        string.Format(LocalizationService.Get(_focusClosure.Completed ? "FocusCompletedSummary" : "FocusEndedEarlySummary"),
-            FormatDuration(_focusClosure.ActiveSeconds));
+    public string FocusClosureSummary
+    {
+        get
+        {
+            if (_focusClosure is null) return string.Empty;
+            string summary = string.Format(
+                LocalizationService.Get(_focusClosure.Completed ? "FocusCompletedSummary" : "FocusEndedEarlySummary"),
+                FormatDuration(_focusClosure.ActiveSeconds));
+            string boundary = _sessionOutcome?.AccessOutcome switch
+            {
+                SessionOutcomeKind.DailyLimitReached => LocalizationService.Get("FocusCompletedLimitDescription"),
+                SessionOutcomeKind.PlanEnded => LocalizationService.Get("FocusCompletedPlanDescription"),
+                SessionOutcomeKind.ApplicationLimitReached => LocalizationService.Get("FocusCompletedApplicationLimitDescription"),
+                _ => string.Empty
+            };
+            return string.IsNullOrEmpty(boundary) ? summary : $"{summary} {boundary}";
+        }
+    }
+    public SessionOutcome? CurrentOutcome => _sessionOutcome;
     public string FocusClosureGoalProgress
     {
         get
@@ -111,7 +135,9 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         : string.Empty;
 
     public string StateLabel => _focusGoal?.IsCompleted == true
-        ? LocalizationService.Get("FocusCompletedState")
+        ? _sessionOutcome?.HasAccessBoundary == true
+            ? LocalizationService.Get("FocusCompletedAccessEndedState")
+            : LocalizationService.Get("FocusCompletedState")
         : State switch
         {
             SessionState.Active => LocalizationService.Get("StateActive"),
@@ -123,7 +149,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         };
 
     public string Headline => _focusGoal?.IsCompleted == true
-        ? LocalizationService.Get("FocusCompletedHeadline")
+        ? FocusClosureTitle
         : State switch
         {
             SessionState.Paused => LocalizationService.Get("HeadlinePaused"),
@@ -135,7 +161,9 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         };
 
     public string Description => _focusGoal?.IsCompleted == true
-        ? LocalizationService.Get("FocusCompletedDescription")
+        ? _sessionOutcome?.HasAccessBoundary == true
+            ? FocusClosureSummary
+            : LocalizationService.Get("FocusCompletedDescription")
         : _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
     public string StatusExplanationText => CurrentStatusExplanation?.AccessibleText ?? string.Empty;
     private SessionStatusExplanation? CurrentStatusExplanation => _settings is null || _engine is null
@@ -267,17 +295,28 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
             return;
         }
 
+        _applicationLimitReachedThisTick = false;
         ControlSettings? activeSettings = _settings;
-        if (activeSettings is not null &&
-            ShouldEnforceApplicationRules(activeSettings, _engine.Ledger.State) &&
-            _applicationRuleEnforcer.Enforce(activeSettings, _engine.Ledger, elapsed, _engine.Ledger.State))
+        bool applicationRulesChecked = activeSettings is not null &&
+            ShouldEnforceApplicationRules(activeSettings, _engine.Ledger.State);
+        if (applicationRulesChecked &&
+            _applicationRuleEnforcer.Enforce(activeSettings!, _engine.Ledger, elapsed, _engine.Ledger.State))
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
         }
-        if ((_settings?.AwarenessTrackingEnabled == true || _settings?.Mode == UsageMode.Insights) &&
-            _foregroundApplicationTracker.Sample(_engine.Ledger, elapsed))
+        _applicationLimitReachedThisTick = applicationRulesChecked &&
+            _applicationRuleEnforcer.ReachedApplicationLimitRuleId is not null;
+        if (_settings?.AwarenessTrackingEnabled == true || _settings?.Mode == UsageMode.Insights)
         {
-            _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
+            if (!_engine.Ledger.AwarenessMeasurementAvailable)
+            {
+                _engine.Ledger.AwarenessMeasurementAvailable = true;
+                _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
+            }
+            if (_foregroundApplicationTracker.Sample(_engine.Ledger, elapsed))
+            {
+                _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
+            }
         }
         _uncommittedSeconds += elapsed.TotalSeconds;
         _secondsSinceSave += elapsed.TotalSeconds;
@@ -409,11 +448,22 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         }
 
         CommitPendingActiveTime();
+        string outcomeSource = _engine.Ledger.ActiveFocusSessionId?.ToString("N") ?? $"session-{_engine.Ledger.LocalDay:yyyyMMdd}";
         if (!TryCompleteFocus() && _focusGoal is not null)
         {
             _focusClosure = new FocusSessionClosure(false, _focusGoal.ElapsedSeconds, _focusGoal.DurationSeconds, FocusIntention);
+            _engine.EndSession(DateTimeOffset.Now);
+            SetOutcomeOnce(SessionOutcomeResolver.Resolve(
+                outcomeSource,
+                focusCompleted: false,
+                focusEndedEarly: true,
+                _engine.Ledger.State,
+                outsideScheduleIsPlanEnd: !IsClockRollbackDetected));
         }
-        _engine.EndSession(DateTimeOffset.Now);
+        else
+        {
+            _engine.EndSession(DateTimeOffset.Now);
+        }
         ClearPersistedFocus();
         _focusGoal = null;
         if (IsFlexiblePersonalMode)
@@ -430,6 +480,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         if (_engine is null || _focusClosure is null || !CanContinueAfterFocus) return false;
         long targetSeconds = _focusClosure.TargetSeconds;
         _focusClosure = null;
+        _sessionOutcome = null;
         FocusIntention = string.Empty;
         _focusGoal = FocusSessionGoal.Restore(targetSeconds, 0);
         _focusGoal.Start();
@@ -450,6 +501,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     public void DismissFocusClosure()
     {
         _focusClosure = null;
+        _sessionOutcome = null;
         FocusIntention = string.Empty;
         RefreshSnapshot(notifyStateChange: true);
     }
@@ -658,12 +710,31 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     private bool TryCompleteFocus()
     {
         if (_engine is null || _focusGoal?.CompleteIfReached() != true) return false;
-        _engine.Ledger.FocusSessionCount++;
+        string outcomeSource = _engine.Ledger.ActiveFocusSessionId?.ToString("N") ?? $"focus-{_engine.Ledger.LocalDay:yyyyMMdd}";
+        if (_focusGoal.DurationSeconds >= RhythmStreakAnalyzer.MinimumCountedFocusSessionMinutes * 60L)
+        {
+            _engine.Ledger.FocusSessionCount++;
+        }
         _engine.Ledger.FocusCompletedSeconds += _focusGoal.DurationSeconds;
         _focusClosure = new FocusSessionClosure(true, _focusGoal.ElapsedSeconds, _focusGoal.DurationSeconds, FocusIntention);
         ClearPersistedFocus();
         _engine.EndSession(DateTimeOffset.Now);
+        SetOutcomeOnce(SessionOutcomeResolver.Resolve(
+            outcomeSource,
+            focusCompleted: true,
+            focusEndedEarly: false,
+            _engine.Ledger.State,
+            applicationLimitReached: _applicationLimitReachedThisTick,
+            outsideScheduleIsPlanEnd: !IsClockRollbackDetected));
         return true;
+    }
+
+    private void SetOutcomeOnce(SessionOutcome outcome)
+    {
+        if (_handledOutcomeIds.Add(outcome.EventId))
+        {
+            _sessionOutcome = outcome;
+        }
     }
 
     private void RefreshSnapshot(bool notifyStateChange)
@@ -700,6 +771,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(FocusClosureTitle));
         OnPropertyChanged(nameof(FocusClosureSummary));
         OnPropertyChanged(nameof(FocusClosureGoalProgress));
+        OnPropertyChanged(nameof(CurrentOutcome));
         OnPropertyChanged(nameof(RemainingText));
         OnPropertyChanged(nameof(UsedText));
         OnPropertyChanged(nameof(LimitText));

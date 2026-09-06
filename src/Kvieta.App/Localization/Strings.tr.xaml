@@ -6,6 +6,7 @@
     <sys:String x:Key="Today">Bugün</sys:String><sys:String x:Key="Plan">Plan</sys:String><sys:String x:Key="Applications">Uygulamalar</sys:String><sys:String x:Key="Settings">Ayarlar</sys:String><sys:String x:Key="OnlyThisDevice">Yalnızca bu cihaz</sys:String>
     <sys:String x:Key="SessionScreen">Oturum ekranı</sys:String><sys:String x:Key="Save">Kaydet</sys:String><sys:String x:Key="TodayDescription">Kalan süreyi ve günün durumunu tek bakışta gör.</sys:String><sys:String x:Key="RemainingTime">KALAN SÜRE</sys:String><sys:String x:Key="TodayTracked">BUGÜN ÖLÇÜLEN</sys:String><sys:String x:Key="TodayTrackedDescription">Ön planda kullanılan uygulamalarda geçen süre</sys:String><sys:String x:Key="Used">Kullanılan</sys:String><sys:String x:Key="Total">Toplam</sys:String><sys:String x:Key="RightNow">ŞU AN</sys:String><sys:String x:Key="TodayLimit">Bugünkü limit</sys:String><sys:String x:Key="AppRule">Uygulama kuralı</sys:String><sys:String x:Key="FullyBlocked">Tamamen kapalı</sys:String>
     <sys:String x:Key="QuickFocus">Hızlı odak</sys:String><sys:String x:Key="QuickFocusDescription">Bir süre seç ve iki tıkla odaklanmaya başla.</sys:String><sys:String x:Key="CustomFocus">Özel süre</sys:String><sys:String x:Key="RepeatLastFocus">Son: {0} dk</sys:String><sys:String x:Key="LastFocus">Son odak</sys:String><sys:String x:Key="CustomFocusTitle">Odak süresini seç</sys:String><sys:String x:Key="CustomFocusDescription">Bu oturum için 1 ile 1440 dakika arasında bir hedef belirle.</sys:String><sys:String x:Key="StartFocus">Odağı başlat</sys:String><sys:String x:Key="GrantTime">Süreyi ver</sys:String><sys:String x:Key="StartFocusMinutes">{0} dakika odak başlat</sys:String><sys:String x:Key="FocusCompletedState">ODAK TAMAMLANDI</sys:String><sys:String x:Key="FocusCompletedHeadline">Hedefine ulaştın.</sys:String><sys:String x:Key="FocusCompletedDescription">Bu odak oturumu tamamlandı. Hazır olduğunda Kontrol Merkezi'ne dönebilirsin.</sys:String>
+    <sys:String x:Key="FocusCompletedAccessEndedState">ODAK TAMAMLANDI · ERİŞİM SONA ERDİ</sys:String><sys:String x:Key="FocusCompletedLimitHeadline">Odak tamamlandı; günlük süren doldu.</sys:String><sys:String x:Key="FocusCompletedPlanHeadline">Odak tamamlandı; plan sona erdi.</sys:String><sys:String x:Key="FocusCompletedLimitDescription">Günlük kullanım hakkı sona erdi; devam etmek için mevcut izin akışını kullan.</sys:String><sys:String x:Key="FocusCompletedPlanDescription">İzin verilen plan aralığı sona erdi; yeni odak başlatılamaz.</sys:String><sys:String x:Key="FocusCompletedApplicationLimitDescription">Uygulama limiti sona erdi; odak başarın korunur ancak uygulama erişimi açılmaz.</sys:String>
     <sys:String x:Key="TodayOverview">Bugünün özeti</sys:String><sys:String x:Key="ComparedWithYesterday">Düne göre</sys:String><sys:String x:Key="NextPlan">Sıradaki plan</sys:String><sys:String x:Key="MostUsedToday">Bugün en çok kullanılanlar</sys:String><sys:String x:Key="NoTodayApplications">Bugün henüz uygulama kullanımı ölçülmedi.</sys:String><sys:String x:Key="CreateRule">Kural oluştur</sys:String><sys:String x:Key="DailyAppLimit">Günlük limit</sys:String><sys:String x:Key="DailyAppLimitDescription">Bu uygulamanın her gün kaç dakika kullanılabileceğini seç.</sys:String><sys:String x:Key="AllowInPlan">Yalnız planda izin ver</sys:String><sys:String x:Key="BlockDuringFocus">Odakta engelle</sys:String>
     <sys:String x:Key="WeeklyPlan">Haftalık plan</sys:String><sys:String x:Key="WeeklyPlanDescription">Hangi gün ve saatlerde kullanılabileceğini belirle.</sys:String><sys:String x:Key="EnabledUpper">AÇIK</sys:String><sys:String x:Key="DayUpper">GÜN</sys:String><sys:String x:Key="StartUpper">BAŞLANGIÇ</sys:String><sys:String x:Key="EndUpper">BİTİŞ</sys:String><sys:String x:Key="DailyLimitUpper">GÜNLÜK LİMİT (DK)</sys:String>
     <sys:String x:Key="HourUpper">SAAT</sys:String><sys:String x:Key="MinuteUpper">DAKİKA</sys:String>
@@ -73,6 +74,7 @@
     <sys:String x:Key="ManagerDevice">Yönetici cihazı (yalnız yerel ağ)</sys:String>
     <sys:String x:Key="RecoveryCodesTitle">Tek kullanımlık kurtarma kodları</sys:String>
     <sys:String x:Key="RecoveryCodesDescription">Bu kodları güvenli bir yerde sakla. Her kod yalnız bir kez çalışır ve tekrar gösterilmez.</sys:String>
+    <sys:String x:Key="RecoveryCodesAcknowledgement">Kodları bu cihazın dışında güvenli bir yere kaydettim.</sys:String>
     <sys:String x:Key="CopyRecoveryCodes">Kodları kopyala</sys:String>
     <sys:String x:Key="SaveRecoveryCodes">Dosyaya kaydet</sys:String>
     <sys:String x:Key="RecoveryCodesSaveFailed">Kurtarma kodları dosyaya kaydedilemedi.</sys:String>
@@ -171,4 +173,40 @@
     <sys:String x:Key="DailyGoalProgressFormat">Günlük hedef ilerlemesi: {0}/{1} {2}</sys:String>
     <sys:String x:Key="ContinueFocus">Aynı süreyle devam et</sys:String>
     <sys:String x:Key="TakeBreak">Mola ver</sys:String>
+    <sys:String x:Key="SessionPreviewBadge">ÖNİZLEME · ÖRNEK VERİ</sys:String>
+    <sys:String x:Key="SessionPreviewTitle">Süre bitişi önizlemesi</sys:String>
+    <sys:String x:Key="SessionPreviewDescription">Gerçek bir oturum başlatmadan uyarı ve süre bitişi ekranlarının nasıl çalıştığını gör.</sys:String>
+    <sys:String x:Key="SessionPreviewWarningTitle">Yaklaşan uyarı</sys:String>
+    <sys:String x:Key="SessionPreviewWarningRemaining">{0} dakika kaldı</sys:String>
+    <sys:String x:Key="SessionPreviewWarningDescription">Bu yalnızca örnektir; sayaçlar ilerlemez ve bildirim gönderilmez.</sys:String>
+    <sys:String x:Key="SessionPreviewExpiredTitle">Süre doldu</sys:String>
+    <sys:String x:Key="SessionPreviewExpiredDescription">Gerçek ekranda erişim kararı geçerli koruma politikasına göre uygulanır.</sys:String>
+    <sys:String x:Key="SessionPreviewRequestExample">Örnek: süre isteği akışı açıklanır; gerçek istek oluşturulmadı.</sys:String>
+    <sys:String x:Key="SessionPreviewSavedExample">Örnek: çalışma kaydedildi bilgisi gösterilir; oturum durumu değişmedi.</sys:String>
+    <sys:String x:Key="SessionPreviewNoChanges">Ayar, PIN, seri, kullanım, Guardian veya uygulama engeli değişmez. Esc ile kapatabilirsin.</sys:String>
+    <sys:String x:Key="OpenSessionPreview">Süre bitişini önizle</sys:String>
+    <sys:String x:Key="SessionPreviewBlocked">Önizleme açılmadı: önce cihaz korumasını sağlıklı duruma getir.</sys:String>
+    <sys:String x:Key="WorkHealth">Çalışma sağlığı</sys:String>
+    <sys:String x:Key="WorkHealthDescription">Ölçüm, Guardian ve son yerel kaydı ayrı ayrı denetle.</sys:String>
+    <sys:String x:Key="MeasurementHealth">Ölçüm</sys:String>
+    <sys:String x:Key="GuardianHealth">Guardian</sys:String>
+    <sys:String x:Key="LocalSaveHealth">Son yerel kayıt</sys:String>
+    <sys:String x:Key="RetryHealthChecks">Denetimleri yinele</sys:String>
+    <sys:String x:Key="HealthChecksRefreshed">Çalışma sağlığı yeniden denetlendi.</sys:String>
+    <sys:String x:Key="MyData">Verilerim</sys:String>
+    <sys:String x:Key="MyDataTitle">Verilerim</sys:String>
+    <sys:String x:Key="MyDataDescription">Kvieta’nın bu cihazda ne sakladığını gör, dışa aktar veya kapsamını seçerek sil.</sys:String>
+    <sys:String x:Key="StoredDataTitle">Bu cihazda saklananlar</sys:String>
+    <sys:String x:Key="StoredDataSafety">Kullanım geçmişi, ritim özeti ve tanılama ayrıdır. PIN, anahtar ve kurtarma kodu içeriği burada gösterilmez.</sys:String>
+    <sys:String x:Key="ExportPreviewTitle">Dışa aktarma önizlemesi</sys:String>
+    <sys:String x:Key="DeleteDataTitle">Silme kapsamı</sys:String>
+    <sys:String x:Key="DeleteDetailedUsage">Ayrıntılı kullanım geçmişini sil</sys:String>
+    <sys:String x:Key="DeleteDetailedUsageDescription">Günler, uygulama adları ve sayaçlar silinir; sınırlı ritim özeti korunur.</sys:String>
+    <sys:String x:Key="ResetRhythmOnly">Yalnız Ritim Serisini sıfırla</sys:String>
+    <sys:String x:Key="ResetRhythmOnlyDescription">Mevcut/en iyi seri ve Koruyucular sıfırlanır; kullanım geçmişi kalır.</sys:String>
+    <sys:String x:Key="DeleteUsageAndRhythm">Kullanım ve ritmin tamamını sil</sys:String>
+    <sys:String x:Key="DeleteUsageAndRhythmDescription">Tüm kullanım kayıtları ve ritim özeti silinir; plan, PIN ve Guardian koruması değişmez.</sys:String>
+    <sys:String x:Key="DeleteSelectedData">Seçilen veriyi sil</sys:String>
+    <sys:String x:Key="DeleteDataConfirmation">Seçilen yerel veri kapsamı kalıcı olarak silinsin mi? Plan, PIN, güvenlik kimliği ve Guardian policy değişmez.</sys:String>
+    <sys:String x:Key="DataDeleted">Seçilen yerel veri silindi.</sys:String>
 </ResourceDictionary>
