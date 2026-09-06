@@ -60,8 +60,8 @@ public sealed class DayScheduleRow : ObservableObject
 
     public bool TryBuild(out DaySchedule schedule)
     {
-        bool fromValid = TimeOnly.TryParseExact(AllowedFrom, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly from);
-        bool untilValid = TimeOnly.TryParseExact(AllowedUntil, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly until);
+        bool fromValid = TimeOnly.TryParseExact(AllowedFrom, ["H:mm", "HH:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly from);
+        bool untilValid = TimeOnly.TryParseExact(AllowedUntil, ["H:mm", "HH:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly until);
 
         schedule = new DaySchedule
         {

@@ -17,9 +17,12 @@ package-safe label is needed; do not present `v1.0.0-alpha.1` as the product nam
 The numeric MSI version stays `1.0.0` so Windows Installer can service the
 existing product correctly.
 
-The current branded preview is **Kvieta Alpha 4**. Its package-safe label is
-`Alpha-4`; publish it under the `kvieta-alpha-4` tag. The numeric MSI version
-remains `1.0.0` so the preview can service existing Kvieta Alpha installations.
+The current branded preview is **Kvieta Alpha 4.2**. Its package-safe label is
+`Alpha-4.2`; publish it under the `kvieta-alpha-4.2` tag. Use numeric MSI version
+`4.2.0`, above both the published Alpha 4 package (`1.0.0`) and the intervening
+local Alpha 4.1 test packages (`4.1.0`–`4.1.3`). Do not downgrade this version.
+Build community artifacts from the clean release commit and verify that their
+manifest names the annotated tag's commit before uploading.
 
 Final releases must never be published while a documented release blocker remains open. Release candidates and test packages must be labeled clearly and must not be described as signed or production-ready when they are not.
 

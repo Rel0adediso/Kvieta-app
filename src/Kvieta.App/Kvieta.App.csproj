@@ -4,7 +4,7 @@
     <AssemblyName>Kvieta</AssemblyName>
     <Product>Kvieta</Product>
     <Description>Local screen-time and session management for Windows</Description>
-    <Version>1.0.0</Version>
+    <Version>4.2.0</Version>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
@@ -26,6 +26,9 @@
     <InformationalVersion Condition="'$(Configuration)' == 'Release'">$(Version)+public</InformationalVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Controls/TimeWheelPicker.xaml.cs" />
+    <Page Remove="Controls/TimeWheelPicker.xaml" />
+    <ProjectReference Include="../Kvieta.Controls/Kvieta.Controls.csproj" />
     <ProjectReference Include="../Kvieta.Core/Kvieta.Core.csproj" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
     <PackageReference Include="System.Management" Version="10.0.0" />

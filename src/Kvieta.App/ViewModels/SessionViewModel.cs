@@ -379,7 +379,9 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     public static bool ShouldAllowExtraTimeRequest(ControlSettings settings, SessionState state) =>
         settings.Mode == UsageMode.Family && state is SessionState.Active or SessionState.Paused or SessionState.TimeExpired ||
         state == SessionState.TimeExpired &&
-        (settings.Mode != UsageMode.Personal || settings.StrictPersonalMode == false);
+        settings.Mode == UsageMode.Personal &&
+        settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible &&
+        !settings.StrictPersonalMode;
 
     public void SuspendUsageForAdministration()
     {
@@ -737,6 +739,8 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         }
     }
 
+    public string RotatingThought => LocalizationService.Get($"Thought{(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30) % 4}");
+
     private void RefreshSnapshot(bool notifyStateChange)
     {
         if (_engine is null)
@@ -747,6 +751,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         SessionState previousState = _snapshot?.State ?? _engine.Ledger.State;
         _snapshot = _engine.GetSnapshot(DateTimeOffset.Now);
 
+        OnPropertyChanged(nameof(RotatingThought));
         OnPropertyChanged(nameof(State));
         OnPropertyChanged(nameof(IsActive));
         OnPropertyChanged(nameof(CanStartOrResume));

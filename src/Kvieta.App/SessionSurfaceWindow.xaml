@@ -11,7 +11,7 @@
             <Grid>
                 <StackPanel Orientation="Horizontal">
                     <ContentControl Width="36" Height="36" Template="{StaticResource KvietaAppIconTemplate}" />
-                    <StackPanel Margin="11,0,0,0" VerticalAlignment="Center"><TextBlock Text="Kvieta" FontSize="17" FontWeight="SemiBold" /><TextBlock Text="{DynamicResource DailyRhythm}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,2,0,0" /></StackPanel>
+                    <StackPanel Margin="11,0,0,0" VerticalAlignment="Center"><TextBlock Text="Kvieta" FontSize="17" FontWeight="SemiBold" /><TextBlock Text="{Binding RotatingThought}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,2,0,0" /></StackPanel>
                 </StackPanel>
                 <Button x:Name="ExitButton" Content="{DynamicResource ExitPreview}" HorizontalAlignment="Right" Style="{StaticResource SecondaryButtonStyle}" Padding="14,7" Click="ExitPrototype_Click" />
             </Grid>
@@ -46,8 +46,8 @@
                             <TextBlock Text="{DynamicResource DevicePower}" VerticalAlignment="Center" />
                             <Viewbox Width="13" Height="13" Margin="7,0,0,0" VerticalAlignment="Center">
                                 <Grid Width="24" Height="24">
-                                    <Path Data="M12,2 L12,12" Stroke="{DynamicResource PrimaryTextBrush}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                    <Path Data="M7.05,4.11 A9,9 0 1 0 16.95,4.11" Stroke="{DynamicResource PrimaryTextBrush}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" />
+                                    <Path Data="M12,2 L12,12" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                    <Path Data="M7.05,4.11 A9,9 0 1 0 16.95,4.11" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" />
                                 </Grid>
                             </Viewbox>
                         </StackPanel>

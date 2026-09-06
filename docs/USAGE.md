@@ -1,6 +1,28 @@
 # Kvieta usage and recovery guide
 
-> Current status: **Kvieta Alpha 4**. Community packages are unsigned previews intended for validation; they are not final public releases.
+> Current status: **Kvieta Alpha 4.2**. Community packages are unsigned previews intended for validation; they are not final public releases.
+
+## Interface and quick guide
+
+The guided tour opens automatically the first time you open Control Center. It highlights
+controls and visits Today, Plan when available, Applications, History and Settings.
+Use **Esc** or **Skip tutorial** in the top right to dismiss it; **?** or **F1** reopens it.
+Cancelling post-install phone pairing dismisses the
+automatic offer for future launches; connect your phone later in Settings.
+Connecting a phone does not invalidate recovery codes.
+Under **Settings → Appearance and general → Text and interface size**, choose 100%, 110%, 125%,
+or 150%. The preference stays on this device. **Ctrl + / Ctrl -** changes the
+size; **Ctrl 0** resets it. The sidebar scales too, and cards reflow vertically in narrow
+windows. Protection, privacy and maintenance settings have separate expandable sections.
+
+Type plan times directly, such as 09:30, or choose them with the arrow.
+Add multiple .exe files at once, choose their rules, and press **Save**.
+Flexible Personal mode applies changes without a delay and hides **Request time**.
+Choose Balanced or Protected for a weekly plan.
+
+History keeps daily records visible and puts additional metrics under **Rhythm · trends
+and goals**. **Start protection service** starts a stopped Windows Guardian service;
+start a focus session from Today.
 
 ## Installation and update
 
@@ -20,7 +42,10 @@ Kvieta is installed under `C:\Program Files\Kvieta` by default. User settings an
 
 In Personal mode, **Quick focus** starts a 25, 50, or 90-minute session from Today or the tray menu. Today also accepts a custom duration and can repeat the last focus duration, stored only in a separate local preference file. The focus target never extends the daily limit or the allowed schedule.
 
-Today combines current use and remaining time with the three most-used applications, the change from yesterday, and the active or next scheduled window. Empty and first-day states are shown without inventing a comparison.
+Today emphasizes remaining time, measured usage, the change from yesterday and the next plan.
+Most-used applications are on the Applications page, alongside today's usage grouped by
+application name into browsers, communication, productivity, entertainment and other apps.
+Insights mode can view usage here without rule editing. Empty and first-day states do not invent comparisons.
 
 For a measured application, **Create rule** offers a daily limit, availability only inside the plan, blocking during focus, unrestricted use, or a permanent block without opening a file picker. Because usage history deliberately stores the executable name rather than its full path, an application that has no existing rule must be running while its first rule is created. Changes take effect after **Save** and continue to follow Personal/Family approval rules.
 

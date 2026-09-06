@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="src/Kvieta.Controls/Kvieta.Controls.csproj" />
   <Project Path="src/Kvieta.Core/Kvieta.Core.csproj" />
   <Project Path="src/Kvieta.App/Kvieta.App.csproj" />
   <Project Path="src/Kvieta.SetupApp/Kvieta.SetupApp.csproj" />

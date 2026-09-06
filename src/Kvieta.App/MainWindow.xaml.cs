@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private bool _sessionSurfaceTransitionInProgress;
     private bool _openManagerDeviceOnLoad;
     private bool _protectionActionInProgress;
+    private bool _applicationAddInProgress;
 
     public MainWindow(
         SessionSurfaceWindow? existingSessionWindow = null,
@@ -139,6 +140,7 @@ public partial class MainWindow : Window
         }
 
         await _viewModel.InitializeAsync();
+        await LoadDisplayPreferencesAsync();
         try
         {
             FocusPreferences focusPreferences = await _focusPreferencesStore.LoadAsync();
@@ -173,16 +175,31 @@ public partial class MainWindow : Window
         ResetSettingsScrollPosition();
         _overviewTimer.Start();
         _isInitializing = false;
+        await ShowFirstRunGuideAsync();
+        if (!IsVisible) return;
         if (_openManagerDeviceOnLoad && _viewModel.IsFamilyMode)
         {
             _openManagerDeviceOnLoad = false;
-            await TryOpenManagerDeviceAsync(startPairing: true);
+            try
+            {
+                if (await _displayPreferencesStore.TryClaimPairingPromptAsync() &&
+                    ManagerDeviceEnrollmentStore.Load()?.IsActive != true)
+                {
+                    await TryOpenManagerDeviceAsync(startPairing: true);
+                }
+            }
+            catch (Exception)
+            {
+                _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                    ? "You can connect your phone later from Settings."
+                    : "Telefonunu daha sonra Ayarlar'dan bağlayabilirsin.";
+            }
         }
     }
 
     private async void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_isInitializing || e.NewSize.Width >= 960 || !_viewModel.IsSidebarExpanded || _sidebarAnimationRunning)
+        if (_isInitializing || e.NewSize.Width / ContentScale.ScaleX >= 960 || !_viewModel.IsSidebarExpanded || _sidebarAnimationRunning)
         {
             return;
         }
@@ -459,6 +476,15 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if (IsGuideOpen && e.Key == Key.Escape) { EndGuide(); e.Handled = true; return; }
+        if (e.Key == Key.F1) { QuickGuide_Click(sender, e); e.Handled = true; return; }
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.OemPlus or Key.Add or Key.OemMinus or Key.Subtract or Key.D0 or Key.NumPad0)
+        {
+            ZoomSelector.SelectedIndex = e.Key is Key.D0 or Key.NumPad0 ? 0 :
+                Math.Clamp(ZoomSelector.SelectedIndex + (e.Key is Key.OemPlus or Key.Add ? 1 : -1), 0, ZoomSelector.Items.Count - 1);
+            e.Handled = true;
+            return;
+        }
 #if KVIETA_DEVELOPMENT_BUILD
         if (e.Key == Key.F12 &&
             Keyboard.Modifiers.HasFlag(ModifierKeys.Control) &&
@@ -517,6 +543,7 @@ public partial class MainWindow : Window
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
+        Keyboard.ClearFocus();
         ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
         if (!await _viewModel.SaveAsync())
         {
@@ -727,6 +754,15 @@ public partial class MainWindow : Window
 
     private async void RecoveryCodes_Click(object sender, RoutedEventArgs e)
     {
+        if (_viewModel.UnusedRecoveryCodeCount > 0 &&
+            System.Windows.MessageBox.Show(this,
+                LocalizationService.Get("RecoveryCodesReplaceWarning"),
+                LocalizationService.Get("RecoveryCodesReplaceTitle"),
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         if (!_viewModel.HasAdminPin)
         {
             _viewModel.StatusMessage = LocalizationService.Get("RecoveryCodesRequirePin");
@@ -986,18 +1022,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_viewModel.UnusedRecoveryCodeCount > 0 &&
-            System.Windows.MessageBox.Show(
-                this,
-                LocalizationService.Get("RecoveryCodesReplaceWarning"),
-                LocalizationService.Get("RecoveryCodesReplaceTitle"),
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No) != MessageBoxResult.Yes)
-        {
-            return;
-        }
-
         AdminPinWindow verification = AdminPinWindow.CreateVerification(
             _viewModel.VerifyAdminPinAsync,
             RecoverAdminPinAsync,
@@ -1006,10 +1030,10 @@ public partial class MainWindow : Window
                 : startPairing ? "Güvenilir telefonunu bağla" : "Güvenilir telefon ayarları",
             LocalizationService.CurrentLanguage == LanguagePreference.English
                 ? startPairing
-                    ? "Enter the administrator PIN you created during setup. This optional step authorizes adding a phone that can help reset your PIN; you can cancel and do it later."
+                    ? "Enter your administrator PIN to connect your phone. You can cancel and continue later from Settings."
                     : "Enter the administrator PIN to view or change the trusted phone."
                 : startPairing
-                    ? "Kurulumda oluşturduğun yönetici PIN'ini gir. Bu isteğe bağlı adım, PIN sıfırlamaya yardımcı olacak telefonu yetkilendirir; iptal edip daha sonra da yapabilirsin."
+                    ? "Telefonunu bağlamak için yönetici PIN'ini gir. İstersen iptal edip daha sonra Ayarlar'dan devam edebilirsin."
                     : "Güvenilir telefonu görüntülemek veya değiştirmek için yönetici PIN'ini gir.");
         verification.Owner = this;
         if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
@@ -1656,11 +1680,14 @@ public partial class MainWindow : Window
 
     private void RemoveApplication_Click(object sender, RoutedEventArgs e)
     {
+        if (sender is FrameworkElement { DataContext: AppRuleRow rule })
+            _viewModel.SelectedAppRule = rule;
         _viewModel.RemoveSelectedApplication();
     }
 
-    private void AddApplication_Click(object sender, RoutedEventArgs e)
+    private async void AddApplication_Click(object sender, RoutedEventArgs e)
     {
+        if (_applicationAddInProgress) return;
         Microsoft.Win32.OpenFileDialog dialog = new()
         {
             Title = LocalizationService.Get("AddApplication"),
@@ -1668,7 +1695,8 @@ public partial class MainWindow : Window
                 ? "Applications (*.exe)|*.exe"
                 : "Uygulamalar (*.exe)|*.exe",
             CheckFileExists = true,
-            Multiselect = false
+            Multiselect = true,
+            DereferenceLinks = true
         };
         if (dialog.ShowDialog(this) != true)
         {
@@ -1677,13 +1705,29 @@ public partial class MainWindow : Window
 
         try
         {
-            _viewModel.AddApplication(dialog.FileName);
+            _applicationAddInProgress = true;
+            if (sender is System.Windows.Controls.Button button) button.IsEnabled = false;
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Reading application identity…" : "Uygulama kimliği okunuyor…";
+            foreach (string path in dialog.FileNames)
+            {
+                AppRule rule = await Task.Run(() => ApplicationIdentityService.CaptureRule(path));
+                _viewModel.AddCapturedApplication(rule, AppRuleMode.Blocked, 60);
+            }
+            _viewModel.SelectedPageIndex = 2;
         }
         catch (Exception exception)
         {
             _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
                 ? $"The application could not be added: {exception.Message}"
                 : $"Uygulama eklenemedi: {exception.Message}";
+            System.Windows.MessageBox.Show(this, _viewModel.StatusMessage,
+                LocalizationService.Get("AddApplication"), MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _applicationAddInProgress = false;
+            if (sender is System.Windows.Controls.Button button) button.IsEnabled = true;
         }
     }
 
@@ -1882,6 +1926,7 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
+        EndGuide();
         if (!_allowCloseForUninstall && _backgroundSessionWindow is not null)
         {
             e.Cancel = true;

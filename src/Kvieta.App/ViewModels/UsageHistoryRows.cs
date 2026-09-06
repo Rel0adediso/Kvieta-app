@@ -87,6 +87,21 @@ public sealed class AppUsageHistoryRow
     public string RankText => $"#{Rank}";
     public bool HasIcon => Icon is not null;
     public bool HasFallbackIcon => Icon is null;
+    public string CategoryLabel => LocalizationService.Get(ApplicationCategoryKey(Name));
+
+    internal static string ApplicationCategoryKey(string name)
+    {
+        string app = Path.GetFileNameWithoutExtension(name).ToLowerInvariant();
+        if (new[] { "chrome", "msedge", "firefox", "opera", "brave", "vivaldi" }.Any(app.Contains))
+            return "CategoryBrowsers";
+        if (new[] { "discord", "teams", "slack", "telegram", "whatsapp", "zoom", "outlook" }.Any(app.Contains))
+            return "CategoryCommunication";
+        if (new[] { "spotify", "steam", "epicgames", "vlc", "minecraft", "roblox", "netflix", "valorant" }.Any(app.Contains))
+            return "CategoryEntertainment";
+        if (new[] { "winword", "excel", "powerpnt", "code", "devenv", "notepad", "figma", "photoshop", "obsidian", "notion" }.Any(app.Contains))
+            return "CategoryProductivity";
+        return "CategoryOther";
+    }
     public string Initials
     {
         get

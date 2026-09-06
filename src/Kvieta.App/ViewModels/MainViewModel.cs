@@ -89,6 +89,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> RetentionOptions { get; } = [];
     public ObservableCollection<UsageHistoryDayRow> HistoryDays { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> TodayApplications { get; } = [];
+    public IEnumerable<AppUsageHistoryRow> TopTodayApplications => TodayApplications.Take(3);
     public ObservableCollection<AppUsageHistoryRow> HistoryApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryAllApplications { get; } = [];
     public ObservableCollection<UsageHistoryEventRow> HistoryEvents { get; } = [];
@@ -99,7 +100,7 @@ public sealed class MainViewModel : ObservableObject
         get => _selectedPageIndex;
         set => SetProperty(
             ref _selectedPageIndex,
-            (IsInsightsMode && value is 1 or 2) || (!HasScheduledPlan && value == 1) ? 0 : value);
+            !HasScheduledPlan && value == 1 ? 0 : value);
     }
 
     public string DeviceName
@@ -180,6 +181,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsGuardianRequired));
                 OnPropertyChanged(nameof(IsFlexiblePersonalMode));
                 OnPropertyChanged(nameof(HasScheduledPlan));
+                OnPropertyChanged(nameof(HasPersonalChangeDelay));
                 OnPropertyChanged(nameof(TodayDescriptionText));
                 if (!HasScheduledPlan && SelectedPageIndex == 1)
                 {
@@ -222,10 +224,11 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(HasRestrictions));
                 OnPropertyChanged(nameof(IsFlexiblePersonalMode));
                 OnPropertyChanged(nameof(HasScheduledPlan));
+                OnPropertyChanged(nameof(HasPersonalChangeDelay));
                 OnPropertyChanged(nameof(TodayDescriptionText));
                 OnPropertyChanged(nameof(RhythmPlanMetricLabel));
                 RefreshDailyRhythmGoalOptions();
-                if (value == UsageMode.Insights && SelectedPageIndex is 1 or 2)
+                if (value == UsageMode.Insights && SelectedPageIndex == 1)
                 {
                     SelectedPageIndex = 0;
                 }
@@ -312,6 +315,7 @@ public sealed class MainViewModel : ObservableObject
         IsFamilyMode ||
         IsPersonalMode && PersonalProtectionLevel == PersonalProtectionLevel.Protected;
     public bool HasRestrictions => SelectedUsageMode != UsageMode.Insights;
+    public bool HasPersonalChangeDelay => IsPersonalMode && !IsFlexiblePersonalMode;
     public bool HasScheduledPlan => HasRestrictions && !IsFlexiblePersonalMode;
     public string TodayDescriptionText => IsInsightsMode
         ? L("Bugünkü gerçek uygulama kullanımını tek bakışta gör.", "See today's actual application usage at a glance.")
@@ -647,7 +651,9 @@ public sealed class MainViewModel : ObservableObject
             }
             bool policyChanged = !SettingsEquivalent(_settings, desired);
 
-            if (SelectedUsageMode == UsageMode.Personal && SettingsPolicyComparer.HasRelaxation(_settings, desired))
+            if (SelectedUsageMode == UsageMode.Personal &&
+                _settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible &&
+                SettingsPolicyComparer.HasRelaxation(_settings, desired))
             {
                 ControlSettings immediate = CloneSettings(desired);
                 immediate.StartWithWindows = _settings.StartWithWindows;
@@ -739,8 +745,18 @@ public sealed class MainViewModel : ObservableObject
 
     public void AddApplication(string executablePath, AppRuleMode mode, int dailyLimitMinutes)
     {
-        AppRuleRow? existingRule = AppRules.FirstOrDefault(rule =>
-            string.Equals(rule.ExecutablePath, executablePath, StringComparison.OrdinalIgnoreCase));
+        if (mode == AppRuleMode.Unlimited)
+        {
+            AddCapturedApplication(new AppRule { ExecutablePath = Path.GetFullPath(executablePath) }, mode, dailyLimitMinutes);
+            return;
+        }
+        AddCapturedApplication(ApplicationIdentityService.CaptureRule(executablePath), mode, dailyLimitMinutes);
+    }
+
+    public void AddCapturedApplication(AppRule rule, AppRuleMode mode, int dailyLimitMinutes)
+    {
+        AppRuleRow? existingRule = AppRules.FirstOrDefault(row =>
+            string.Equals(row.ExecutablePath, rule.ExecutablePath, StringComparison.OrdinalIgnoreCase));
         if (mode == AppRuleMode.Unlimited)
         {
             if (existingRule is not null) AppRules.Remove(existingRule);
@@ -751,7 +767,6 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        AppRule rule = ApplicationIdentityService.CaptureRule(executablePath);
         rule.Mode = mode;
         rule.DailyLimitMinutes = Math.Clamp(dailyLimitMinutes, 0, 1440);
         if (existingRule is not null)
@@ -1433,7 +1448,6 @@ public sealed class MainViewModel : ObservableObject
             .GroupBy(item => (item.ApplicationId, item.Name))
             .Select(group => (group.Key.ApplicationId, group.Key.Name, UsedSeconds: group.Sum(item => item.UsedSeconds)))
             .OrderByDescending(item => item.UsedSeconds)
-            .Take(3)
             .ToList();
         long maximum = Math.Max(1, ranked.Select(item => item.UsedSeconds).DefaultIfEmpty(0).Max());
         TodayApplications.Clear();
@@ -1452,6 +1466,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(NextPlanText));
         OnPropertyChanged(nameof(HasTodayApplications));
         OnPropertyChanged(nameof(HasNoTodayApplications));
+        OnPropertyChanged(nameof(TopTodayApplications));
     }
 
     private string BuildNextPlanText(DateTimeOffset now)

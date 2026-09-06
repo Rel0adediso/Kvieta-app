@@ -1,6 +1,71 @@
 # Kvieta release notes
 
-## Kvieta Alpha 4 — Current community preview
+## Kvieta Alpha 4.2
+
+Alpha 4.2 improves setup, onboarding and everyday navigation. It is an unsigned
+Windows x64 community prerelease, not a final production release.
+
+### Highlights
+
+- Setup starts at 960×620 and can shrink to 800×500. Smaller work areas reduce
+  the initial size further. Native resize borders, narrower spacing and vertical
+  scrolling keep long steps accessible. The close control now fits its icon.
+- Language selection uses TR/EN badges instead of flags. Recovery codes are
+  presented as readable tiles while copy, file export and acknowledgement remain.
+- The first Control Center launch opens a guided tour that highlights controls
+  and navigates through pages appropriate to the selected mode. Back/Next, Esc,
+  and the top-right skip button are supported; ? and F1 reopen it.
+- Today emphasizes remaining time, measured usage and the next plan. Rule-count
+  and blocked-app-count tiles are removed from this overview.
+- Applications contains most-used apps and all of today's measured usage grouped
+  by application name into browsers, communication, productivity, entertainment
+  and other applications. Insights mode can view usage without rule editing.
+- Settings is grouped into appearance/general, protection, privacy and maintenance.
+  Rhythm details have a prominent expandable header. Cards reflow in narrow
+  windows, and persistent 100–150% zoom includes the sidebar and header.
+
+### Behavior and recovery fixes
+
+- Setup and the application share a time picker with hour/minute selection and
+  direct keyboard input. Invalid plan times remain subject to validation.
+- Application selection accepts multiple EXEs and performs identity capture away
+  from the UI thread; rule changes still require Save.
+- Phone enrollment no longer shows the recovery-code replacement warning.
+  That warning remains attached to actual code replacement. The post-install
+  enrollment offer is recorded as shown even when cancelled, and waits for the
+  guided tour to finish. Manual enrollment remains available in Settings.
+- Flexible Personal mode avoids unnecessary relaxation delays and extra-time
+  requests. Delays when relaxing an existing stronger policy remain intact.
+- Device controls use an available theme brush; session thoughts rotate locally.
+
+### Installation and migration
+
+Use `Kvieta-Setup-Alpha-4.2.exe` for guided setup. Numeric MSI version `4.2.0`
+supersedes published Alpha 4 (`1.0.0`) and local Alpha 4.1 builds (`4.1.x`). The
+existing update path is intended to preserve settings, history, recovery material
+and protected policy. Phone pairing itself does not invalidate recovery codes.
+No account or hosted service is introduced by this release.
+
+### Validation and known limitations
+
+Local validation includes formatting, Debug/Release builds and smoke tests,
+public-build bypass checks, package metadata and source-manifest checks. WPF
+renders cover compact setup and main-window layouts, including 840×540 at 150%
+zoom with synthetic usage. Regression checks cover guided navigation/skip,
+responsive layout, typed times and durable first-run preferences.
+
+The package is **not Authenticode-signed**; Windows SmartScreen may show an unknown
+publisher warning. Verify the attached SHA-256 files before installation.
+Application categories are inferred from names and may fall under Other.
+Live phone enrollment and the complete Windows/VM upgrade, multi-monitor, DPI,
+sleep and protection lifecycle matrix still require field validation. Offscreen
+render checks do not replace that testing. See the repository's security and
+release-readiness documentation for the remaining alpha limitations.
+
+Attached: Setup EXE, standalone MSI, their SHA-256 files and `release-manifest.json`.
+
+
+## Kvieta Alpha 4 — Previous community preview
 
 Kvieta Alpha 4 completes the planned pre-V1 product software packages around
 honest measurement, daily Rhythm goals, focus closure, policy explanation,

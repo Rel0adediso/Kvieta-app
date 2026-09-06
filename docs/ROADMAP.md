@@ -2,18 +2,23 @@
 
 **Son güncelleme:** 6 Eylül 2026
 
-**Mevcut yayın:** **Kvieta Alpha 4** community prerelease
+**Mevcut yayın:** **Kvieta Alpha 4.2** community prerelease
 
-**Aktif hedef:** Alpha 4 saha doğrulaması ve final `v1.0.0` Windows doğrulama matrisi
+**Aktif hedef:** Alpha 4.2 saha doğrulaması ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 4](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-4)
+**Yayın:** [Kvieta Alpha 4.2](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-4.2)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
 bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
 öncelikle **Aktif çalışma planı** bölümü esas alınır.
 
-## Kvieta Alpha 4 — güncel community preview
+## Kvieta Alpha 4.2 — güncel community preview
+
+Kompakt ve yeniden boyutlandırılabilir kurulum, ekran üzerinde öğretici, kategorili
+uygulama kullanımı, okunaklı süreler ve dar pencereye uyarlanan ayarlar yayımlandı.
+
+## Kvieta Alpha 4 — önceki community preview
 
 Alpha 4; V1-01–V1-08 ve V1-10–V1-15 yazılım paketlerini, son kaynak incelemesi
 düzeltmelerini ve bunların otomatik regresyonlarını bir araya getirir. Paket

@@ -45,6 +45,15 @@ public partial class SetupWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        Rect workArea = SystemParameters.WorkArea;
+        MaxWidth = Math.Max(320, workArea.Width - 16);
+        MaxHeight = Math.Max(240, workArea.Height - 16);
+        MinWidth = Math.Min(MinWidth, MaxWidth);
+        MinHeight = Math.Min(MinHeight, MaxHeight);
+        Width = Math.Min(Width, Math.Clamp(workArea.Width * 0.88, MinWidth, MaxWidth));
+        Height = Math.Min(Height, Math.Clamp(workArea.Height * 0.86, MinHeight, MaxHeight));
+        Left = workArea.Left + (workArea.Width - Width) / 2;
+        Top = workArea.Top + (workArea.Height - Height) / 2;
         ApplySystemTheme();
         SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
         DeviceNameBox.Text = Environment.MachineName;
@@ -124,6 +133,8 @@ public partial class SetupWindow : Window
         bool light = ReadAppsUseLightTheme();
         SetBrush("BackgroundBrush", light ? "#D8D6CC" : "#171813");
         SetBrush("SurfaceBrush", light ? "#EAE6DC" : "#1F201A");
+        SetBrush("SurfaceRaisedBrush", light ? "#EAE6DC" : "#1F201A");
+        SetBrush("BorderStrongBrush", light ? "#777A6C" : "#7D806F");
         SetBrush("SurfaceHoverBrush", light ? "#DAD6CB" : "#2B2D24");
         SetBrush("BorderBrush", light ? "#BDBCB0" : "#37392F");
         SetBrush("PrimaryBrush", light ? "#4E5A35" : "#B4BC82");
@@ -499,6 +510,7 @@ public partial class SetupWindow : Window
     {
         _plan.AdminPin = CurrentPin;
         RecoveryCodesBox.Text = string.Join(Environment.NewLine, _plan.EnsureRecoveryCodes());
+        RecoveryCodeTiles.ItemsSource = _plan.EnsureRecoveryCodes();
         RecoveryNextButton.IsEnabled = RecoveryAcknowledgementBox.IsChecked == true;
         ShowPage(WizardPage.Recovery);
     }
@@ -1012,6 +1024,13 @@ public partial class SetupWindow : Window
 
     private void RefreshLanguage()
     {
+        Resources["HourUpper"] = T("SAAT", "HOUR");
+        CloseButton.ToolTip = T("Kurulumu kapat", "Close setup");
+        MinimizeButton.ToolTip = T("Simge durumuna küçült", "Minimize");
+        System.Windows.Automation.AutomationProperties.SetName(CloseButton, CloseButton.ToolTip.ToString());
+        System.Windows.Automation.AutomationProperties.SetName(MinimizeButton, MinimizeButton.ToolTip.ToString());
+        Resources["MinuteUpper"] = T("DAKİKA", "MINUTE");
+        Resources["TimeEntryHint"] = T("Saati 09:30 biçiminde yaz veya okla seç.", "Type a time such as 09:30 or choose with the arrow.");
         SidebarTagline.Text = T("Her şeyin bir zamanı var.", "Everything has its time.");
         LocalDataText.Text = T("Veriler yalnızca bu cihazda", "Data stays on this device");
         LanguageTitle.Text = T("Dilini seç", "Choose your language");
@@ -1032,7 +1051,7 @@ public partial class SetupWindow : Window
         }
         ExistingBackButton.Content = _openedForExistingInstallation ? T("İptal", "Cancel") : BackText;
         ModeTitle.Text = ProductText("ChooseModeTitle"); ModeDescription.Text = ProductText("ChooseModeDescription");
-        UnderstandTemplateButton.Content = T("Kullanımımı gör", "See my usage");
+        UnderstandTemplateButton.Content = T("Kullanımı takip et", "Track my usage");
         FocusTemplateButton.Content = T("Odaklan", "Focus");
         GamingTemplateButton.Content = T("Oyun düzeni", "Gaming routine");
         EveningTemplateButton.Content = T("Akşam bırak", "Wind down");
@@ -1042,7 +1061,7 @@ public partial class SetupWindow : Window
         FamilyTitle.Text = ProductText("FamilyMode"); FamilyText.Text = ProductText("FamilyModeDescription");
         InsightsDetails.Text = T("• Engel veya zorunlu mola yok\n• Başlangıç ritmi ve haftalık eğilim\n• Tüm veriler yalnız bu cihazda", "• No blocking or forced breaks\n• Baseline rhythm and weekly trends\n• All data stays on this device");
         InsightsBestFor.Text = T("En hafif başlangıç", "The lightest way to start");
-        PersonalDetails.Text = T("• Günlük plan, limit ve uygulama kuralları\n• Esnek, Dengeli veya Korumalı düzey\n• Gevşetmeler seçtiğin süre kadar bekler", "• Daily plan, limits, and app rules\n• Flexible, Balanced, or Protected level\n• Relaxations wait for your chosen delay");
+        PersonalDetails.Text = T("• Günlük plan, limit ve uygulama kuralları\n• Esnek, Dengeli veya Korumalı düzey\n• Dengeli/Korumalı düzeyde gevşetmeler bekler", "• Daily plan, limits, and app rules\n• Flexible, Balanced, or Protected level\n• Balanced/Protected relaxations use a delay");
         PersonalBestFor.Text = T("Kendi kararlarına destek", "Support for your own decisions");
         FamilyDetails.Text = T("• Ayarlar ve çıkış yönetici PIN'iyle korunur\n• Guardian kapatılan oturumu yeniden açar\n• Yönetici onayı olmadan gevşetilemez", "• Settings and exit require the administrator PIN\n• Guardian reopens a closed session\n• Rules cannot be relaxed without approval");
         FamilyBestFor.Text = T("Yönetilen Windows hesabı", "A managed Windows account");
@@ -1095,6 +1114,12 @@ public partial class SetupWindow : Window
         SetSelected(InsightsButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Insights);
         SetSelected(PersonalButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Personal);
         SetSelected(FamilyButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Family);
+        ModeSelectionFeedback.Text = ModeNextButton.IsEnabled
+            ? T("Seçildi: ", "Selected: ") + ProductTerminology.Get(
+                _plan.Mode == UsageMode.Insights ? "InsightsModeShort" : _plan.Mode == UsageMode.Personal ? "PersonalModeShort" : "FamilyModeShort",
+                IsEnglish ? LanguagePreference.English : LanguagePreference.Turkish) +
+                T(" · Devam et ile sonraki adıma geç.", " · Choose Continue for the next step.")
+            : T("Bir başlangıç şablonu veya kullanım biçimi seç.", "Choose a starting template or usage mode.");
         SetSelected(UnderstandTemplateButton, _plan.SelectedTemplate == SetupTemplate.UnderstandUsage);
         SetSelected(FocusTemplateButton, _plan.SelectedTemplate == SetupTemplate.Focus);
         SetSelected(GamingTemplateButton, _plan.SelectedTemplate == SetupTemplate.GamingRoutine);

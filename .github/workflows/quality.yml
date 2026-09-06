@@ -71,13 +71,13 @@ jobs:
             -r win-x64 `
             --self-contained true `
             --no-restore `
-            -p:Version=1.0.0 `
+            -p:Version=4.2.0 `
             -p:PublishSingleFile=true `
             -p:PublishDir='${{ runner.temp }}\kvieta-public\'
 
       - name: Verify public publish output
         shell: pwsh
-        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\kvieta-public' -ExpectedVersion 1.0.0
+        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\kvieta-public' -ExpectedVersion 4.2.0
 
   package:
     name: Package community alpha installer
@@ -99,20 +99,20 @@ jobs:
 
       - name: Build community installer
         shell: pwsh
-        run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel Alpha-4 -CommunityRelease
+        run: ./scripts/build-test-installer.ps1 -Version 4.2.0 -ReleaseLabel Alpha-4.2 -CommunityRelease
 
       - name: Verify package manifest
         shell: pwsh
         run: |
           ./scripts/verify-release-manifest.ps1 `
-            -ManifestPath './artifacts/installer-community/1.0.0/release-manifest.json' `
+            -ManifestPath './artifacts/installer-community/4.2.0/release-manifest.json' `
             -ExpectedCommit '${{ github.sha }}' `
             -ExpectedPackageKind community
 
       - name: Upload test package
         uses: actions/upload-artifact@v4
         with:
-          name: Kvieta-Alpha-4-community
-          path: artifacts/installer-community/1.0.0/
+          name: Kvieta-Alpha-4.2-community
+          path: artifacts/installer-community/4.2.0/
           if-no-files-found: error
           retention-days: 7

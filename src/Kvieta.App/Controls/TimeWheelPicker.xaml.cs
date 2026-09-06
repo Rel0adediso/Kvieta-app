@@ -40,7 +40,8 @@ public partial class TimeWheelPicker : System.Windows.Controls.UserControl
 
     private void SynchronizeSelectors(string? value)
     {
-        if (!TimeOnly.TryParseExact(value, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly time))
+        if (HourInput is null || MinuteInput is null) return;
+        if (!TimeOnly.TryParseExact(value, ["H:mm", "HH:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly time))
         {
             return;
         }
@@ -53,7 +54,7 @@ public partial class TimeWheelPicker : System.Windows.Controls.UserControl
 
     private void TimePart_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isSynchronizing || HourInput.SelectedIndex < 0 || MinuteInput.SelectedIndex < 0)
+        if (_isSynchronizing || HourInput is null || MinuteInput is null || HourInput.SelectedIndex < 0 || MinuteInput.SelectedIndex < 0)
         {
             return;
         }

@@ -21,8 +21,8 @@ public static class ProductTerminology
                 "Odaklanmak ve kendi alışkanlıklarını düzenlemek için. Yönetici PIN'i zorunlu değildir.",
                 "For focus and managing your own habits. An administrator PIN is optional."),
             ["PersonalModeHint"] = new(
-                "Kural gevşetmeleri seçtiğin bekleme süresiyle uygulanır.",
-                "Rule relaxations use the waiting period you choose."),
+                "Esnek modda değişiklikler hemen; Dengeli ve Korumalı modda gevşetmeler bekleme süresiyle uygulanır.",
+                "Changes are immediate in Flexible mode; relaxations use a delay in Balanced and Protected modes."),
             ["FamilyMode"] = new("Bir aile üyesi için kuruyorum", "I'm setting up for a family member"),
             ["FamilyModeDescription"] = new(
                 "Çocuk veya başka bir aile üyesinin Windows hesabı için. Ayarlar ve çıkış yönetici PIN'iyle korunur.",

@@ -13,8 +13,7 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
                         <Grid Margin="10,0,8,0">
-                            <TextBlock Text="{Binding TimeText, ElementName=Root}" FontSize="12"
-                                       FontWeight="SemiBold" VerticalAlignment="Center" />
+
                             <Path Data="M2,3 L6,7 L10,3" Stroke="{DynamicResource MutedTextBrush}"
                                   StrokeThickness="1.6" StrokeStartLineCap="Round"
                                   StrokeEndLineCap="Round" HorizontalAlignment="Right"
@@ -33,6 +32,13 @@
                 </ControlTemplate>
             </ToggleButton.Template>
         </ToggleButton>
+
+        <TextBox x:Name="TimeInput" Width="55" Height="26" MinHeight="0" Margin="4,0,0,0"
+                 HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0,3"
+                 Background="Transparent" BorderThickness="0" FontSize="12" FontWeight="SemiBold"
+                 TextAlignment="Center" MaxLength="5"
+                 Text="{Binding TimeText, ElementName=Root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="{DynamicResource TimeEntryHint}" AutomationProperties.Name="{DynamicResource TimeEntryHint}" />
 
         <Popup x:Name="PickerPopup"
                IsOpen="{Binding IsChecked, ElementName=DropDownButton, Mode=TwoWay}"

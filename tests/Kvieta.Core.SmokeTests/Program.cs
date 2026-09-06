@@ -45,6 +45,70 @@ Thread adminPinWindowThread = new(() =>
     {
         Kvieta.App.App application = new();
         application.InitializeComponent();
+        var mainWindow = new Kvieta.App.MainWindow();
+        var responsive = new Kvieta.App.Controls.ResponsiveColumns { MinimumColumnWidth = 240, MaximumColumns = 3 };
+        for (int i = 0; i < 4; i++) responsive.Children.Add(new System.Windows.Controls.Border { Height = 90 });
+        void ArrangeCards(double width)
+        {
+            responsive.Measure(new System.Windows.Size(width, double.PositiveInfinity));
+            responsive.Arrange(new System.Windows.Rect(0, 0, width, responsive.DesiredSize.Height));
+            responsive.UpdateLayout();
+        }
+        ArrangeCards(760);
+        Assert(responsive.DesiredSize.Height == 192, "Geniş alanda kartlar üç sütuna yerleşmedi.");
+        ArrangeCards(360);
+        Assert(responsive.DesiredSize.Height == 396 && responsive.Children.Cast<System.Windows.UIElement>().All(c => c.RenderSize.Width <= 360),
+            "Dar veya büyütülmüş alanda kartlar sınırları aşmadan tek sütuna geçmedi.");
+        responsive.Children[1].Visibility = System.Windows.Visibility.Collapsed;
+        ArrangeCards(360);
+        Assert(responsive.DesiredSize.Height == 294, "Gizli kart yerleşimde boş alan bıraktı.");
+        ArrangeCards(760);
+        Assert(responsive.DesiredSize.Height == 90, "Pencere yeniden genişletilince sütunlar geri gelmedi.");
+        var guideMethod = typeof(Kvieta.App.MainWindow).GetMethod("QuickGuide_Click", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        guideMethod.Invoke(mainWindow, [mainWindow, new System.Windows.RoutedEventArgs()]);
+        var guideOverlay = (System.Windows.Controls.Grid)mainWindow.FindName("TourOverlay");
+        Assert(guideOverlay.Visibility == System.Windows.Visibility.Visible, "Ekran üzerindeki öğretici açılmadı.");
+        var visitedPages = new HashSet<int>();
+        var guideViewModel = (MainViewModel)mainWindow.DataContext;
+        for (int step = 0; step < 10 && guideOverlay.Visibility == System.Windows.Visibility.Visible; step++)
+        {
+            visitedPages.Add(guideViewModel.SelectedPageIndex);
+            ((System.Windows.Controls.Button)mainWindow.FindName("TourNext")).RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+        }
+        Assert(visitedPages.IsSupersetOf([0, 2, 3, 4]) && guideOverlay.Visibility == System.Windows.Visibility.Collapsed,
+            "Öğretici sayfaları sırasıyla gezip tamamlanamadı.");
+        guideMethod.Invoke(mainWindow, [mainWindow, new System.Windows.RoutedEventArgs()]);
+        ((System.Windows.Controls.Button)mainWindow.FindName("TourSkip")).RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+        Assert(guideOverlay.Visibility == System.Windows.Visibility.Collapsed, "Öğreticiyi atla düğmesi turu kapatmadı.");
+        var timePicker = new Kvieta.App.Controls.TimeWheelPicker { TimeText = "09:37" };
+        var hours = (System.Windows.Controls.ListBox)timePicker.FindName("HourInput");
+        var minutes = (System.Windows.Controls.ListBox)timePicker.FindName("MinuteInput");
+        Assert(hours.SelectedIndex == 9 && minutes.SelectedIndex == 37, "Plan saatleri seçicilere yansımadı.");
+        hours.SelectedIndex = 14;
+        minutes.SelectedIndex = 52;
+        Assert(timePicker.TimeText == "14:52", "Saat/dakika seçimi plana geri yazılmadı.");
+        var day = new DayScheduleRow(new DaySchedule { Day = DayOfWeek.Monday, AllowedFrom = new TimeOnly(9, 0), AllowedUntil = new TimeOnly(21, 0) });
+        timePicker.SetBinding(Kvieta.App.Controls.TimeWheelPicker.TimeTextProperty,
+            new System.Windows.Data.Binding(nameof(DayScheduleRow.AllowedFrom)) { Source = day, Mode = System.Windows.Data.BindingMode.TwoWay });
+        var timeInput = (System.Windows.Controls.TextBox)timePicker.FindName("TimeInput");
+        timeInput.SetCurrentValue(System.Windows.Controls.TextBox.TextProperty, "8:45");
+        timeInput.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)!.UpdateSource();
+        Assert(day.AllowedFrom == "8:45" && day.TryBuild(out var builtDay) && builtDay.AllowedFrom == new TimeOnly(8, 45),
+            "Doğrudan saat girişi plan modeline yazılmadı.");
+        timeInput.SetCurrentValue(System.Windows.Controls.TextBox.TextProperty, "25:99");
+        timeInput.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)!.UpdateSource();
+        Assert(!day.TryBuild(out _), "Geçersiz plan saati kabul edildi.");
+        var setupDay = new SetupPlan().Schedule[0];
+        timePicker.SetBinding(Kvieta.App.Controls.TimeWheelPicker.TimeTextProperty,
+            new System.Windows.Data.Binding(nameof(SetupScheduleDayRow.AllowedFromText))
+            { Source = setupDay, Mode = System.Windows.Data.BindingMode.TwoWay });
+        hours.SelectedIndex = 16;
+        minutes.SelectedIndex = 35;
+        Assert(setupDay.AllowedFromText == "16:35", "Kurulum saat seçimi modele aktarılmadı.");
+        timeInput.SetCurrentValue(System.Windows.Controls.TextBox.TextProperty, "7:20");
+        timeInput.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)!.UpdateSource();
+        Assert(setupDay.AllowedFromText == "7:20" && hours.SelectedIndex == 7 && minutes.SelectedIndex == 20,
+            "Kurulumda klavyeyle girilen saat seçiciyle eşleşmedi.");
         _ = Kvieta.App.AdminPinWindow.CreateSetup();
         _ = new Kvieta.App.RecoveryResetWindow(
             (_, _) => Task.FromResult(false),
@@ -626,8 +690,12 @@ Assert(ProtectionServiceManager.IsCommunityClientIdentityValid(
     "Community Guardian istemci kimliği hash ve paket türüyle doğrulanmadı.");
 Version? actualAppBinaryVersion = ProtectionServiceManager.ReadProductVersionForIdentity(
     typeof(ProtectionServiceManager).Assembly.Location);
-Assert(actualAppBinaryVersion == new Version(1, 0, 0),
+Version appAssemblyVersion = typeof(ProtectionServiceManager).Assembly.GetName().Version!;
+Assert(actualAppBinaryVersion == new Version(appAssemblyVersion.Major, appAssemblyVersion.Minor, appAssemblyVersion.Build),
     "Alpha release etiketi sayısal EXE/DLL dosya sürümünün okunmasını engelledi.");
+Assert(SetupPlan.DeterminePackageAction(new Version(1, 0, 0), new Version(4, 2, 0)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(4, 1, 3), new Version(4, 2, 0)) == SetupPackageAction.Update,
+    "Alpha 4 veya yerel Alpha 4.1 paketi Alpha 4.2'ye güncelleme olarak tanınmadı.");
 Assert(SessionSurfaceRecoveryPolicy.ShouldRecover(
         shouldShowSessionSurfaces: true,
         isSurfaceVisible: true,
@@ -1950,7 +2018,8 @@ await awarenessViewModel.InitializeAsync();
 Assert(awarenessViewModel.IsInsightsMode && !awarenessViewModel.HasRestrictions,
     "Farkındalık profili arayüz durumuna yansımadı.");
 awarenessViewModel.SelectedPageIndex = 2;
-Assert(awarenessViewModel.SelectedPageIndex == 0, "Farkındalık modunda uygulama kuralı paneli açılabildi.");
+Assert(awarenessViewModel.SelectedPageIndex == 2 && !awarenessViewModel.HasRestrictions,
+    "Farkındalık modunda salt kullanım uygulama sayfası erişilebilir olmalı.");
 Assert(awarenessViewModel.UsedTodayMinutes == 10 && awarenessViewModel.TodayLimitText is "Sınırsız" or "Unlimited",
     "Farkındalık profili gerçek ön plan süresini sınırsız özet olarak göstermedi.");
 
@@ -1965,6 +2034,34 @@ Assert(flexibleViewModel.IsFlexiblePersonalMode && !flexibleViewModel.HasSchedul
     "Esnek kişisel modun manuel arayüz durumu oluşturulmadı.");
 flexibleViewModel.SelectedPageIndex = 1;
 Assert(flexibleViewModel.SelectedPageIndex == 0, "Esnek kişisel modda Plan sayfası açılabildi.");
+Assert(!SessionViewModel.ShouldAllowExtraTimeRequest(flexibleSettings, SessionState.TimeExpired),
+    "Esnek kişisel modda ek süre isteği gösterildi.");
+Assert(!SessionViewModel.ShouldAllowExtraTimeRequest(new ControlSettings { Mode = UsageMode.Insights }, SessionState.TimeExpired),
+    "Farkındalık modunda ek süre isteği gösterildi.");
+Assert(!flexibleViewModel.HasPersonalChangeDelay, "Esnek modda bekleme ayarı gösteriliyor.");
+flexibleViewModel.StartWithWindows = true;
+Assert(await flexibleViewModel.SaveAsync(), "Esnek mod başlangıç tercihi kaydedilemedi.");
+flexibleViewModel.StartWithWindows = false;
+Assert(await flexibleViewModel.SaveAsync() && (await flexibleSettingsStore.LoadAsync()).PendingChange is null,
+    "Esnek moddaki değişiklik gereksiz beklemeye alındı.");
+JsonDisplayPreferencesStore displayStore = new(Path.Combine(testDirectory, "display.json"));
+await displayStore.SaveAsync(125);
+Assert((await displayStore.LoadAsync()).ZoomPercent == 125, "Arayüz ölçeği yeniden yüklenemedi.");
+await displayStore.SaveAsync(900);
+Assert((await displayStore.LoadAsync()).ZoomPercent == 150, "Arayüz ölçeği güvenli aralığa sınırlandırılmadı.");
+Assert(await displayStore.TryClaimGuideAsync(), "İlk açılış rehberi gösterilmek üzere alınamadı.");
+Assert(await displayStore.TryClaimPairingPromptAsync(), "Kurulum sonrası ilk telefon teklifi alınamadı.");
+await displayStore.SaveAsync(110);
+var reopenedDisplayStore = new JsonDisplayPreferencesStore(Path.Combine(testDirectory, "display.json"));
+Assert(!await reopenedDisplayStore.TryClaimGuideAsync() && !await reopenedDisplayStore.TryClaimPairingPromptAsync(),
+    "Ertelenen telefon teklifi veya rehber yeniden açılışta tekrarlandı.");
+Assert((await reopenedDisplayStore.LoadAsync()).ZoomPercent == 110,
+    "Tek seferlik karşılama kaydı arayüz ölçeğini değiştirdi.");
+string concurrentWelcomePath = Path.Combine(testDirectory, "welcome-concurrent.json");
+bool[] welcomeClaims = await Task.WhenAll(
+    new JsonDisplayPreferencesStore(concurrentWelcomePath).TryClaimGuideAsync(),
+    new JsonDisplayPreferencesStore(concurrentWelcomePath).TryClaimGuideAsync());
+Assert(welcomeClaims.Count(claimed => claimed) == 1, "İki pencere rehberi aynı anda açabiliyor.");
 SessionViewModel flexibleSessionViewModel = new(flexibleSettingsStore, new JsonUsageStore(flexibleUsagePath));
 await flexibleSessionViewModel.InitializeAsync();
 Assert(!flexibleSessionViewModel.HasCountdown && flexibleSessionViewModel.RemainingText == "00:00",

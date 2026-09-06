@@ -1,6 +1,6 @@
 # Kvieta kullanım ve kurtarma rehberi
 
-> Mevcut durum: **Kvieta Alpha 4**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
+> Mevcut durum: **Kvieta Alpha 4.2**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
 
 ## Kurulum ve güncelleme
 
@@ -12,6 +12,27 @@
 
 Kvieta varsayılan olarak `C:\Program Files\Kvieta` altına kurulur. Kullanıcı ayarları ve geçmiş `%LOCALAPPDATA%\Kvieta`, korunan policy ile Guardian durumu `%ProgramData%\Kvieta` altında tutulur. Güncelleme ve onarım bu alanları korur.
 
+## Arayüz ve hızlı rehber
+
+Öğretici ilk Kontrol Merkezi açılışında otomatik görünür. Ekrandaki alanları işaretleyerek
+Bugün, uygun modlarda Plan, Uygulamalar, Geçmiş ve Ayarlar sayfalarını sırayla tanıtır.
+**Esc** veya sağ üstteki **Öğreticiyi atla** turu kapatır; **?** veya **F1** tekrar açar.
+Kurulum sonrası telefon eşleştirmesini iptal edersen teklif sonraki açılışlarda tekrarlanmaz;
+telefonunu daha sonra Ayarlar'dan bağlayabilirsin. Telefon bağlamak kurtarma kodlarını geçersizleştirmez.
+**Ayarlar → Görünüm ve genel → Yazı ve arayüz boyutu** ile arayüzü %100, %110, %125 veya %150
+ölçeğinde görüntüleyebilirsiniz. Tercih cihazda saklanır. **Ctrl + / Ctrl -** boyutu
+değiştirir; **Ctrl 0** varsayılana döner. Sol menü de büyür; dar pencerelerde kartlar
+alt alta geçer ve içerik dikey kaydırılır. Koruma, gizlilik ve bakım ayarları ayrı açılır başlıklardadır.
+
+Plan saatlerini doğrudan 09:30 biçiminde yazabilir veya yanındaki okla seçebilirsiniz.
+Uygulama eklerken birden fazla .exe seçebilirsiniz. Plan ve uygulama kurallarını
+**Kaydet** ile uygulayın. Esnek kişisel modda kural değişiklikleri bekletilmez ve
+**Ek süre iste** gösterilmez; haftalık plan için Dengeli veya Korumalı düzeyini seçin.
+
+Geçmiş ekranında günlük kayıtlar öndedir; ek ölçümler **Ritim · eğilimler ve hedefler**
+bölümündedir. **Koruma hizmetini başlat**, durmuş Windows Guardian hizmetini
+çalıştırır. Odak oturumu başlatmak için Bugün ekranını kullanın.
+
 ## İlk kullanım biçimleri
 
 - **Farkındalık:** Kısıtlama olmadan, yapılandırılan uygulamaların kullanımını cihazda ölçer.
@@ -20,7 +41,11 @@ Kvieta varsayılan olarak `C:\Program Files\Kvieta` altına kurulur. Kullanıcı
 
 Kişisel kullanımda **Hızlı odak**, Bugün ekranından veya tray menüsünden 25, 50 ya da 90 dakikalık oturum başlatır. Bugün ekranında özel süre seçilebilir ve yalnız ayrı bir yerel tercih dosyasında tutulan son odak süresi tekrarlanabilir. Odak hedefi günlük limiti veya izin verilen planı uzatmaz.
 
-Bugün ekranı mevcut kullanım ve kalan süreyi; en çok kullanılan üç uygulama, düne göre değişim ve aktif ya da sıradaki plan penceresiyle birleştirir. Veri yoksa veya ilk günse uydurma karşılaştırma gösterilmez.
+Bugün ekranı kalan süreyi, ölçülen kullanımı, düne göre değişimi ve sıradaki planı öne çıkarır.
+En çok kullanılan uygulamalar **Uygulamalar** sayfasındadır; günlük kullanım uygulama adına göre
+tarayıcılar, iletişim, üretkenlik, eğlence ve diğer uygulamalar olarak otomatik gruplanır.
+Farkındalık modunda da kullanım kartları görülebilir; kural düzenleme sunulmaz.
+Veri yoksa veya ilk günse uydurma karşılaştırma gösterilmez.
 
 Ölçülen bir uygulamadaki **Kural oluştur** eylemi dosya seçici açmadan günlük limit, yalnız plan içinde kullanım, odakta engelleme, sınırsız kullanım veya kalıcı engel seçeneklerini sunar. Kullanım geçmişi tam dosya yolu yerine yalnız çalıştırılabilir dosya adını sakladığı için mevcut kuralı olmayan uygulama ilk kural oluşturulurken açık olmalıdır. Değişiklik **Kaydet** sonrasında ve Kişisel/Aile onay kurallarına uygun biçimde uygulanır.
 
