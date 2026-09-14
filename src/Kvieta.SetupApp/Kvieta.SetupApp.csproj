@@ -8,14 +8,14 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>Kvieta.Setup</AssemblyName>
     <Product>Kvieta Setup</Product>
-    <Version>4.2.0</Version>
+    <Version>4.3.3</Version>
     <Company>Kvieta</Company>
     <Description>Kvieta guided Windows installer</Description>
     <ApplicationIcon>../../assets/branding/kvieta.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <InformationalVersion Condition="'$(InformationalVersion)' == ''">Alpha-4.2</InformationalVersion>
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">Alpha-4.3.3</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>

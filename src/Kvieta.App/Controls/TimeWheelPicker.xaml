@@ -44,7 +44,7 @@
                IsOpen="{Binding IsChecked, ElementName=DropDownButton, Mode=TwoWay}"
                PlacementTarget="{Binding ElementName=DropDownButton}"
                Placement="Bottom" VerticalOffset="5"
-               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+               StaysOpen="False" AllowsTransparency="True">
             <Border Width="158" Padding="8" CornerRadius="10"
                     Background="{DynamicResource SurfaceRaisedBrush}"
                     BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1">

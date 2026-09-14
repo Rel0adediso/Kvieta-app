@@ -310,6 +310,9 @@ public partial class MainWindow : Window
         SidebarToggle.ToolTip = _viewModel.IsSidebarExpanded
             ? LocalizationService.Get("CollapseMenu")
             : LocalizationService.Get("ExpandMenu");
+        System.Windows.Automation.AutomationProperties.SetName(
+            SidebarToggle,
+            SidebarToggle.ToolTip?.ToString() ?? string.Empty);
         RefreshProtectionStatus();
     }
 
@@ -360,6 +363,9 @@ public partial class MainWindow : Window
         SidebarToggle.ToolTip = _viewModel.IsSidebarExpanded
             ? LocalizationService.Get("CollapseMenu")
             : LocalizationService.Get("ExpandMenu");
+        System.Windows.Automation.AutomationProperties.SetName(
+            SidebarToggle,
+            SidebarToggle.ToolTip?.ToString() ?? string.Empty);
     }
 
     private void HistoryDay_Click(object sender, RoutedEventArgs e)
@@ -2021,6 +2027,22 @@ public partial class MainWindow : Window
                 _viewModel.IsFamilyMode))
         {
             _backgroundSessionWindow?.ResumeFromControlCenter();
+        }
+    }
+
+    private async void TodayPrimaryAction_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.IsInsightsMode)
+        {
+            _viewModel.SelectedPageIndex = 3;
+        }
+        else if (_viewModel.IsPersonalMode && !_viewModel.HasTodayFocus)
+        {
+            await StartQuickFocusAsync(25);
+        }
+        else
+        {
+            OpenSessionSurface_Click(sender, e);
         }
     }
 

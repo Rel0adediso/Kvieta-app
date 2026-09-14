@@ -18,6 +18,12 @@ if (args.Contains("--companion-preview", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--today-preview", StringComparer.Ordinal))
+{
+    TodayDashboardPreview.Render();
+    return;
+}
+
 ControlSettings settings = new();
 #if KVIETA_DEVELOPMENT_BUILD
 Assert(BuildInfo.IsDevelopmentBuild && BuildInfo.Flavor == "development", "Debug paketi Development/Test olarak işaretlenmedi.");
@@ -46,6 +52,31 @@ Thread adminPinWindowThread = new(() =>
         Kvieta.App.App application = new();
         application.InitializeComponent();
         var mainWindow = new Kvieta.App.MainWindow();
+        var allowanceWindow = new Kvieta.App.TemporaryAllowanceWindow();
+        Assert(allowanceWindow.FindName("DateInput") is System.Windows.Controls.DatePicker &&
+               allowanceWindow.FindName("StartInput") is Kvieta.App.Controls.TimeWheelPicker &&
+               allowanceWindow.FindName("EndInput") is Kvieta.App.Controls.TimeWheelPicker,
+            "Geçici izin penceresi bağımsız kaynaklarıyla oluşturulamadı.");
+        allowanceWindow.Close();
+        var donut = new Kvieta.App.Controls.UsageDonutChart
+        {
+            Width = 140,
+            Height = 140,
+            StrokeThickness = 16,
+            TrackBrush = System.Windows.Media.Brushes.DarkGray,
+            ItemsSource = new[]
+            {
+                new AppUsageHistoryRow { Rank = 1, Name = "Explorer", UsedSeconds = 120, FallbackBrush = System.Windows.Media.Brushes.CornflowerBlue },
+                new AppUsageHistoryRow { Rank = 2, Name = "Code", UsedSeconds = 60, FallbackBrush = System.Windows.Media.Brushes.MediumSeaGreen }
+            }
+        };
+        donut.Measure(new System.Windows.Size(140, 140));
+        donut.Arrange(new System.Windows.Rect(0, 0, 140, 140));
+        var donutBitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(140, 140, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+        donutBitmap.Render(donut);
+        byte[] donutPixels = new byte[140 * 140 * 4];
+        donutBitmap.CopyPixels(donutPixels, 140 * 4, 0);
+        Assert(donutPixels.Any(channel => channel != 0), "Bugün kullanım halkası çizilmedi.");
         var responsive = new Kvieta.App.Controls.ResponsiveColumns { MinimumColumnWidth = 240, MaximumColumns = 3 };
         for (int i = 0; i < 4; i++) responsive.Children.Add(new System.Windows.Controls.Border { Height = 90 });
         void ArrangeCards(double width)
@@ -64,6 +95,11 @@ Thread adminPinWindowThread = new(() =>
         Assert(responsive.DesiredSize.Height == 294, "Gizli kart yerleşimde boş alan bıraktı.");
         ArrangeCards(760);
         Assert(responsive.DesiredSize.Height == 90, "Pencere yeniden genişletilince sütunlar geri gelmedi.");
+        Assert(mainWindow.FindName("ApplicationCategoryList") is System.Windows.Controls.ListBox &&
+               mainWindow.FindName("FilteredApplicationsList") is System.Windows.Controls.ItemsControl &&
+               mainWindow.FindName("ApplicationCategoriesPanel") is System.Windows.Controls.Border &&
+               mainWindow.FindName("FilteredApplicationsPanel") is System.Windows.Controls.Border,
+            "Yeni kategori ve ayrıntılı uygulama görünümü oluşturulamadı.");
         var guideMethod = typeof(Kvieta.App.MainWindow).GetMethod("QuickGuide_Click", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
         guideMethod.Invoke(mainWindow, [mainWindow, new System.Windows.RoutedEventArgs()]);
         var guideOverlay = (System.Windows.Controls.Grid)mainWindow.FindName("TourOverlay");
@@ -693,9 +729,12 @@ Version? actualAppBinaryVersion = ProtectionServiceManager.ReadProductVersionFor
 Version appAssemblyVersion = typeof(ProtectionServiceManager).Assembly.GetName().Version!;
 Assert(actualAppBinaryVersion == new Version(appAssemblyVersion.Major, appAssemblyVersion.Minor, appAssemblyVersion.Build),
     "Alpha release etiketi sayısal EXE/DLL dosya sürümünün okunmasını engelledi.");
-Assert(SetupPlan.DeterminePackageAction(new Version(1, 0, 0), new Version(4, 2, 0)) == SetupPackageAction.Update &&
-       SetupPlan.DeterminePackageAction(new Version(4, 1, 3), new Version(4, 2, 0)) == SetupPackageAction.Update,
-    "Alpha 4 veya yerel Alpha 4.1 paketi Alpha 4.2'ye güncelleme olarak tanınmadı.");
+Assert(SetupPlan.DeterminePackageAction(new Version(1, 0, 0), new Version(4, 3, 3)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(4, 1, 3), new Version(4, 3, 3)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(4, 2, 0), new Version(4, 3, 3)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(4, 3, 0), new Version(4, 3, 3)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(4, 3, 2), new Version(4, 3, 3)) == SetupPackageAction.Update,
+    "Önceki Alpha paketi Alpha 4.3.3'e güncelleme olarak tanınmadı.");
 Assert(SessionSurfaceRecoveryPolicy.ShouldRecover(
         shouldShowSessionSurfaces: true,
         isSurfaceVisible: true,
@@ -1162,16 +1201,23 @@ await new JsonUsageStore(todayOverviewUsagePath).SaveAsync(new UsageLedger
 {
     LocalDay = DateOnly.FromDateTime(DateTime.Today),
     UsedSeconds = 3_600,
+    AwarenessHourlyUsedSeconds = new() { [9] = 900, [14] = 1800 },
     ForegroundAppUsedSeconds = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
     {
-        ["C:\\Apps\\Browser.exe"] = 1_800
+        ["C:\\Apps\\Browser.exe"] = 1_800,
+        ["C:\\Apps\\Code.exe"] = 900
     },
     History =
     [
         new DailyUsageRecord
         {
             LocalDay = DateOnly.FromDateTime(DateTime.Today).AddDays(-1),
-            UsedSeconds = 7_200
+            UsedSeconds = 7_200,
+            ForegroundApplications =
+            [
+                new AwarenessAppUsageRecord { ApplicationId = "C:\\Apps\\Browser.exe", Name = "Browser", UsedSeconds = 600 },
+                new AwarenessAppUsageRecord { ApplicationId = "C:\\Apps\\Code.exe", Name = "Code", UsedSeconds = 300 }
+            ]
         }
     ]
 });
@@ -1179,11 +1225,41 @@ MainViewModel todayOverviewViewModel = new(
     new JsonSettingsStore(todayOverviewSettingsPath),
     new JsonUsageStore(todayOverviewUsagePath));
 await todayOverviewViewModel.InitializeAsync();
-Assert(todayOverviewViewModel.TodayApplications.Count == 1 &&
+Assert(todayOverviewViewModel.TodayApplications.Count == 2 &&
        todayOverviewViewModel.TodayApplications[0].Name == "Browser" &&
        todayOverviewViewModel.TodayChangeText.Contains("%50", StringComparison.Ordinal) &&
        todayOverviewViewModel.NextPlanText != "—",
     "Bugün özeti en çok kullanılan uygulamayı, günlük değişimi veya plan durumunu üretmedi.");
+Assert(todayOverviewViewModel.ApplicationCategories.Count == 2 &&
+       todayOverviewViewModel.SelectedApplicationCategory?.Key == "CategoryBrowsers" &&
+       todayOverviewViewModel.ApplicationMostUsedName == "Browser" &&
+       todayOverviewViewModel.ApplicationRisingName == "Browser" &&
+       todayOverviewViewModel.FilteredApplications.Count == 1 &&
+       todayOverviewViewModel.FilteredApplications[0].Name == "Browser",
+    $"Uygulama özeti, yükseliş hesabı veya varsayılan kategori filtresi üretilemedi. Kategoriler={todayOverviewViewModel.ApplicationCategories.Count}, Seçili={todayOverviewViewModel.SelectedApplicationCategory?.Key}, EnÇok={todayOverviewViewModel.ApplicationMostUsedName}, Yükselen={todayOverviewViewModel.ApplicationRisingName}, Filtre={string.Join(',', todayOverviewViewModel.FilteredApplications.Select(item => item.Name))}");
+todayOverviewViewModel.SelectedApplicationCategory = todayOverviewViewModel.ApplicationCategories.Single(category => category.Key == "CategoryProductivity");
+Assert(todayOverviewViewModel.FilteredApplications.Count == 1 &&
+       todayOverviewViewModel.FilteredApplications[0].Name == "Code",
+    "Kategori seçimi ayrıntılı uygulama listesini filtrelemedi.");
+Assert(todayOverviewViewModel.TodayHours.Count == 24 &&
+       todayOverviewViewModel.TodayHours[14].UsedSeconds == 1800 &&
+       todayOverviewViewModel.TodayHours[14].BarHeight == 52 &&
+       todayOverviewViewModel.TodayHours[0].BarHeight == 0 &&
+       todayOverviewViewModel.TodayObservationText.Contains("14.00–15.00", StringComparison.Ordinal) &&
+       todayOverviewViewModel.TodayMeasuredText.StartsWith("45 ", StringComparison.Ordinal),
+    "Bugün grafiği gerçek saatlik veriyi veya halka ile eşleşen uygulama toplamını göstermedi.");
+UsageLedger todayFocusLedger = await new JsonUsageStore(todayOverviewUsagePath).LoadAsync();
+todayFocusLedger.ActiveFocusSessionId = Guid.NewGuid();
+todayFocusLedger.ActiveFocusTargetSeconds = 1500;
+await new JsonUsageStore(todayOverviewUsagePath).ReplaceAsync(todayFocusLedger);
+await todayOverviewViewModel.ReloadUsageAsync();
+Assert(todayOverviewViewModel.HasTodayFocus && todayOverviewViewModel.TodayPrimaryActionText == "Oturuma dön",
+    "Aktif odak oturumunda Bugün ana eylemi yeni oturum başlatmayı önerdi.");
+await new JsonUsageStore(todayOverviewUsagePath).ReplaceAsync(new UsageLedger { LocalDay = DateOnly.FromDateTime(DateTime.Today) });
+await todayOverviewViewModel.ReloadUsageAsync();
+Assert(todayOverviewViewModel.HasNoTodayHourlyUsage && !todayOverviewViewModel.HasTodayFocus &&
+       todayOverviewViewModel.TodayHours.All(hour => hour.BarHeight == 0),
+    "Boş günde Bugün eski grafik veya odak verisini göstermeye devam etti.");
 string testPath = Path.Combine(testDirectory, "settings.json");
 JsonSettingsStore store = new(testPath);
 settings.DeviceName = "Test Bilgisayarı";

@@ -6,6 +6,8 @@
         Topmost="True" ShowInTaskbar="True" Loaded="Window_Loaded" Closing="Window_Closing" Closed="Window_Closed"
         StateChanged="Window_StateChanged" Deactivated="Window_Deactivated" PreviewKeyDown="Window_PreviewKeyDown">
     <Grid Background="{DynamicResource BackgroundBrush}">
+        <Ellipse Width="640" Height="640" Fill="{DynamicResource PrimarySoftBrush}" Opacity="0.22" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-300,-260,0" IsHitTestVisible="False"/>
+        <Ellipse Width="420" Height="420" Fill="{DynamicResource SurfaceRaisedBrush}" Opacity="0.3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-180,0,0,-240" IsHitTestVisible="False"/>
         <Grid Margin="42,30">
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
             <Grid>
@@ -16,7 +18,11 @@
                 <Button x:Name="ExitButton" Content="{DynamicResource ExitPreview}" HorizontalAlignment="Right" Style="{StaticResource SecondaryButtonStyle}" Padding="14,7" Click="ExitPrototype_Click" />
             </Grid>
 
-            <StackPanel x:Name="SessionSurface" Grid.Row="1" Width="560" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid x:Name="SessionSurface" Grid.Row="1" Width="680" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="28" Padding="56,42" ClipToBounds="True">
+               <Grid>
+                <TextBlock Text="K" Foreground="{DynamicResource PrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="210" FontWeight="SemiBold" Opacity="0.035" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-62,-10,0" IsHitTestVisible="False"/>
+                <StackPanel Width="560" HorizontalAlignment="Center">
                 <Border Background="{DynamicResource PrimarySoftBrush}" CornerRadius="6" Padding="12,6" HorizontalAlignment="Center"><TextBlock Text="{Binding StateLabel}" Foreground="{DynamicResource PrimaryBrush}" FontSize="11" FontWeight="SemiBold" /></Border>
                 <TextBlock Text="{Binding Headline}" FontSize="32" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" Margin="0,22,0,8" />
                 <TextBlock Text="{Binding Description}" Foreground="{DynamicResource MutedTextBrush}" FontSize="14" TextAlignment="Center" TextWrapping="Wrap" />
@@ -32,11 +38,15 @@
                         HorizontalAlignment="Center" Margin="0,12,0,0" Padding="14,7"
                         Visibility="{Binding IsClockRollbackDetected, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Click="TrustCurrentClock_Click" />
-                <TextBlock Text="{Binding TimeMetricLabel}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,34,0,8" />
-                <TextBlock Text="{Binding RemainingText}" services:MotionAssist.AnimateTextChanges="True" FontSize="68" FontWeight="Light" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding PauseDurationText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="13" HorizontalAlignment="Center" Margin="0,7,0,0" />
-                <ProgressBar services:MotionAssist.AnimatedValue="{Binding UsagePercent, Mode=OneWay}" Maximum="100" Width="500" Margin="0,26,0,9" Visibility="{Binding HasCountdown, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <Grid Width="500" Visibility="{Binding HasCountdown, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock Text="{Binding UsedDisplayText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" /><TextBlock Text="{Binding LimitDisplayText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" HorizontalAlignment="Right" /></Grid>
+                <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="22" Padding="26,22" Margin="0,30,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding TimeMetricLabel}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding RemainingText}" services:MotionAssist.AnimateTextChanges="True" Foreground="{DynamicResource PrimaryBrush}" FontSize="68" FontWeight="Light" HorizontalAlignment="Center" Margin="0,7,0,0" />
+                        <TextBlock Text="{Binding PauseDurationText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="13" HorizontalAlignment="Center" Margin="0,7,0,0" />
+                        <ProgressBar services:MotionAssist.AnimatedValue="{Binding UsagePercent, Mode=OneWay}" Maximum="100" Height="5" Margin="0,24,0,9" Visibility="{Binding HasCountdown, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <Grid Visibility="{Binding HasCountdown, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock Text="{Binding UsedDisplayText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" /><TextBlock Text="{Binding LimitDisplayText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" HorizontalAlignment="Right" /></Grid>
+                    </StackPanel>
+                </Border>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,32,0,0">
                     <Button Content="{Binding PrimaryActionText}" Style="{StaticResource PrimaryButtonStyle}" Visibility="{Binding CanStartOrResume, Converter={StaticResource BooleanToVisibilityConverter}}" Click="StartOrResume_Click" Margin="0,0,8,0" />
                     <Button Content="{DynamicResource EndSession}" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanEndSession, Converter={StaticResource BooleanToVisibilityConverter}}" Click="EndSession_Click" Margin="0,0,8,0" />
@@ -53,7 +63,10 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-            </StackPanel>
+                </StackPanel>
+               </Grid>
+              </Border>
+            </Grid>
             <TextBlock Grid.Row="2" Text="{DynamicResource BreakHint}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" HorizontalAlignment="Center" />
         </Grid>
 

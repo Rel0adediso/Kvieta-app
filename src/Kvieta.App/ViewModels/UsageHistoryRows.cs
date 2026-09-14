@@ -92,7 +92,7 @@ public sealed class AppUsageHistoryRow
     internal static string ApplicationCategoryKey(string name)
     {
         string app = Path.GetFileNameWithoutExtension(name).ToLowerInvariant();
-        if (new[] { "chrome", "msedge", "firefox", "opera", "brave", "vivaldi" }.Any(app.Contains))
+        if (new[] { "browser", "chrome", "msedge", "firefox", "opera", "brave", "vivaldi" }.Any(app.Contains))
             return "CategoryBrowsers";
         if (new[] { "discord", "teams", "slack", "telegram", "whatsapp", "zoom", "outlook" }.Any(app.Contains))
             return "CategoryCommunication";
@@ -113,6 +113,23 @@ public sealed class AppUsageHistoryRow
                 : cleanName[..Math.Min(2, cleanName.Length)].ToUpperInvariant();
         }
     }
+}
+
+public sealed class AppCategoryUsageRow
+{
+    public required string Key { get; init; }
+    public required string Name { get; init; }
+    public long UsedSeconds { get; init; }
+    public int ApplicationCount { get; init; }
+    public double RelativePercent { get; init; }
+    public required System.Windows.Media.Brush AccentBrush { get; init; }
+    public string UsedText => UsageHistoryFormatting.FormatDuration(UsedSeconds);
+    public string ApplicationCountText => ApplicationCount == 1
+        ? L("1 uygulama", "1 application")
+        : L($"{ApplicationCount} uygulama", $"{ApplicationCount} applications");
+
+    private static string L(string tr, string en) =>
+        LocalizationService.CurrentLanguage == LanguagePreference.English ? en : tr;
 }
 
 public sealed class UsageHistoryEventRow

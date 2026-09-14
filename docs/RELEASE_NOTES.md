@@ -1,5 +1,123 @@
 # Kvieta release notes
 
+## Kvieta Alpha 4.3.3 — Today redesign and application insights
+
+- Today now uses a spacious editorial heading, the actual Kvieta K watermark,
+  a unified application-usage surface, and a prominent next-action strip.
+- The large usage total and distribution ring use the same application records;
+  session allowance remains a separately labelled value. The top applications
+  include icons, matching chart colors, durations, and a remainder legend.
+- A 24-hour chart displays existing local hourly measurements on a fixed
+  0–60-minute scale, with per-hour tooltips and accessible labels. A factual
+  observation identifies the busiest measured hour; empty days show an explicit
+  empty state instead of fabricated bars.
+- The next action opens History in Insights mode, starts a 25-minute focus
+  session in Personal mode, or opens the session controls when appropriate.
+  Other focus durations remain available in a compact expandable section.
+- The layout reflows for narrow windows and supports light and dark themes.
+  Local WPF render previews can be generated with the smoke test executable's
+  `--today-preview` argument; preview data is isolated from user settings.
+
+- The compact session widget and Weekly Plan return to their earlier, quieter
+  visual treatment while retaining the recent stability fixes.
+- Applications now opens with three readable summaries: the most-used category,
+  the most-used application, and the application with the largest measured
+  increase since yesterday.
+- Seven-day category totals filter a compact Android-inspired application list.
+  Each row includes measured duration, category, trend, and direct timer/rule
+  actions without oversized repeated cards.
+- Regression checks cover summary calculation, rising-app selection, category
+  filtering, and the new WPF surfaces.
+
+Validation includes Debug/Release smoke tests for the hourly projection, empty
+states, focus-aware action, category filtering and prior stability fixes, plus
+wide/narrow WPF rendering in both themes. No new collection or network service
+is introduced, and existing settings, rules and stored history remain compatible.
+
+This unsigned local field-validation package retains version `4.3.3` at the
+user's request. Earlier Alpha 4.3 versions are upgrade sources; an existing
+4.3.3 installation is recognized as repair/same-version installation. Hyper-V
+installation and lifecycle checks remain required. No public upload is included.
+
+## Kvieta Alpha 4.3.2 — Today dashboard and stability fixes
+
+- The existing-installation setup screen now keeps Cancel at a normal size in
+  the bottom-right corner. It no longer stretches through the remaining page.
+- Opening Create temporary allowance no longer crashes. The dialog now owns the
+  label style it uses instead of depending on a MainWindow-only resource.
+- Today adopts a digital-wellbeing dashboard hierarchy: measured time is the
+  primary number, a real usage ring shows the top application distribution,
+  the top three applications list their durations, and remaining time stays
+  visible with the daily-limit progress.
+- Regression checks create the temporary-allowance dialog, render the usage
+  ring, and retain the responsive categorized-application coverage.
+
+This unsigned local field-validation package is version `4.3.2` and upgrades
+Alpha 4.3 and Alpha 4.3.1. Hyper-V visual and lifecycle checks remain required.
+
+## Kvieta Alpha 4.3.1 — layout and contrast fixes
+
+- Application categories now span the available width, with their application
+  cards arranged in up to three responsive columns. Previously the category
+  groups themselves received column slots and their cards stacked vertically.
+- Today uses a prominent olive time summary with contrasting text, a larger
+  timer and clearer separation from the status and next-plan area.
+- The light theme has a brighter warm background, near-white cards and a softer
+  green sidebar to reduce the grey cast observed during Hyper-V testing.
+- A WPF regression check covers grouped application cards at wide and narrow
+  widths. The smoke executable passes in Release configuration.
+
+This is an unsigned local field-validation package, version `4.3.1`, intended
+to update Alpha 4.3 (`4.3.0`). VM visual and installer checks remain required.
+
+## Kvieta Alpha 4.3 — field-validation build
+
+Alpha 4.3 brings the pre-v1 desktop interface into the same warmer, calmer
+visual language as the Kvieta website. This package is an unsigned Windows x64
+build intended for local and Hyper-V validation before public publication.
+
+### Interface renewal
+
+- Today now gives current status, the next plan and remaining/measured time a
+  clearer hierarchy. Quick Focus is visually distinct without changing its
+  authorization, timer or session rules.
+- Weekly plans and application rules use responsive, independent cards. History
+  emphasizes the weekly total, daily average and most-used application before
+  the detailed rhythm data.
+- Settings and guided setup share the same softer surfaces, spacing and corner
+  system. The focus surface and compact session widget use the refreshed Kvieta
+  identity while preserving all existing actions.
+- Navigation rows are larger, the selected page has a Kvieta accent, and hard
+  divider lines between the title bar, sidebar and content have been reduced.
+  Empty application and history states are now deliberate product surfaces.
+
+### Accessibility and motion
+
+- Collapsed navigation retains accessible names for every page. The sidebar
+  toggle name follows both its current state and the selected language.
+- The hidden content-tab host no longer creates an invisible keyboard stop.
+  Existing focus rings, modal focus cycling and Escape handling remain intact.
+- Setup card motion and forced popup fades that did not follow Windows Reduce
+  Motion were removed. Main application transitions continue to require both
+  the local motion preference and the Windows animation preference.
+
+### Installation, validation and limitations
+
+Use `Kvieta-Setup-Alpha-4.3.exe` for guided VM testing. Numeric MSI version
+`4.3.0` upgrades Alpha 4 (`1.0.0`), local Alpha 4.1 packages and Alpha 4.2
+(`4.2.0`). The update path is intended to preserve settings, usage history,
+recovery material and protected policy.
+
+Automated validation covers Debug/Release builds, smoke tests, public-build
+bypass checks, package metadata, single-file publish output and the release
+manifest. The package is **not Authenticode-signed**, so Windows SmartScreen may
+show an unknown-publisher warning. Hyper-V still needs to cover clean install,
+4.2 upgrade, repair, uninstall, restart/sleep, Guardian recovery, DPI, themes,
+keyboard navigation and multi-monitor behavior before Alpha 4.3 is published.
+
+Attached locally: Setup EXE, standalone MSI, SHA-256 files and
+`release-manifest.json`.
+
 ## Kvieta Alpha 4.2
 
 Alpha 4.2 improves setup, onboarding and everyday navigation. It is an unsigned

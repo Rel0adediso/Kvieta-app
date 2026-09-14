@@ -10,7 +10,7 @@
     <sys:String x:Key="TodayOverview">Today's overview</sys:String><sys:String x:Key="ComparedWithYesterday">Compared with yesterday</sys:String><sys:String x:Key="NextPlan">Next plan</sys:String><sys:String x:Key="MostUsedToday">Most used today</sys:String><sys:String x:Key="NoTodayApplications">No application usage has been measured today yet.</sys:String><sys:String x:Key="CreateRule">Create rule</sys:String><sys:String x:Key="DailyAppLimit">Daily limit</sys:String><sys:String x:Key="DailyAppLimitDescription">Choose how many minutes this application can be used each day.</sys:String><sys:String x:Key="AllowInPlan">Allow only in plan</sys:String><sys:String x:Key="BlockDuringFocus">Block during focus</sys:String>
     <sys:String x:Key="WeeklyPlan">Weekly plan</sys:String><sys:String x:Key="WeeklyPlanDescription">Choose the days and hours when this device can be used.</sys:String><sys:String x:Key="EnabledUpper">ON</sys:String><sys:String x:Key="DayUpper">DAY</sys:String><sys:String x:Key="StartUpper">START</sys:String><sys:String x:Key="EndUpper">END</sys:String><sys:String x:Key="DailyLimitUpper">DAILY LIMIT (MIN)</sys:String>
     <sys:String x:Key="HourUpper">HOUR</sys:String><sys:String x:Key="MinuteUpper">MINUTE</sys:String>
-    <sys:String x:Key="ApplicationsDescription">Explore today's usage and applications in one place.</sys:String><sys:String x:Key="Remove">Remove</sys:String><sys:String x:Key="AddApplication">Add application</sys:String><sys:String x:Key="MinuteShort">min</sys:String><sys:String x:Key="NoAppRules">No application rules yet</sys:String><sys:String x:Key="NoAppRulesDescription">There are no application rules saved on this device.</sys:String>
+    <sys:String x:Key="ApplicationsDescription">Explore the last 7 days by category and application details.</sys:String><sys:String x:Key="Remove">Remove</sys:String><sys:String x:Key="AddApplication">Add application</sys:String><sys:String x:Key="MinuteShort">min</sys:String><sys:String x:Key="NoAppRules">No application rules yet</sys:String><sys:String x:Key="NoAppRulesDescription">There are no application rules saved on this device.</sys:String>
     <sys:String x:Key="SettingsDescription">Choose how Kvieta behaves on this device.</sys:String><sys:String x:Key="Language">Language</sys:String><sys:String x:Key="LanguageDescription">Language used by the application</sys:String><sys:String x:Key="Appearance">Appearance</sys:String><sys:String x:Key="AppearanceDescription">System, light or dark</sys:String><sys:String x:Key="DeviceName">Device name</sys:String><sys:String x:Key="DeviceNameDescription">Name shown in the control center</sys:String><sys:String x:Key="WhenTimeEnds">When time runs out</sys:String><sys:String x:Key="WhenTimeEndsDescription">Applied when the daily allowance is complete</sys:String><sys:String x:Key="StartWithWindows">Start with Windows</sys:String><sys:String x:Key="StartWithWindowsDescription">Starts Kvieta in the background when you sign in</sys:String><sys:String x:Key="Enabled">Enabled</sys:String><sys:String x:Key="AdminPin">Administrator PIN</sys:String><sys:String x:Key="AdminPinDescription">Protects settings and protected exit</sys:String><sys:String x:Key="ServiceNotice">Protection against removal will be added in the next technical stage.</sys:String>
     <sys:String x:Key="System">System</sys:String><sys:String x:Key="Light">Light</sys:String><sys:String x:Key="Dark">Dark</sys:String><sys:String x:Key="BlockScreen">Block screen</sys:String><sys:String x:Key="WindowsLock">Windows lock</sys:String><sys:String x:Key="SignOut">Sign out</sys:String><sys:String x:Key="Blocked">Permanently blocked</sys:String><sys:String x:Key="Limited">Limited</sys:String><sys:String x:Key="ScheduleOnly">Only in plan</sys:String><sys:String x:Key="FocusBlocked">Blocked during focus</sys:String><sys:String x:Key="Unlimited">Unrestricted</sys:String><sys:String x:Key="ChangePin">Change PIN</sys:String><sys:String x:Key="CreatePin">Create PIN</sys:String><sys:String x:Key="AdminPinActive">PIN active</sys:String>
     <sys:String x:Key="Monday">Monday</sys:String><sys:String x:Key="Tuesday">Tuesday</sys:String><sys:String x:Key="Wednesday">Wednesday</sys:String><sys:String x:Key="Thursday">Thursday</sys:String><sys:String x:Key="Friday">Friday</sys:String><sys:String x:Key="Saturday">Saturday</sys:String><sys:String x:Key="Sunday">Sunday</sys:String>
@@ -220,6 +220,14 @@
 <sys:String x:Key="ApplicationCategories">Categories</sys:String>
 <sys:String x:Key="ApplicationCategoriesHint">Today’s usage, automatically grouped by application name.</sys:String>
 <sys:String x:Key="ApplicationRulesHeading">Application rules</sys:String>
+<sys:String x:Key="TopUsageCategory">Category with the most time</sys:String>
+<sys:String x:Key="MostUsedApplication">Most used application</sys:String>
+<sys:String x:Key="FastestRisingApplication">Fastest rise since yesterday</sys:String>
+<sys:String x:Key="MostUsedCategories">Most used categories</sys:String>
+<sys:String x:Key="LastSevenDays">Total usage over the last 7 days</sys:String>
+<sys:String x:Key="ApplicationUsageDetailsHint">Choose a category to see application usage, the 7-day trend, and its timer.</sys:String>
+<sys:String x:Key="SetAppTimer">Set timer</sys:String>
+<sys:String x:Key="NoApplicationHistory">There is not enough measured application usage for the detailed view yet.</sys:String>
 <sys:String x:Key="AppearanceAndLanguage">Appearance and general</sys:String>
 <sys:String x:Key="ProtectionSettings">Mode and protection</sys:String>
 <sys:String x:Key="RhythmDashboard">Rhythm · trends and goals</sys:String>
@@ -229,4 +237,14 @@
 <sys:String x:Key="CategoryProductivity">Productivity</sys:String>
 <sys:String x:Key="CategoryEntertainment">Entertainment and games</sys:String>
 <sys:String x:Key="CategoryOther">Other applications</sys:String>
+<sys:String x:Key="TodayMeasuredApps">Application use today</sys:String>
+<sys:String x:Key="TodayAppCountLabel">applications</sys:String>
+<sys:String x:Key="TodayTopApplications">Where your time goes</sys:String>
+<sys:String x:Key="TodayOtherApplications">Other applications</sys:String>
+<sys:String x:Key="TodayNextMoment">Your next moment is yours.</sys:String>
+<sys:String x:Key="TodayDayFlow">Your day, hour by hour</sys:String>
+<sys:String x:Key="TodayHourlyScale">Per hour · 0–60 min</sys:String>
+<sys:String x:Key="TodayHourlyHint">Hover over an hour to see its measured usage.</sys:String>
+<sys:String x:Key="TodayNoHourlyData">No hourly measurements yet</sys:String>
+<sys:String x:Key="TodayMoreFocusOptions">More focus durations</sys:String>
 </ResourceDictionary>

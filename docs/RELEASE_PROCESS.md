@@ -24,6 +24,12 @@ local Alpha 4.1 test packages (`4.1.0`–`4.1.3`). Do not downgrade this version
 Build community artifacts from the clean release commit and verify that their
 manifest names the annotated tag's commit before uploading.
 
+The next field-validation build is **Kvieta Alpha 4.3**. Its package-safe label
+is `Alpha-4.3` and its numeric MSI version is `4.3.0`, so Alpha 4.2 is recognized
+as an upgrade source. Until its release commit and tag exist, Alpha 4.3 artifacts
+must be treated as unsigned local/VM validation builds and must not replace the
+published Alpha 4.2 download links.
+
 Final releases must never be published while a documented release blocker remains open. Release candidates and test packages must be labeled clearly and must not be described as signed or production-ready when they are not.
 
 Kvieta currently plans an unsigned, non-commercial community release. It must remain technically distinct from Debug/test packages: no development bypass may be compiled in, manifest and source commit must match, Guardian client identity checks must pass, and the expected Windows SmartScreen warning must be documented. Authenticode can be added later without changing the open-source license.

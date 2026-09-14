@@ -4,6 +4,13 @@
         xmlns:controls="clr-namespace:Kvieta.App.Controls;assembly=Kvieta.Controls"
         Width="470" Height="455" WindowStyle="None" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" Background="Transparent" AllowsTransparency="True" ShowInTaskbar="False">
+    <Window.Resources>
+        <Style x:Key="DialogLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+        </Style>
+    </Window.Resources>
     <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
         <Grid><Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="*" /></Grid.RowDefinitions>
             <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
@@ -12,13 +19,13 @@
             <Grid Grid.Row="1" Margin="28,23,28,25"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <TextBlock Text="{DynamicResource TemporaryAllowanceTitle}" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Grid.Row="1" Text="{DynamicResource TemporaryAllowanceDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,18" />
-                <StackPanel Grid.Row="2"><TextBlock Text="{DynamicResource DateLabel}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,6" /><DatePicker x:Name="DateInput" Height="35" /></StackPanel>
+                <StackPanel Grid.Row="2"><TextBlock Text="{DynamicResource DateLabel}" Style="{StaticResource DialogLabelStyle}" Margin="0,0,0,6" /><DatePicker x:Name="DateInput" Height="35" /></StackPanel>
                 <Grid Grid.Row="3" Margin="0,13,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                    <StackPanel><TextBlock Text="{DynamicResource StartUpper}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,6" /><controls:TimeWheelPicker x:Name="StartInput" TimeText="18:00" Height="35" /></StackPanel>
-                    <StackPanel Grid.Column="2"><TextBlock Text="{DynamicResource EndUpper}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,6" /><controls:TimeWheelPicker x:Name="EndInput" TimeText="21:00" Height="35" /></StackPanel>
-                    <StackPanel Grid.Column="4"><TextBlock Text="{DynamicResource ExtraMinutesLabel}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,6" /><TextBox x:Name="MinutesInput" Text="60" Height="35" Padding="10,6" /></StackPanel>
+                    <StackPanel><TextBlock Text="{DynamicResource StartUpper}" Style="{StaticResource DialogLabelStyle}" Margin="0,0,0,6" /><controls:TimeWheelPicker x:Name="StartInput" TimeText="18:00" Height="35" /></StackPanel>
+                    <StackPanel Grid.Column="2"><TextBlock Text="{DynamicResource EndUpper}" Style="{StaticResource DialogLabelStyle}" Margin="0,0,0,6" /><controls:TimeWheelPicker x:Name="EndInput" TimeText="21:00" Height="35" /></StackPanel>
+                    <StackPanel Grid.Column="4"><TextBlock Text="{DynamicResource ExtraMinutesLabel}" Style="{StaticResource DialogLabelStyle}" Margin="0,0,0,6" /><TextBox x:Name="MinutesInput" Text="60" Height="35" Padding="10,6" /></StackPanel>
                 </Grid>
-                <StackPanel Grid.Row="4" Margin="0,13,0,0"><TextBlock Text="{DynamicResource NoteOptionalLabel}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,6" /><TextBox x:Name="NoteInput" Height="35" Padding="10,6" /></StackPanel>
+                <StackPanel Grid.Row="4" Margin="0,13,0,0"><TextBlock Text="{DynamicResource NoteOptionalLabel}" Style="{StaticResource DialogLabelStyle}" Margin="0,0,0,6" /><TextBox x:Name="NoteInput" Height="35" Padding="10,6" /></StackPanel>
                 <TextBlock x:Name="ErrorText" Grid.Row="5" Foreground="{DynamicResource DangerBrush}" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
                 <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="{DynamicResource Cancel}" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" Margin="0,0,8,0" /><Button Content="{DynamicResource AddAllowance}" Style="{StaticResource PrimaryButtonStyle}" Click="Save_Click" MinWidth="110" /></StackPanel>
             </Grid>

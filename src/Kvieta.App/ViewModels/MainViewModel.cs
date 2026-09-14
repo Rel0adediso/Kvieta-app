@@ -23,7 +23,7 @@ public enum RhythmFirstStepAction
     RetryData
 }
 
-public sealed class MainViewModel : ObservableObject
+public sealed partial class MainViewModel : ObservableObject
 {
     private static readonly JsonSerializerOptions IndentedJsonOptions = new()
     {
@@ -70,6 +70,7 @@ public sealed class MainViewModel : ObservableObject
     private string? _usageReadFailureMessage;
     private bool _localWriteFailed;
     private string? _localWriteFailureMessage;
+    private AppCategoryUsageRow? _selectedApplicationCategory;
 
     public MainViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -92,8 +93,33 @@ public sealed class MainViewModel : ObservableObject
     public IEnumerable<AppUsageHistoryRow> TopTodayApplications => TodayApplications.Take(3);
     public ObservableCollection<AppUsageHistoryRow> HistoryApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryAllApplications { get; } = [];
+    public ObservableCollection<AppCategoryUsageRow> ApplicationCategories { get; } = [];
+    public ObservableCollection<AppUsageHistoryRow> FilteredApplications { get; } = [];
     public ObservableCollection<UsageHistoryEventRow> HistoryEvents { get; } = [];
     public ObservableCollection<RhythmDayRow> RhythmDays { get; } = [];
+
+    public AppCategoryUsageRow? SelectedApplicationCategory
+    {
+        get => _selectedApplicationCategory;
+        set
+        {
+            if (SetProperty(ref _selectedApplicationCategory, value))
+            {
+                RefreshFilteredApplications();
+                OnPropertyChanged(nameof(SelectedApplicationCategoryName));
+            }
+        }
+    }
+
+    public string SelectedApplicationCategoryName => SelectedApplicationCategory?.Name ?? L("Uygulamalar", "Applications");
+    public string ApplicationTopCategoryName { get; private set; } = "—";
+    public string ApplicationTopCategoryUsageText { get; private set; } = "—";
+    public string ApplicationMostUsedName { get; private set; } = "—";
+    public string ApplicationMostUsedUsageText { get; private set; } = "—";
+    public string ApplicationRisingName { get; private set; } = "—";
+    public string ApplicationRisingChangeText { get; private set; } = "—";
+    public bool HasApplicationUsage => HistoryAllApplications.Count > 0;
+    public bool HasNoApplicationUsage => !HasApplicationUsage;
 
     public int SelectedPageIndex
     {
@@ -1298,6 +1324,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasNoAppRules));
         OnPropertyChanged(nameof(PendingChangeText));
         OnPropertyChanged(nameof(PendingChangeDetails));
+        NotifyTodayPresentation();
     }
 
     private void BuildUsageHistory(UsageLedger ledger)
@@ -1395,6 +1422,8 @@ public sealed class MainViewModel : ObservableObject
             HistoryAllApplications.Add(application);
         }
 
+        BuildApplicationsOverview(rankedApplications);
+
         HistoryApplications.Clear();
         foreach (AppUsageHistoryRow application in rankedApplications.Take(3))
         {
@@ -1425,6 +1454,92 @@ public sealed class MainViewModel : ObservableObject
         if (HistoryDays.LastOrDefault() is { } latestDay)
         {
             SelectHistoryDay(latestDay);
+        }
+    }
+
+    private void BuildApplicationsOverview(IReadOnlyList<AppUsageHistoryRow> applications)
+    {
+        string selectedKey = SelectedApplicationCategory?.Key ?? string.Empty;
+        List<AppCategoryUsageRow> categories = applications
+            .GroupBy(application => AppUsageHistoryRow.ApplicationCategoryKey(application.Name))
+            .Select(group => new AppCategoryUsageRow
+            {
+                Key = group.Key,
+                Name = LocalizationService.Get(group.Key),
+                UsedSeconds = group.Sum(application => application.UsedSeconds),
+                ApplicationCount = group.Count(),
+                RelativePercent = 0,
+                AccentBrush = ApplicationIconProvider.GetFallbackBrush(group.Key)
+            })
+            .OrderByDescending(category => category.UsedSeconds)
+            .ToList();
+        long maximumCategory = Math.Max(1, categories.Select(category => category.UsedSeconds).DefaultIfEmpty(0).Max());
+        categories = categories
+            .Select(category => new AppCategoryUsageRow
+            {
+                Key = category.Key,
+                Name = category.Name,
+                UsedSeconds = category.UsedSeconds,
+                ApplicationCount = category.ApplicationCount,
+                RelativePercent = Math.Clamp(category.UsedSeconds * 100d / maximumCategory, 0, 100),
+                AccentBrush = category.AccentBrush
+            })
+            .ToList();
+
+        ApplicationCategories.Clear();
+        foreach (AppCategoryUsageRow category in categories)
+        {
+            ApplicationCategories.Add(category);
+        }
+
+        SelectedApplicationCategory = categories.FirstOrDefault(category => category.Key == selectedKey)
+            ?? categories.FirstOrDefault();
+        if (SelectedApplicationCategory is null)
+        {
+            RefreshFilteredApplications();
+        }
+
+        AppCategoryUsageRow? topCategory = categories.FirstOrDefault();
+        AppUsageHistoryRow? mostUsed = applications.FirstOrDefault();
+        var rising = applications
+            .Where(application => application.TrendValues.Count >= 2)
+            .Select(application => new { Application = application, Increase = application.TrendValues[^1] - application.TrendValues[^2] })
+            .Where(item => item.Increase > 0)
+            .OrderByDescending(item => item.Increase)
+            .FirstOrDefault();
+
+        ApplicationTopCategoryName = topCategory?.Name ?? "—";
+        ApplicationTopCategoryUsageText = topCategory?.UsedText ?? L("Henüz veri yok", "No data yet");
+        ApplicationMostUsedName = mostUsed?.Name ?? "—";
+        ApplicationMostUsedUsageText = mostUsed?.UsedText ?? L("Henüz veri yok", "No data yet");
+        ApplicationRisingName = rising?.Application.Name ?? L("Belirgin yükseliş yok", "No clear rise");
+        ApplicationRisingChangeText = rising is not null
+            ? $"+{UsageHistoryFormatting.FormatDuration((long)rising.Increase)} · {L("düne göre", "vs yesterday")}"
+            : L("Son iki gün arasında artış ölçülmedi", "No increase measured between the last two days");
+
+        OnPropertyChanged(nameof(ApplicationTopCategoryName));
+        OnPropertyChanged(nameof(ApplicationTopCategoryUsageText));
+        OnPropertyChanged(nameof(ApplicationMostUsedName));
+        OnPropertyChanged(nameof(ApplicationMostUsedUsageText));
+        OnPropertyChanged(nameof(ApplicationRisingName));
+        OnPropertyChanged(nameof(ApplicationRisingChangeText));
+        OnPropertyChanged(nameof(HasApplicationUsage));
+        OnPropertyChanged(nameof(HasNoApplicationUsage));
+    }
+
+    private void RefreshFilteredApplications()
+    {
+        FilteredApplications.Clear();
+        IEnumerable<AppUsageHistoryRow> applications = HistoryAllApplications;
+        if (SelectedApplicationCategory is { } category)
+        {
+            applications = applications.Where(application =>
+                AppUsageHistoryRow.ApplicationCategoryKey(application.Name) == category.Key);
+        }
+
+        foreach (AppUsageHistoryRow application in applications)
+        {
+            FilteredApplications.Add(application);
         }
     }
 
@@ -1462,6 +1577,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         NextPlanText = BuildNextPlanText(DateTimeOffset.Now);
+        BuildTodayPresentation(current, previous);
         OnPropertyChanged(nameof(TodayChangeText));
         OnPropertyChanged(nameof(NextPlanText));
         OnPropertyChanged(nameof(HasTodayApplications));
