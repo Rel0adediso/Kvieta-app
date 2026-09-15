@@ -222,11 +222,13 @@
 <sys:String x:Key="ApplicationRulesHeading">Application rules</sys:String>
 <sys:String x:Key="TopUsageCategory">Category with the most time</sys:String>
 <sys:String x:Key="MostUsedApplication">Most used application</sys:String>
+<sys:String x:Key="MostUsedApplications">Most used applications</sys:String>
 <sys:String x:Key="FastestRisingApplication">Fastest rise since yesterday</sys:String>
 <sys:String x:Key="MostUsedCategories">Most used categories</sys:String>
 <sys:String x:Key="LastSevenDays">Total usage over the last 7 days</sys:String>
 <sys:String x:Key="ApplicationUsageDetailsHint">Choose a category to see application usage, the 7-day trend, and its timer.</sys:String>
 <sys:String x:Key="SetAppTimer">Set timer</sys:String>
+<sys:String x:Key="ApplicationTimerDescription">Choose when this application can be used.</sys:String>
 <sys:String x:Key="NoApplicationHistory">There is not enough measured application usage for the detailed view yet.</sys:String>
 <sys:String x:Key="AppearanceAndLanguage">Appearance and general</sys:String>
 <sys:String x:Key="ProtectionSettings">Mode and protection</sys:String>
@@ -247,4 +249,7 @@
 <sys:String x:Key="TodayHourlyHint">Hover over an hour to see its measured usage.</sys:String>
 <sys:String x:Key="TodayNoHourlyData">No hourly measurements yet</sys:String>
 <sys:String x:Key="TodayMoreFocusOptions">More focus durations</sys:String>
+<sys:String x:Key="Tomorrow">Tomorrow</sys:String>
+<sys:String x:Key="PreviousDay">Previous day</sys:String>
+<sys:String x:Key="NextDay">Next day</sys:String>
 </ResourceDictionary>

@@ -36,6 +36,19 @@ Assert(!string.IsNullOrWhiteSpace(BuildInfo.RepositoryCommit) &&
         BuildInfo.RepositoryCommit.Length == 40 && BuildInfo.RepositoryCommit.All(Uri.IsHexDigit)) &&
        BuildInfo.DisplayRevision.EndsWith("-dirty", StringComparison.Ordinal) == BuildInfo.IsRepositoryDirty,
     "Build commit veya çalışma ağacı kimliği assembly metadata'sına doğru gömülmedi.");
+Assert(!StartupActivationPolicy.ShouldSignalControlCenter(guardianSession: true, directSessionRequested: false) &&
+       !StartupActivationPolicy.ShouldSignalControlCenter(guardianSession: false, directSessionRequested: true) &&
+       StartupActivationPolicy.ShouldSignalControlCenter(guardianSession: false, directSessionRequested: false) &&
+       StartupActivationPolicy.GetInstanceChannel(guardianSession: true, directSessionRequested: false) == "GuardianSession" &&
+       StartupActivationPolicy.GetInstanceChannel(guardianSession: false, directSessionRequested: true) == "DirectSession" &&
+       StartupActivationPolicy.ShouldDeferDirectSessionToGuardian(
+           guardianSession: false,
+           directSessionRequested: true,
+           requiresGuardian: true,
+           guardianAvailable: true) &&
+       !StartupActivationPolicy.ShouldRegisterUserStartup(startWithWindows: true, requiresGuardian: true) &&
+       StartupActivationPolicy.ShouldRegisterUserStartup(startWithWindows: true, requiresGuardian: false),
+    "Otomatik oturum başlangıcı yönetim paneli etkinleştirmesinden ayrılmadı.");
 Assert(settings.DeviceName == "Bu Bilgisayar", "Yeni kurulumun varsayılan cihaz adı yanlış.");
 string singleWindowChannel = $"Smoke{Guid.NewGuid():N}";
 using (SingleInstanceCoordinator primaryWindow = new(singleWindowChannel))
@@ -53,11 +66,28 @@ Thread adminPinWindowThread = new(() =>
         application.InitializeComponent();
         var mainWindow = new Kvieta.App.MainWindow();
         var allowanceWindow = new Kvieta.App.TemporaryAllowanceWindow();
-        Assert(allowanceWindow.FindName("DateInput") is System.Windows.Controls.DatePicker &&
+        Assert(allowanceWindow.FindName("SelectedDateText") is System.Windows.Controls.TextBlock &&
+               allowanceWindow.FindName("PreviousDateButton") is System.Windows.Controls.Button &&
                allowanceWindow.FindName("StartInput") is Kvieta.App.Controls.TimeWheelPicker &&
                allowanceWindow.FindName("EndInput") is Kvieta.App.Controls.TimeWheelPicker,
             "Geçici izin penceresi bağımsız kaynaklarıyla oluşturulamadı.");
         allowanceWindow.Close();
+        var timerWindow = new Kvieta.App.ApplicationTimerWindow();
+        Assert(timerWindow.FindName("LimitedChoice") is System.Windows.Controls.Button &&
+               timerWindow.FindName("ScheduleChoice") is System.Windows.Controls.Button &&
+               timerWindow.FindName("FocusChoice") is System.Windows.Controls.Button &&
+               timerWindow.FindName("UnlimitedChoice") is System.Windows.Controls.Button,
+            "Uygulama zamanlayıcısının Kvieta seçim penceresi oluşturulamadı.");
+        timerWindow.Close();
+        var appLimitWindow = new Kvieta.App.BonusTimeWindow(selectAppLimit: true);
+        Assert(appLimitWindow.FindName("Minutes15") is System.Windows.Controls.Button { Content: string minutes15 } &&
+               minutes15 == $"15 {LocalizationService.Get("MinuteShort")}" &&
+               appLimitWindow.FindName("CustomMinutesInput") is System.Windows.Controls.TextBox
+               {
+                   VerticalContentAlignment: System.Windows.VerticalAlignment.Center
+               },
+            "Günlük uygulama limiti dakika seçenekleri veya sayı alanı doğru oluşturulamadı.");
+        appLimitWindow.Close();
         var donut = new Kvieta.App.Controls.UsageDonutChart
         {
             Width = 140,
@@ -95,10 +125,12 @@ Thread adminPinWindowThread = new(() =>
         Assert(responsive.DesiredSize.Height == 294, "Gizli kart yerleşimde boş alan bıraktı.");
         ArrangeCards(760);
         Assert(responsive.DesiredSize.Height == 90, "Pencere yeniden genişletilince sütunlar geri gelmedi.");
-        Assert(mainWindow.FindName("ApplicationCategoryList") is System.Windows.Controls.ListBox &&
-               mainWindow.FindName("FilteredApplicationsList") is System.Windows.Controls.ItemsControl &&
+        Assert(mainWindow.FindName("ApplicationCategoryList") is System.Windows.Controls.ItemsControl &&
+               mainWindow.FindName("MostUsedApplicationsList") is System.Windows.Controls.ItemsControl &&
+               mainWindow.FindName("ApplicationDetailsList") is System.Windows.Controls.ItemsControl &&
                mainWindow.FindName("ApplicationCategoriesPanel") is System.Windows.Controls.Border &&
-               mainWindow.FindName("FilteredApplicationsPanel") is System.Windows.Controls.Border,
+               mainWindow.FindName("MostUsedApplicationsPanel") is System.Windows.Controls.Button &&
+               mainWindow.FindName("WeeklyScheduleList") is System.Windows.Controls.ItemsControl,
             "Yeni kategori ve ayrıntılı uygulama görünümü oluşturulamadı.");
         var guideMethod = typeof(Kvieta.App.MainWindow).GetMethod("QuickGuide_Click", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
         guideMethod.Invoke(mainWindow, [mainWindow, new System.Windows.RoutedEventArgs()]);
@@ -729,12 +761,10 @@ Version? actualAppBinaryVersion = ProtectionServiceManager.ReadProductVersionFor
 Version appAssemblyVersion = typeof(ProtectionServiceManager).Assembly.GetName().Version!;
 Assert(actualAppBinaryVersion == new Version(appAssemblyVersion.Major, appAssemblyVersion.Minor, appAssemblyVersion.Build),
     "Alpha release etiketi sayısal EXE/DLL dosya sürümünün okunmasını engelledi.");
-Assert(SetupPlan.DeterminePackageAction(new Version(1, 0, 0), new Version(4, 3, 3)) == SetupPackageAction.Update &&
-       SetupPlan.DeterminePackageAction(new Version(4, 1, 3), new Version(4, 3, 3)) == SetupPackageAction.Update &&
-       SetupPlan.DeterminePackageAction(new Version(4, 2, 0), new Version(4, 3, 3)) == SetupPackageAction.Update &&
-       SetupPlan.DeterminePackageAction(new Version(4, 3, 0), new Version(4, 3, 3)) == SetupPackageAction.Update &&
-       SetupPlan.DeterminePackageAction(new Version(4, 3, 2), new Version(4, 3, 3)) == SetupPackageAction.Update,
-    "Önceki Alpha paketi Alpha 4.3.3'e güncelleme olarak tanınmadı.");
+Assert(SetupPlan.DeterminePackageAction(new Version(1, 0, 0), new Version(5, 0, 0)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(4, 3, 3), new Version(5, 0, 0)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(4, 4, 2), new Version(5, 0, 0)) == SetupPackageAction.Update,
+    "Önceki Alpha paketi Alpha 5'e güncelleme olarak tanınmadı.");
 Assert(SessionSurfaceRecoveryPolicy.ShouldRecover(
         shouldShowSessionSurfaces: true,
         isSurfaceVisible: true,
@@ -1231,16 +1261,20 @@ Assert(todayOverviewViewModel.TodayApplications.Count == 2 &&
        todayOverviewViewModel.NextPlanText != "—",
     "Bugün özeti en çok kullanılan uygulamayı, günlük değişimi veya plan durumunu üretmedi.");
 Assert(todayOverviewViewModel.ApplicationCategories.Count == 2 &&
-       todayOverviewViewModel.SelectedApplicationCategory?.Key == "CategoryBrowsers" &&
+       todayOverviewViewModel.SelectedApplicationCategory is null &&
        todayOverviewViewModel.ApplicationMostUsedName == "Browser" &&
        todayOverviewViewModel.ApplicationRisingName == "Browser" &&
-       todayOverviewViewModel.FilteredApplications.Count == 1 &&
-       todayOverviewViewModel.FilteredApplications[0].Name == "Browser",
-    $"Uygulama özeti, yükseliş hesabı veya varsayılan kategori filtresi üretilemedi. Kategoriler={todayOverviewViewModel.ApplicationCategories.Count}, Seçili={todayOverviewViewModel.SelectedApplicationCategory?.Key}, EnÇok={todayOverviewViewModel.ApplicationMostUsedName}, Yükselen={todayOverviewViewModel.ApplicationRisingName}, Filtre={string.Join(',', todayOverviewViewModel.FilteredApplications.Select(item => item.Name))}");
+       todayOverviewViewModel.FilteredApplications.Count == 2 &&
+       todayOverviewViewModel.FilteredApplications[0].ApplicationId == "C:\\Apps\\Browser.exe",
+    $"Uygulama özeti, kimliği, yükseliş hesabı veya tüm uygulamalar görünümü üretilemedi. Kategoriler={todayOverviewViewModel.ApplicationCategories.Count}, Seçili={todayOverviewViewModel.SelectedApplicationCategory?.Key}, EnÇok={todayOverviewViewModel.ApplicationMostUsedName}, Yükselen={todayOverviewViewModel.ApplicationRisingName}, Filtre={string.Join(',', todayOverviewViewModel.FilteredApplications.Select(item => item.Name))}");
 todayOverviewViewModel.SelectedApplicationCategory = todayOverviewViewModel.ApplicationCategories.Single(category => category.Key == "CategoryProductivity");
 Assert(todayOverviewViewModel.FilteredApplications.Count == 1 &&
        todayOverviewViewModel.FilteredApplications[0].Name == "Code",
     "Kategori seçimi ayrıntılı uygulama listesini filtrelemedi.");
+await todayOverviewViewModel.ReloadUsageAsync();
+Assert(todayOverviewViewModel.SelectedApplicationCategory?.Key == "CategoryProductivity" &&
+       todayOverviewViewModel.FilteredApplications.Count == 1,
+    "Kullanım yenilemesi seçili uygulama kategorisini sıfırladı.");
 Assert(todayOverviewViewModel.TodayHours.Count == 24 &&
        todayOverviewViewModel.TodayHours[14].UsedSeconds == 1800 &&
        todayOverviewViewModel.TodayHours[14].BarHeight == 52 &&

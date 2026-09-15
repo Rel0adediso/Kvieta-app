@@ -11,7 +11,7 @@ public partial class BonusTimeWindow : Window
     {
         InitializeComponent();
         string unit = Services.LocalizationService.Get("MinuteShort");
-        string prefix = selectFocusDuration ? string.Empty : "+";
+        string prefix = selectFocusDuration || selectAppLimit ? string.Empty : "+";
         Minutes15.Content = $"{prefix}15 {unit}";
         Minutes30.Content = $"{prefix}30 {unit}";
         Minutes60.Content = $"{prefix}60 {unit}";

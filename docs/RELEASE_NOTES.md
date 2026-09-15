@@ -1,5 +1,23 @@
 # Kvieta release notes
 
+## Kvieta Alpha 5 — Interface polish and startup reliability
+
+- Weekly Plan uses one compact, consistently aligned schedule surface; day,
+  start, end and daily-limit controls now follow stable columns.
+- Application timer choices use equal-height rows, aligned text and a fixed
+  action edge. Mode and Personal protection choices can be confirmed with a
+  double-click while retaining the existing single-click and Confirm flow.
+- Family startup opens only the intended lock/session surface and no longer
+  leaves a hidden PIN prompt blocking the interface.
+- Application identity, category selection and recent-usage state remain stable
+  across refreshes, while repeated missing-icon lookups are avoided.
+- The temporary allowance and application insights flows include the recent
+  layout, reliability and navigation fixes accumulated since Alpha 4.3.3.
+
+Validation includes the Release build, core/WPF smoke checks and the generated
+Windows installer package. Existing local settings, schedules and usage history
+remain compatible with the Alpha 5 update path.
+
 ## Kvieta Alpha 4.3.3 — Today redesign and application insights
 
 - Today now uses a spacious editorial heading, the actual Kvieta K watermark,

@@ -12,6 +12,8 @@ public static class ApplicationIconProvider
 {
     private static readonly object Sync = new();
     private static readonly Dictionary<string, ImageSource?> Cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, DateTimeOffset> MissingCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly TimeSpan MissingCacheDuration = TimeSpan.FromMinutes(2);
 
     public static ImageSource? GetIcon(string applicationName)
     {
@@ -27,14 +29,27 @@ public static class ApplicationIconProvider
             {
                 return cached;
             }
+
+            if (MissingCache.TryGetValue(processName, out DateTimeOffset checkedAt) &&
+                DateTimeOffset.UtcNow - checkedAt < MissingCacheDuration)
+            {
+                return null;
+            }
+
+            MissingCache.Remove(processName);
         }
 
         ImageSource? icon = TryExtractFileIcon(applicationName) ?? TryExtractRunningProcessIcon(processName);
-        if (icon is not null)
+        lock (Sync)
         {
-            lock (Sync)
+            if (icon is not null)
             {
                 Cache[processName] = icon;
+                MissingCache.Remove(processName);
+            }
+            else
+            {
+                MissingCache[processName] = DateTimeOffset.UtcNow;
             }
         }
 

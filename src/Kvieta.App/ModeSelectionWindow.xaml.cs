@@ -51,6 +51,19 @@ public partial class ModeSelectionWindow : Window
         UpdateSelectionStyles();
     }
 
+    private void ModeCard_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: string modeName } ||
+            !Enum.TryParse(modeName, out UsageMode mode))
+        {
+            return;
+        }
+
+        SelectMode(mode);
+        e.Handled = true;
+        ConfirmSelectedMode();
+    }
+
     private void UpdateSelectionStyles()
     {
         Style normal = (Style)InsightsButton.FindResource("ModeCardStyle");
@@ -71,6 +84,19 @@ public partial class ModeSelectionWindow : Window
         UpdatePersonalSelectionStyles();
     }
 
+    private void PersonalLevelCard_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: string levelName } ||
+            !Enum.TryParse(levelName, out PersonalProtectionLevel level))
+        {
+            return;
+        }
+
+        SelectPersonalLevel(level);
+        e.Handled = true;
+        ConfirmSelectedPersonalLevel();
+    }
+
     private void UpdatePersonalSelectionStyles()
     {
         Style normal = (Style)FlexibleButton.FindResource("ModeCardStyle");
@@ -80,7 +106,9 @@ public partial class ModeSelectionWindow : Window
         ProtectedLevelButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Protected ? selected : normal;
     }
 
-    private void Confirm_Click(object sender, RoutedEventArgs e)
+    private void Confirm_Click(object sender, RoutedEventArgs e) => ConfirmSelectedMode();
+
+    private void ConfirmSelectedMode()
     {
         if (SelectedMode == UsageMode.Personal)
         {
@@ -102,7 +130,9 @@ public partial class ModeSelectionWindow : Window
         }
     }
 
-    private void ConfirmPersonal_Click(object sender, RoutedEventArgs e)
+    private void ConfirmPersonal_Click(object sender, RoutedEventArgs e) => ConfirmSelectedPersonalLevel();
+
+    private void ConfirmSelectedPersonalLevel()
     {
         if (SelectedPersonalProtectionLevel == PersonalProtectionLevel.Protected && RequiresProtectionReview())
         {

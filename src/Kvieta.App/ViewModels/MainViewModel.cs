@@ -1330,6 +1330,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void BuildUsageHistory(UsageLedger ledger)
     {
         DateOnly today = DateOnly.FromDateTime(DateTime.Today);
+        DateOnly? selectedHistoryDay = HistoryDays.FirstOrDefault(day => day.IsSelected)?.Day;
         List<DailyUsageRecord> records = ledger.History
             .Where(item => item.LocalDay >= today.AddDays(-6) && item.LocalDay < today)
             .ToList();
@@ -1403,8 +1404,20 @@ public sealed partial class MainViewModel : ObservableObject
 
         List<AppUsageHistoryRow> applications = records
             .SelectMany(item => item.ForegroundApplications)
-            .GroupBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(group => CreateAppUsageRow(0, group.Key, group.Sum(item => item.UsedSeconds), 0, trends.GetValueOrDefault(group.Key)))
+            .GroupBy(
+                item => string.IsNullOrWhiteSpace(item.ApplicationId) ? item.Name : item.ApplicationId,
+                StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                AwarenessAppUsageRecord representative = group.First();
+                return CreateAppUsageRow(
+                    0,
+                    representative.Name,
+                    group.Sum(item => item.UsedSeconds),
+                    0,
+                    trends.GetValueOrDefault(representative.Name),
+                    representative.ApplicationId);
+            })
             .OrderByDescending(item => item.UsedSeconds)
             .ToList();
         long maximumApp = Math.Max(1, applications.Select(item => item.UsedSeconds).DefaultIfEmpty(0).Max());
@@ -1414,7 +1427,8 @@ public sealed partial class MainViewModel : ObservableObject
                 application.Name,
                 application.UsedSeconds,
                 Math.Clamp(application.UsedSeconds * 100d / maximumApp, 0, 100),
-                application.TrendValues))
+                application.TrendValues,
+                application.ApplicationId))
             .ToList();
         HistoryAllApplications.Clear();
         foreach (AppUsageHistoryRow application in rankedApplications)
@@ -1451,70 +1465,41 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasNoHistoryApplications));
         OnPropertyChanged(nameof(HasHistoryEvents));
         OnPropertyChanged(nameof(HasNoHistoryEvents));
-        if (HistoryDays.LastOrDefault() is { } latestDay)
+        UsageHistoryDayRow? dayToSelect = (selectedHistoryDay is { } preservedDay
+            ? HistoryDays.FirstOrDefault(day => day.Day == preservedDay)
+            : null) ?? HistoryDays.LastOrDefault();
+        if (dayToSelect is not null)
         {
-            SelectHistoryDay(latestDay);
+            SelectHistoryDay(dayToSelect);
         }
     }
 
     private void BuildApplicationsOverview(IReadOnlyList<AppUsageHistoryRow> applications)
     {
-        string selectedKey = SelectedApplicationCategory?.Key ?? string.Empty;
-        List<AppCategoryUsageRow> categories = applications
-            .GroupBy(application => AppUsageHistoryRow.ApplicationCategoryKey(application.Name))
-            .Select(group => new AppCategoryUsageRow
-            {
-                Key = group.Key,
-                Name = LocalizationService.Get(group.Key),
-                UsedSeconds = group.Sum(application => application.UsedSeconds),
-                ApplicationCount = group.Count(),
-                RelativePercent = 0,
-                AccentBrush = ApplicationIconProvider.GetFallbackBrush(group.Key)
-            })
-            .OrderByDescending(category => category.UsedSeconds)
-            .ToList();
-        long maximumCategory = Math.Max(1, categories.Select(category => category.UsedSeconds).DefaultIfEmpty(0).Max());
-        categories = categories
-            .Select(category => new AppCategoryUsageRow
-            {
-                Key = category.Key,
-                Name = category.Name,
-                UsedSeconds = category.UsedSeconds,
-                ApplicationCount = category.ApplicationCount,
-                RelativePercent = Math.Clamp(category.UsedSeconds * 100d / maximumCategory, 0, 100),
-                AccentBrush = category.AccentBrush
-            })
-            .ToList();
+        string? selectedKey = SelectedApplicationCategory?.Key;
+        ApplicationUsageOverview overview = ApplicationUsageOverviewBuilder.Build(applications);
 
         ApplicationCategories.Clear();
-        foreach (AppCategoryUsageRow category in categories)
+        foreach (AppCategoryUsageRow category in overview.Categories)
         {
             ApplicationCategories.Add(category);
         }
 
-        SelectedApplicationCategory = categories.FirstOrDefault(category => category.Key == selectedKey)
-            ?? categories.FirstOrDefault();
+        SelectedApplicationCategory = selectedKey is null
+            ? null
+            : overview.Categories.FirstOrDefault(category => category.Key == selectedKey);
         if (SelectedApplicationCategory is null)
         {
             RefreshFilteredApplications();
         }
 
-        AppCategoryUsageRow? topCategory = categories.FirstOrDefault();
-        AppUsageHistoryRow? mostUsed = applications.FirstOrDefault();
-        var rising = applications
-            .Where(application => application.TrendValues.Count >= 2)
-            .Select(application => new { Application = application, Increase = application.TrendValues[^1] - application.TrendValues[^2] })
-            .Where(item => item.Increase > 0)
-            .OrderByDescending(item => item.Increase)
-            .FirstOrDefault();
-
-        ApplicationTopCategoryName = topCategory?.Name ?? "—";
-        ApplicationTopCategoryUsageText = topCategory?.UsedText ?? L("Henüz veri yok", "No data yet");
-        ApplicationMostUsedName = mostUsed?.Name ?? "—";
-        ApplicationMostUsedUsageText = mostUsed?.UsedText ?? L("Henüz veri yok", "No data yet");
-        ApplicationRisingName = rising?.Application.Name ?? L("Belirgin yükseliş yok", "No clear rise");
-        ApplicationRisingChangeText = rising is not null
-            ? $"+{UsageHistoryFormatting.FormatDuration((long)rising.Increase)} · {L("düne göre", "vs yesterday")}"
+        ApplicationTopCategoryName = overview.TopCategory?.Name ?? "—";
+        ApplicationTopCategoryUsageText = overview.TopCategory?.UsedText ?? L("Henüz veri yok", "No data yet");
+        ApplicationMostUsedName = overview.MostUsed?.Name ?? "—";
+        ApplicationMostUsedUsageText = overview.MostUsed?.UsedText ?? L("Henüz veri yok", "No data yet");
+        ApplicationRisingName = overview.FastestRising?.Name ?? L("Belirgin yükseliş yok", "No clear rise");
+        ApplicationRisingChangeText = overview.FastestRising is not null
+            ? $"+{UsageHistoryFormatting.FormatDuration((long)overview.FastestRisingIncrease)} · {L("düne göre", "vs yesterday")}"
             : L("Son iki gün arasında artış ölçülmedi", "No increase measured between the last two days");
 
         OnPropertyChanged(nameof(ApplicationTopCategoryName));
@@ -2439,15 +2424,21 @@ public sealed partial class MainViewModel : ObservableObject
         ? LocalizationService.Get("RhythmNoGoal")
         : string.Format(LocalizationService.Get("RhythmGoalLessFormat"), percent);
 
-    private static (FocusRhythmTargetKind Kind, int Value) FromDisplayDailyRhythmGoal(string value)
-    {
-        bool sessions = value.Contains("oturum", StringComparison.OrdinalIgnoreCase) ||
-            value.Contains("session", StringComparison.OrdinalIgnoreCase);
-        int parsed = int.TryParse(value.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault(), out int number)
-            ? number
-            : sessions ? 1 : 25;
-        return (sessions ? FocusRhythmTargetKind.Sessions : FocusRhythmTargetKind.Minutes, parsed);
-    }
+    private static (FocusRhythmTargetKind Kind, int Value) FromDisplayDailyRhythmGoal(string value) =>
+        SupportedDailyRhythmGoals.FirstOrDefault(option =>
+            string.Equals(ToDisplayDailyRhythmGoal(option.Kind, option.Value), value, StringComparison.CurrentCulture)) is var selected &&
+        selected != default
+            ? selected
+            : (FocusRhythmTargetKind.Minutes, 25);
+
+    private static readonly (FocusRhythmTargetKind Kind, int Value)[] SupportedDailyRhythmGoals =
+    [
+        (FocusRhythmTargetKind.Minutes, 10),
+        (FocusRhythmTargetKind.Minutes, 25),
+        (FocusRhythmTargetKind.Minutes, 50),
+        (FocusRhythmTargetKind.Sessions, 1),
+        (FocusRhythmTargetKind.Sessions, 2)
+    ];
 
     private static string ToDisplayDailyRhythmGoal(FocusRhythmTargetKind kind, int value) => kind switch
     {

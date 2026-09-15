@@ -7,7 +7,7 @@
                 <UniformGrid Columns="3"><Button x:Name="Minutes15" Tag="15" Style="{StaticResource SecondaryButtonStyle}" Click="Select_Click" Margin="0,0,6,0" /><Button x:Name="Minutes30" Tag="30" Style="{StaticResource PrimaryButtonStyle}" Click="Select_Click" Margin="3,0" /><Button x:Name="Minutes60" Tag="60" Style="{StaticResource SecondaryButtonStyle}" Click="Select_Click" Margin="6,0,0,0" /></UniformGrid>
                 <TextBlock Text="{DynamicResource ExtraMinutesLabel}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" FontWeight="SemiBold" Margin="0,20,0,7" />
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBox x:Name="CustomMinutesInput" Height="38" Padding="11,7" MaxLength="4" KeyDown="CustomMinutesInput_KeyDown" />
+                    <TextBox x:Name="CustomMinutesInput" Height="40" Padding="12,0" FontSize="13" VerticalContentAlignment="Center" MaxLength="4" KeyDown="CustomMinutesInput_KeyDown" />
                     <Button x:Name="CustomMinutesButton" Grid.Column="2" Style="{StaticResource SecondaryButtonStyle}" Click="CustomMinutes_Click" MinWidth="118" />
                 </Grid>
                 <TextBlock x:Name="ErrorText" Foreground="{DynamicResource DangerBrush}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />

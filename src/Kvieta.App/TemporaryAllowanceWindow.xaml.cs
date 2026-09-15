@@ -8,17 +8,19 @@ namespace Kvieta.App;
 
 public partial class TemporaryAllowanceWindow : Window
 {
+    private DateTime _selectedDate = DateTime.Today.AddDays(1);
+
     public TemporaryAllowanceWindow()
     {
         InitializeComponent();
-        DateInput.SelectedDate = DateTime.Today.AddDays(1);
+        UpdateSelectedDate();
     }
 
     public TemporaryAllowance? Result { get; private set; }
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        if (DateInput.SelectedDate is not DateTime date || date.Date < DateTime.Today ||
+        if (_selectedDate.Date < DateTime.Today ||
             !TimeOnly.TryParseExact(StartInput.TimeText, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly from) ||
             !TimeOnly.TryParseExact(EndInput.TimeText, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly until) ||
             !int.TryParse(MinutesInput.Text.Trim(), out int minutes) || minutes is < 1 or > 1440)
@@ -31,7 +33,7 @@ public partial class TemporaryAllowanceWindow : Window
 
         Result = new TemporaryAllowance
         {
-            Date = DateOnly.FromDateTime(date),
+            Date = DateOnly.FromDateTime(_selectedDate),
             AllowedFrom = from,
             AllowedUntil = until,
             BonusMinutes = minutes,
@@ -41,5 +43,43 @@ public partial class TemporaryAllowanceWindow : Window
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    private void PreviousDate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedDate.Date > DateTime.Today)
+        {
+            _selectedDate = _selectedDate.AddDays(-1);
+            UpdateSelectedDate();
+        }
+    }
+
+    private void NextDate_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedDate = _selectedDate.AddDays(1);
+        UpdateSelectedDate();
+    }
+
+    private void TodayDate_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedDate = DateTime.Today;
+        UpdateSelectedDate();
+    }
+
+    private void TomorrowDate_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedDate = DateTime.Today.AddDays(1);
+        UpdateSelectedDate();
+    }
+
+    private void UpdateSelectedDate()
+    {
+        CultureInfo culture = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? CultureInfo.GetCultureInfo("en-US")
+            : CultureInfo.GetCultureInfo("tr-TR");
+        SelectedDateText.Text = _selectedDate.ToString("d MMMM yyyy", culture);
+        SelectedDayText.Text = _selectedDate.ToString("dddd", culture);
+        PreviousDateButton.IsEnabled = _selectedDate.Date > DateTime.Today;
+    }
+
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); }
 }

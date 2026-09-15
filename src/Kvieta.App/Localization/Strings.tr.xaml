@@ -222,11 +222,13 @@
 <sys:String x:Key="ApplicationRulesHeading">Uygulama kuralları</sys:String>
 <sys:String x:Key="TopUsageCategory">En çok vakit geçirilen kategori</sys:String>
 <sys:String x:Key="MostUsedApplication">En çok kullanılan uygulama</sys:String>
+<sys:String x:Key="MostUsedApplications">En çok kullanılan uygulamalar</sys:String>
 <sys:String x:Key="FastestRisingApplication">Düne göre en hızlı yükselen</sys:String>
 <sys:String x:Key="MostUsedCategories">En çok kullanılan kategoriler</sys:String>
 <sys:String x:Key="LastSevenDays">Son 7 günün toplam kullanımı</sys:String>
 <sys:String x:Key="ApplicationUsageDetailsHint">Bir kategori seç; uygulamaların kullanımını, son 7 günlük eğilimini ve zamanlayıcısını gör.</sys:String>
 <sys:String x:Key="SetAppTimer">Zamanlayıcı</sys:String>
+<sys:String x:Key="ApplicationTimerDescription">Bu uygulamanın ne zaman kullanılabileceğini seç.</sys:String>
 <sys:String x:Key="NoApplicationHistory">Ayrıntılı görünüm için henüz yeterli uygulama kullanımı ölçülmedi.</sys:String>
 <sys:String x:Key="AppearanceAndLanguage">Görünüm ve genel</sys:String>
 <sys:String x:Key="ProtectionSettings">Mod ve koruma</sys:String>
@@ -247,4 +249,7 @@
 <sys:String x:Key="TodayHourlyHint">Bir saatin üzerine gelerek kullanımını görebilirsin.</sys:String>
 <sys:String x:Key="TodayNoHourlyData">Henüz saatlik ölçüm yok</sys:String>
 <sys:String x:Key="TodayMoreFocusOptions">Diğer odak süreleri</sys:String>
+<sys:String x:Key="Tomorrow">Yarın</sys:String>
+<sys:String x:Key="PreviousDay">Önceki gün</sys:String>
+<sys:String x:Key="NextDay">Sonraki gün</sys:String>
 </ResourceDictionary>

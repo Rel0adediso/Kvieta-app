@@ -86,10 +86,13 @@ public partial class App : System.Windows.Application
         bool pairManagerDeviceAfterInstall = postInstallControlCenter && e.Args.Any(argument =>
             string.Equals(argument, "--pair-manager-device", StringComparison.OrdinalIgnoreCase));
         _singleInstance = new SingleInstanceCoordinator(
-            guardianSession || directSessionRequested ? "GuardianSession" : "ControlCenter");
+            StartupActivationPolicy.GetInstanceChannel(guardianSession, directSessionRequested));
         if (!_singleInstance.IsPrimary)
         {
-            _singleInstance.SignalPrimary();
+            if (StartupActivationPolicy.ShouldSignalControlCenter(guardianSession, directSessionRequested))
+            {
+                _singleInstance.SignalPrimary();
+            }
             Shutdown();
             return;
         }
@@ -220,11 +223,23 @@ public partial class App : System.Windows.Application
 
         try
         {
-            StartupRegistrationService.Apply(settings.StartWithWindows);
+            StartupRegistrationService.Apply(StartupActivationPolicy.ShouldRegisterUserStartup(
+                settings.StartWithWindows,
+                settings.RequiresGuardian));
         }
         catch
         {
             // The control center will surface registry errors on the next explicit save.
+        }
+
+        if (StartupActivationPolicy.ShouldDeferDirectSessionToGuardian(
+                guardianSession,
+                directSessionRequested,
+                settings.RequiresGuardian,
+                protectedPolicyAvailable))
+        {
+            Shutdown();
+            return;
         }
 
         if (guardianSession || directSessionRequested)

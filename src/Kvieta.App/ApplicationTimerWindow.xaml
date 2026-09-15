@@ -1,0 +1,49 @@
+<Window x:Class="Kvieta.App.ApplicationTimerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="460" Height="470" WindowStyle="None" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" Background="Transparent" AllowsTransparency="True" ShowInTaskbar="False">
+    <Window.Resources>
+        <Style x:Key="ModeChoiceStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Height" Value="74"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+    <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0">
+                    <TextBlock Text="Kvieta" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <Button Content="×" Width="27" Height="27" Padding="0" HorizontalAlignment="Right" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click"/>
+                </Grid>
+            </Border>
+            <StackPanel Grid.Row="1" Margin="28,22,28,24">
+                <TextBlock Text="{DynamicResource SetAppTimer}" FontSize="21" FontWeight="SemiBold"/>
+                <TextBlock Text="{DynamicResource ApplicationTimerDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,18"/>
+                <Button x:Name="LimitedChoice" Tag="Limited" Style="{StaticResource ModeChoiceStyle}" Click="SelectMode_Click">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="22"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="{DynamicResource DailyAppLimit}" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="{DynamicResource LimitedModeDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" Margin="0,3,15,0" TextWrapping="Wrap"/></StackPanel><TextBlock Grid.Column="1" Text="›" FontSize="18" Foreground="{DynamicResource FaintTextBrush}" VerticalAlignment="Center"/>
+                    </Grid>
+                </Button>
+                <Button x:Name="ScheduleChoice" Tag="ScheduleOnly" Style="{StaticResource ModeChoiceStyle}" Click="SelectMode_Click">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="22"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="{DynamicResource AllowInPlan}" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="{DynamicResource ScheduleOnlyModeDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" Margin="0,3,15,0" TextWrapping="Wrap"/></StackPanel><TextBlock Grid.Column="1" Text="›" FontSize="18" Foreground="{DynamicResource FaintTextBrush}" VerticalAlignment="Center"/>
+                    </Grid>
+                </Button>
+                <Button x:Name="FocusChoice" Tag="FocusBlocked" Style="{StaticResource ModeChoiceStyle}" Click="SelectMode_Click">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="22"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="{DynamicResource BlockDuringFocus}" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="{DynamicResource FocusBlockedModeDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" Margin="0,3,15,0" TextWrapping="Wrap"/></StackPanel><TextBlock Grid.Column="1" Text="›" FontSize="18" Foreground="{DynamicResource FaintTextBrush}" VerticalAlignment="Center"/>
+                    </Grid>
+                </Button>
+                <Button x:Name="UnlimitedChoice" Tag="Unlimited" Style="{StaticResource ModeChoiceStyle}" Click="SelectMode_Click">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="22"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="{DynamicResource Unlimited}" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="{DynamicResource UnlimitedModeDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" Margin="0,3,15,0" TextWrapping="Wrap"/></StackPanel><TextBlock Grid.Column="1" Text="›" FontSize="18" Foreground="{DynamicResource FaintTextBrush}" VerticalAlignment="Center"/>
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

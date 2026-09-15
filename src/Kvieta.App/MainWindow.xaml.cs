@@ -68,7 +68,9 @@ public partial class MainWindow : Window
 
                 try
                 {
-                    StartupRegistrationService.Apply(_viewModel.AppliedStartWithWindows);
+                    StartupRegistrationService.Apply(StartupActivationPolicy.ShouldRegisterUserStartup(
+                        _viewModel.AppliedStartWithWindows,
+                        _viewModel.IsGuardianRequired));
                 }
                 catch (Exception exception)
                 {
@@ -377,9 +379,24 @@ public partial class MainWindow : Window
         }
     }
 
-    private void HistoryApplicationsButton_Click(object sender, RoutedEventArgs e)
+    private void ApplicationCategory_Click(object sender, RoutedEventArgs e)
     {
-        if (_viewModel.HistoryAllApplications.Count > 0)
+        if (sender is System.Windows.Controls.Button { Tag: AppCategoryUsageRow category })
+        {
+            _viewModel.SelectedApplicationCategory = category;
+            if (_viewModel.FilteredApplications.Count > 0)
+            {
+                ShowApplicationDetails();
+            }
+        }
+
+        e.Handled = true;
+    }
+
+    private void MostUsedApplications_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.SelectedApplicationCategory = null;
+        if (_viewModel.FilteredApplications.Count > 0)
         {
             ShowApplicationDetails();
         }
@@ -407,12 +424,12 @@ public partial class MainWindow : Window
         }
 
         ApplicationDetailsOverlay.Opacity = 0;
-        ApplicationDetailsTranslate.X = 520;
+        ApplicationDetailsTranslate.X = 600;
         ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(170))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         });
-        ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(520, 0, TimeSpan.FromMilliseconds(260))
+        ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(600, 0, TimeSpan.FromMilliseconds(260))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         });
@@ -445,11 +462,11 @@ public partial class MainWindow : Window
             ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, null);
             ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, null);
             ApplicationDetailsOverlay.Opacity = 0;
-            ApplicationDetailsTranslate.X = 520;
+            ApplicationDetailsTranslate.X = 600;
             RestoreApplicationDetailsFocus();
         };
         ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, fade);
-        ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, 520, TimeSpan.FromMilliseconds(210))
+        ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, 600, TimeSpan.FromMilliseconds(210))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         });
@@ -568,7 +585,9 @@ public partial class MainWindow : Window
 
         try
         {
-            StartupRegistrationService.Apply(_viewModel.AppliedStartWithWindows);
+            StartupRegistrationService.Apply(StartupActivationPolicy.ShouldRegisterUserStartup(
+                _viewModel.AppliedStartWithWindows,
+                _viewModel.IsGuardianRequired));
         }
         catch (Exception exception)
         {
@@ -1201,7 +1220,9 @@ public partial class MainWindow : Window
 
         try
         {
-            StartupRegistrationService.Apply(_viewModel.AppliedStartWithWindows);
+            StartupRegistrationService.Apply(StartupActivationPolicy.ShouldRegisterUserStartup(
+                _viewModel.AppliedStartWithWindows,
+                _viewModel.IsGuardianRequired));
         }
         catch (Exception exception)
         {
@@ -2080,16 +2101,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (sender is not System.Windows.Controls.Button button || button.ContextMenu is null) return;
-        button.ContextMenu.DataContext = button.DataContext;
-        button.ContextMenu.PlacementTarget = button;
-        button.ContextMenu.IsOpen = true;
+        if (sender is not System.Windows.Controls.Button { DataContext: AppUsageHistoryRow application }) return;
+        ApplicationTimerWindow timerWindow = new() { Owner = this };
+        if (timerWindow.ShowDialog() == true && timerWindow.SelectedMode is { } mode)
+        {
+            ApplyUsageRule(application, mode);
+        }
     }
 
-    private void UsageRule_Click(object sender, RoutedEventArgs e)
+    private void ApplyUsageRule(AppUsageHistoryRow application, AppRuleMode mode)
     {
-        if (sender is not System.Windows.Controls.MenuItem { Tag: string modeName, DataContext: AppUsageHistoryRow application } ||
-            !Enum.TryParse(modeName, out AppRuleMode mode)) return;
 
         string? existingRulePath = _viewModel.FindApplicationRulePath(application.Name);
         if (mode == AppRuleMode.Unlimited && string.IsNullOrWhiteSpace(existingRulePath))

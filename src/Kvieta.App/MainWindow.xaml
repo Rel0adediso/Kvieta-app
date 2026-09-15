@@ -646,39 +646,42 @@
                                                 <RowDefinition Height="0"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <ItemsControl Grid.Row="1" ItemsSource="{Binding ScheduleRows}" Margin="12">
+                                            <ItemsControl x:Name="WeeklyScheduleList" Grid.Row="1" ItemsSource="{Binding ScheduleRows}" Margin="12">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Style="{StaticResource SubtlePanelStyle}" Padding="14">
-                                                            <StackPanel>
-                                                                <CheckBox IsChecked="{Binding IsEnabled}" Content="{Binding DayName}" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,14"/>
-                                                                <WrapPanel>
-                                                                    <StackPanel Margin="0,0,10,10">
-                                                                        <TextBlock Text="{DynamicResource StartUpper}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                                                                        <pickers:TimeWheelPicker TimeText="{Binding AllowedFrom, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                    </StackPanel>
-                                                                    <StackPanel Margin="0,0,10,10">
-                                                                        <TextBlock Text="{DynamicResource EndUpper}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                                                                        <pickers:TimeWheelPicker TimeText="{Binding AllowedUntil, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                    </StackPanel>
-                                                                </WrapPanel>
-                                                                <DockPanel>
-                                                                    <TextBlock Text="{DynamicResource DailyLimitUpper}" Style="{StaticResource CaptionStyle}" VerticalAlignment="Center" Margin="0,0,10,0" TextWrapping="Wrap"/>
-                                                                    <TextBox Style="{StaticResource PlanInputStyle}" Text="{Binding DailyLimitMinutes, UpdateSourceTrigger=LostFocus}" Width="76" HorizontalAlignment="Left"/>
-                                                                </DockPanel>
-                                                            </StackPanel>
+                                                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,11">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="170"/>
+                                                                    <ColumnDefinition Width="150"/>
+                                                                    <ColumnDefinition Width="150"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <CheckBox IsChecked="{Binding IsEnabled}" Content="{Binding DayName}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                                                                <StackPanel Grid.Column="1" Margin="0,0,14,0">
+                                                                    <TextBlock Text="{DynamicResource StartUpper}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,5"/>
+                                                                    <pickers:TimeWheelPicker TimeText="{Binding AllowedFrom, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="2" Margin="0,0,14,0">
+                                                                    <TextBlock Text="{DynamicResource EndUpper}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,5"/>
+                                                                    <pickers:TimeWheelPicker TimeText="{Binding AllowedUntil, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="3" HorizontalAlignment="Left">
+                                                                    <TextBlock Text="{DynamicResource DailyLimitUpper}" Style="{StaticResource CaptionStyle}" Margin="0,0,0,5"/>
+                                                                    <Grid Width="108">
+                                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                                        <TextBox Style="{StaticResource PlanInputStyle}" Text="{Binding DailyLimitMinutes, UpdateSourceTrigger=LostFocus}" TextAlignment="Left" Padding="6,3"/>
+                                                                        <TextBlock Grid.Column="1" Text="{DynamicResource MinuteShort}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" VerticalAlignment="Center" Margin="5,0,0,0" IsHitTestVisible="False"/>
+                                                                    </Grid>
+                                                                </StackPanel>
+                                                            </Grid>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <controls:ResponsiveColumns MinimumColumnWidth="250" MaximumColumns="3"/>
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
                                             </ItemsControl>
                                         </Grid>
                                     </Border>
-                                    <Border Grid.Row="2" Style="{StaticResource PanelStyle}" Margin="0,14,0,0" Padding="18,15">
+                                    <Border Grid.Row="2" Background="{DynamicResource PrimarySoftBrush}" CornerRadius="24" Margin="0,18,0,0" Padding="24,20">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
@@ -688,8 +691,8 @@
                                             </Grid.RowDefinitions>
                                             <controls:ResponsiveColumns MinimumColumnWidth="220" MaximumColumns="2">
                                                 <StackPanel>
-                                                    <TextBlock Text="{DynamicResource TemporaryAllowances}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource TemporaryAllowancesDescription}" Style="{StaticResource CaptionStyle}" Margin="0,4,16,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{DynamicResource TemporaryAllowances}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{DynamicResource TemporaryAllowancesDescription}" Style="{StaticResource CaptionStyle}" Margin="0,7,16,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                                 <Button Content="{DynamicResource AddTemporaryAllowance}" Style="{StaticResource PrimaryButtonStyle}" Click="AddTemporaryAllowance_Click" VerticalAlignment="Center" Padding="14,7"/>
                                             </controls:ResponsiveColumns>
@@ -771,80 +774,64 @@
                                                 <StackPanel>
                                                     <TextBlock Text="{DynamicResource MostUsedCategories}" FontSize="18" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{DynamicResource LastSevenDays}" Style="{StaticResource CaptionStyle}" Margin="0,4,0,12"/>
-                                                    <ListBox x:Name="ApplicationCategoryList" ItemsSource="{Binding ApplicationCategories}" SelectedItem="{Binding SelectedApplicationCategory}" Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                                                        <ListBox.ItemContainerStyle>
-                                                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource FlatListItemStyle}">
-                                                                <Setter Property="Padding" Value="0"/>
-                                                                <Setter Property="Margin" Value="0,3"/>
-                                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                                                <Style.Triggers>
-                                                                    <Trigger Property="IsSelected" Value="True">
-                                                                        <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}"/>
-                                                                    </Trigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </ListBox.ItemContainerStyle>
-                                                        <ListBox.ItemTemplate>
+                                                    <ItemsControl x:Name="ApplicationCategoryList" ItemsSource="{Binding ApplicationCategories}">
+                                                        <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
-                                                                <Grid Margin="12,10">
-                                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                                    <Border Width="8" Height="8" CornerRadius="4" Background="{Binding AccentBrush}" VerticalAlignment="Center"/>
-                                                                    <StackPanel Grid.Column="1" Margin="11,0,14,0">
-                                                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
-                                                                        <ProgressBar services:MotionAssist.AnimatedValue="{Binding RelativePercent}" Maximum="100" Height="3" Margin="0,7,0,0"/>
-                                                                    </StackPanel>
-                                                                    <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                                                                        <TextBlock Text="{Binding UsedText}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right"/>
-                                                                        <TextBlock Text="{Binding ApplicationCountText}" Style="{StaticResource CaptionStyle}" FontSize="10" HorizontalAlignment="Right" Margin="0,3,0,0"/>
-                                                                    </StackPanel>
-                                                                </Grid>
+                                                                <Button Tag="{Binding}" Click="ApplicationCategory_Click" Style="{StaticResource HistoryDayItemStyle}" Margin="0,3" AutomationProperties.Name="{Binding Name}">
+                                                                    <Grid Margin="12,10">
+                                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
+                                                                        <Border Width="8" Height="8" CornerRadius="4" Background="{Binding AccentBrush}" VerticalAlignment="Center"/>
+                                                                        <StackPanel Grid.Column="1" Margin="11,0,14,0">
+                                                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
+                                                                            <ProgressBar services:MotionAssist.AnimatedValue="{Binding RelativePercent}" Maximum="100" Height="3" Margin="0,7,0,0"/>
+                                                                        </StackPanel>
+                                                                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                                                            <TextBlock Text="{Binding UsedText}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                                                            <TextBlock Text="{Binding ApplicationCountText}" Style="{StaticResource CaptionStyle}" FontSize="10" HorizontalAlignment="Right" Margin="0,3,0,0"/>
+                                                                        </StackPanel>
+                                                                        <TextBlock Grid.Column="3" Text="›" Foreground="{DynamicResource FaintTextBrush}" FontSize="18" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                                    </Grid>
+                                                                </Button>
                                                             </DataTemplate>
-                                                        </ListBox.ItemTemplate>
-                                                    </ListBox>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
                                                 </StackPanel>
                                             </Border>
 
-                                            <Border x:Name="FilteredApplicationsPanel" Background="{DynamicResource SurfaceBrush}" CornerRadius="20" Padding="18" Margin="6" VerticalAlignment="Top">
+                                            <Button x:Name="MostUsedApplicationsPanel" Style="{StaticResource HistoryCardButtonStyle}" Click="MostUsedApplications_Click" Margin="6" VerticalAlignment="Top" AutomationProperties.Name="{DynamicResource MostUsedApplications}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding SelectedApplicationCategoryName}" FontSize="18" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{DynamicResource ApplicationUsageDetailsHint}" Style="{StaticResource CaptionStyle}" Margin="0,4,0,12" TextWrapping="Wrap"/>
-                                                    <ItemsControl x:Name="FilteredApplicationsList" ItemsSource="{Binding FilteredApplications}">
+                                                    <Grid Margin="0,0,0,12">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{DynamicResource MostUsedApplications}" FontSize="18" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{DynamicResource LastSevenDays}" Style="{StaticResource CaptionStyle}" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                        <Border HorizontalAlignment="Right" Background="{DynamicResource PrimarySoftBrush}" CornerRadius="8" Padding="10,5" VerticalAlignment="Center">
+                                                            <TextBlock Text="{DynamicResource HistoryShowAll}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                                        </Border>
+                                                    </Grid>
+                                                    <ItemsControl x:Name="MostUsedApplicationsList" ItemsSource="{Binding HistoryApplications}" IsHitTestVisible="False">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
-                                                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,11">
-                                                                    <Grid>
-                                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="92"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                                        <Grid Width="34" Height="34" VerticalAlignment="Center">
-                                                                            <Border Background="{Binding FallbackBrush}" CornerRadius="9"/>
+                                                                <Border Background="{DynamicResource SurfaceHoverBrush}" CornerRadius="10" Padding="10,7" Margin="0,3">
+                                                                    <Grid Height="38">
+                                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="64"/></Grid.ColumnDefinitions>
+                                                                        <Grid Width="30" Height="30" VerticalAlignment="Center">
+                                                                            <Border Background="{Binding FallbackBrush}" CornerRadius="8"/>
                                                                             <TextBlock Text="{Binding Initials}" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasFallbackIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                             <Image Source="{Binding Icon}" Width="24" Height="24" Stretch="Uniform" Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                         </Grid>
-                                                                        <StackPanel Grid.Column="1" Margin="4,0,12,0" VerticalAlignment="Center">
-                                                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                                            <DockPanel Margin="0,5,0,0">
-                                                                                <TextBlock Text="{Binding CategoryLabel}" Style="{StaticResource CaptionStyle}" FontSize="10"/>
-                                                                                <TextBlock Text="{Binding UsedText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" Margin="9,0,0,0"/>
-                                                                            </DockPanel>
+                                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                                            <ProgressBar services:MotionAssist.AnimatedValue="{Binding RelativePercent}" Maximum="100" Height="4" Margin="0,6,14,0"/>
                                                                         </StackPanel>
-                                                                        <controls:Sparkline Grid.Column="2" Values="{Binding TrendValues}" LineBrush="{DynamicResource PrimaryBrush}" Width="76" Height="25" Margin="4,0,12,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                        <Button Grid.Column="3" Content="{DynamicResource SetAppTimer}" Style="{StaticResource SecondaryButtonStyle}" FontSize="10.5" Padding="10,6" Click="CreateRuleMenu_Click" Visibility="{Binding DataContext.HasRestrictions, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                                            <Button.ContextMenu>
-                                                                                <ContextMenu>
-                                                                                    <MenuItem Header="{DynamicResource DailyAppLimit}" Tag="Limited" Click="UsageRule_Click"/>
-                                                                                    <MenuItem Header="{DynamicResource AllowInPlan}" Tag="ScheduleOnly" Click="UsageRule_Click"/>
-                                                                                    <MenuItem Header="{DynamicResource BlockDuringFocus}" Tag="FocusBlocked" Click="UsageRule_Click"/>
-                                                                                    <Separator/>
-                                                                                    <MenuItem Header="{DynamicResource Unlimited}" Tag="Unlimited" Click="UsageRule_Click"/>
-                                                                                </ContextMenu>
-                                                                            </Button.ContextMenu>
-                                                                        </Button>
+                                                                        <TextBlock Grid.Column="2" Text="{Binding UsedText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource MutedTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                                                     </Grid>
                                                                 </Border>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
                                                 </StackPanel>
-                                            </Border>
+                                            </Button>
                                         </controls:ResponsiveColumns>
 
                                         <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="20" Padding="28" Margin="6" Visibility="{Binding HasNoApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -1142,58 +1129,9 @@
                                         </Border>
                                         <Grid Margin="7,0,0,0">
                                             <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="12"/>
                                                 <RowDefinition Height="*"/>
                                             </Grid.RowDefinitions>
-                                            <Button Style="{StaticResource HistoryCardButtonStyle}" Click="HistoryApplicationsButton_Click" AutomationProperties.Name="{DynamicResource HistoryApplications}">
-                                                <StackPanel>
-                                                    <Grid Margin="0,0,0,12">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <Border Width="28" Height="28" CornerRadius="8" Background="{DynamicResource PrimarySoftBrush}">
-                                                                <Path Data="{StaticResource AppsIconGeometry}" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-                                                            <TextBlock Text="{DynamicResource HistoryApplications}" Foreground="{DynamicResource TextBrush}" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                        <Border HorizontalAlignment="Right" Background="{DynamicResource PrimarySoftBrush}" CornerRadius="8" Padding="10,5">
-                                                            <TextBlock Text="{DynamicResource HistoryShowAll}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                                        </Border>
-                                                    </Grid>
-                                                    <ItemsControl ItemsSource="{Binding HistoryApplications}">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Border Background="{DynamicResource SurfaceHoverBrush}" CornerRadius="9" Padding="10,6" Margin="0,3">
-                                                                    <Grid Height="38">
-                                                                        <Grid.ColumnDefinitions>
-                                                                            <ColumnDefinition Width="42"/>
-                                                                            <ColumnDefinition Width="*"/>
-                                                                            <ColumnDefinition Width="64"/>
-                                                                        </Grid.ColumnDefinitions>
-                                                                        <Grid Width="30" Height="30" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                                                            <Border Background="{Binding FallbackBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8">
-                                                                                <TextBlock Text="{Binding Initials}" Foreground="White" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasFallbackIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                            </Border>
-                                                                            <Image Source="{Binding Icon}" Width="24" Height="24" Stretch="Uniform" Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                                        </Grid>
-                                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextBrush}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                                            <ProgressBar services:MotionAssist.AnimatedValue="{Binding RelativePercent}" Maximum="100" Height="5" Margin="0,6,14,0" Background="{DynamicResource SurfaceRaisedBrush}"/>
-                                                                        </StackPanel>
-                                                                        <TextBlock Grid.Column="2" Text="{Binding UsedText}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                                                    </Grid>
-                                                                </Border>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                    <StackPanel Visibility="{Binding HasNoHistoryApplications, Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Center" Margin="0,18,0,10">
-                                                        <Border Width="36" Height="36" CornerRadius="11" Background="{DynamicResource PrimarySoftBrush}" HorizontalAlignment="Center">
-                                                            <Path Data="{StaticResource AppsIconGeometry}" Width="16" Height="16" Stretch="Uniform" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                        <TextBlock Text="{DynamicResource NoHistoryApplications}" Style="{StaticResource CaptionStyle}" FontSize="11" HorizontalAlignment="Center" Margin="0,9,0,0"/>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                            </Button>
-                                            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="22" Padding="20">
+                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="22" Padding="20">
                                                 <StackPanel>
                                                     <TextBlock Text="{DynamicResource HistoryRecentEvents}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                                     <ItemsControl ItemsSource="{Binding HistoryEvents}">
@@ -1451,12 +1389,12 @@
             </Grid>
             <Grid x:Name="ApplicationDetailsOverlay" Grid.RowSpan="2" Panel.ZIndex="100" Visibility="Collapsed" Opacity="0" KeyboardNavigation.TabNavigation="Cycle">
                 <Border Background="{DynamicResource OverlayScrimBrush}" MouseLeftButtonUp="ApplicationDetailsScrim_Click"/>
-                <Border x:Name="ApplicationDetailsPanel" Width="480" HorizontalAlignment="Right" Margin="0,12,12,12" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="16" Padding="0">
+                <Border x:Name="ApplicationDetailsPanel" Width="560" HorizontalAlignment="Right" Margin="0,12,12,12" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="16" Padding="0">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.32" Color="#000000"/>
                     </Border.Effect>
                     <Border.RenderTransform>
-                        <TranslateTransform x:Name="ApplicationDetailsTranslate" X="520"/>
+                        <TranslateTransform x:Name="ApplicationDetailsTranslate" X="600"/>
                     </Border.RenderTransform>
                     <Grid>
                         <Grid.RowDefinitions>
@@ -1474,7 +1412,7 @@
                                     <Border Width="30" Height="30" CornerRadius="9" Background="{DynamicResource PrimarySoftBrush}">
                                         <Path Data="{StaticResource AppsIconGeometry}" Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
-                                    <TextBlock Text="{DynamicResource HistoryApplicationDetails}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="18" FontWeight="SemiBold" Margin="11,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding SelectedApplicationCategoryName}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="18" FontWeight="SemiBold" Margin="11,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <TextBlock Text="{DynamicResource HistoryApplicationDetailsDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,9,24,0" TextWrapping="Wrap" LineHeight="17"/>
                             </StackPanel>
@@ -1482,7 +1420,7 @@
                         </Grid>
                         <Border Grid.Row="1" Background="{DynamicResource BorderBrush}" Margin="24,0"/>
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="16,10,10,6">
-                            <ItemsControl ItemsSource="{Binding HistoryAllApplications}">
+                            <ItemsControl x:Name="ApplicationDetailsList" ItemsSource="{Binding FilteredApplications}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Background="{DynamicResource SurfaceHoverBrush}" CornerRadius="8" Padding="10,6" Margin="0,0,6,4">
@@ -1493,6 +1431,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="96"/>
                                                     <ColumnDefinition Width="64"/>
+                                                    <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding RankText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="8" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                                 <Grid Grid.Column="1" Width="28" Height="28" HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -1507,6 +1446,7 @@
                                                 </StackPanel>
                                                 <controls:Sparkline Grid.Column="3" Values="{Binding TrendValues}" LineBrush="{DynamicResource PrimaryBrush}" Width="82" Height="24" Margin="6,0,8,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="4" Text="{Binding UsedText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                <Button Grid.Column="5" Content="{DynamicResource SetAppTimer}" Style="{StaticResource SecondaryButtonStyle}" FontSize="9.5" Padding="8,5" Margin="9,0,0,0" Click="CreateRuleMenu_Click" Visibility="{Binding DataContext.HasRestrictions, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
