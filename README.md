@@ -14,25 +14,25 @@ A calm, local-first way to understand and manage screen time on Windows.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/privacy-local--first-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/status-Alpha_4.2-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/status-Alpha_5-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/license-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
-## Download Kvieta Alpha 4.2
+## Download Kvieta Alpha 5
 
-[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-4.2/Kvieta-Setup-Alpha-4.2.exe)
+[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-5/Kvieta-Setup-Alpha-5.exe)
 
 The self-contained setup supports English and Turkish and does not require the
 .NET SDK. This community preview is intentionally unsigned, so Windows
 SmartScreen may show an **Unknown publisher** warning.
 
 The standalone MSI, checksum files, release manifest, detailed notes, and known
-limitations are on the [Kvieta Alpha 4.2 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-4.2). Verify the Setup EXE with the attached `.sha256` file before running it.
+limitations are on the [Kvieta Alpha 5 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-5). Verify the Setup EXE with the attached `.sha256` file before running it.
 
-> **Important:** Alpha 4.2 replaces earlier Alpha packages. It can be installed directly over an existing Kvieta installation while preserving settings, usage history, recovery material, and protected policy.
+> **Important:** Alpha 5 replaces earlier Alpha packages. It can be installed directly over an existing Kvieta installation while preserving settings, usage history, recovery material, and protected policy.
 
 ## Choose the relationship you want with time
 
@@ -53,14 +53,13 @@ limitations are on the [Kvieta Alpha 4.2 release page](https://github.com/Rel0ad
 | **Protect policy** | Guardian-backed supervision, protected policy storage, health checks, repair paths, and verified administrator exit. |
 | **Survive real life** | Atomic saves, last-known-good backups, corruption recovery, clock-rollback detection, and concurrent-write protection. |
 
-## New in Kvieta Alpha 4.2
+## New in Kvieta Alpha 5
 
-- Compact, resizable setup with language badges, readable recovery-code tiles and shared keyboard-editable time pickers.
-- A first-run guided tour that highlights controls and visits each relevant page; skip with Esc or the top-right button.
-- Larger remaining-time and usage figures on Today; most-used apps and automatic usage categories on Applications.
-- Grouped Settings, prominent expandable Rhythm details, and responsive cards with 100–150% scaling that includes the sidebar.
-- Phone pairing no longer shows a recovery-code replacement warning, and dismissed post-install enrollment offers do not repeat at every launch.
-- Multiple-EXE selection, Flexible Personal mode corrections, and clearer device/session controls.
+- A richer Today dashboard and detailed application insights with category, usage and recent-rise summaries.
+- Compact, consistently aligned weekly-plan rows and equal-height application timer choices.
+- Double-click confirmation for usage mode and Personal protection-level cards.
+- Family startup now opens only the intended lock/session surface without a hidden PIN prompt blocking the interface.
+- More reliable application identity, category selection, temporary allowances and icon loading across refreshes.
 
 ## Private by design
 
@@ -68,12 +67,12 @@ Kvieta has no required cloud account and does not send screen-time history to a 
 
 ## Project status
 
-**Kvieta Alpha 4.2 is the current community preview.**
+**Kvieta Alpha 5 is the current community preview.**
 
 - The source is usable today and the Windows package pipeline is in place.
 - Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
 - Community installers are intentionally unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
-- The Alpha 4.2 Setup EXE, MSI, checksums, and manifest identify their exact source commit.
+- The Alpha 5 Setup EXE, MSI, checksums, and manifest identify their exact source commit.
 - The broader installer, DPI, Guardian, escape-path, and Windows lifecycle matrix remains open before final `v1.0.0`.
 
 See the [roadmap](docs/ROADMAP.md) for the remaining validation work and [release notes](docs/RELEASE_NOTES.md) for the detailed history.
