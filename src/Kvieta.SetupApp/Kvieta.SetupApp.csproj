@@ -18,7 +18,7 @@
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.12" />
     <ProjectReference Include="../Kvieta.Core/Kvieta.Core.csproj" />
     <ProjectReference Include="../Kvieta.Controls/Kvieta.Controls.csproj" />
     <EmbeddedResource Include="$(KvietaInstallerPath)"
