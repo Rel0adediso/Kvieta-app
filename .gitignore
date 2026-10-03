@@ -9,3 +9,4 @@ eski dosyalar/
 txt.env
 *.user
 *.suo
+release-bin/

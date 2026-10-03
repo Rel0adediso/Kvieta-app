@@ -81,6 +81,7 @@ public sealed partial class MainViewModel : ObservableObject
     public ObservableCollection<DayScheduleRow> ScheduleRows { get; } = [];
     public ObservableCollection<TemporaryAllowanceRow> TemporaryAllowances { get; } = [];
     public ObservableCollection<AppRuleRow> AppRules { get; } = [];
+    public ObservableCollection<string> BlockedWebDomains { get; } = [];
     public ObservableCollection<string> LimitActions { get; } = [];
     public ObservableCollection<string> ThemeModes { get; } = [];
     public IReadOnlyList<string> LanguageModes { get; } = ["Türkçe", "English"];
@@ -415,6 +416,60 @@ public sealed partial class MainViewModel : ObservableObject
     public int BlockedAppCount => AppRules.Count(rule => rule.ToModel().Mode == AppRuleMode.Blocked);
     public int RuleCount => AppRules.Count;
     public bool HasNoAppRules => AppRules.Count == 0;
+
+    private bool _webGuardEnabled;
+    public bool WebGuardEnabled
+    {
+        get => _webGuardEnabled;
+        set
+        {
+            if (SetProperty(ref _webGuardEnabled, value))
+            {
+                OnPropertyChanged(nameof(HasWebRestrictions));
+                OnPropertyChanged(nameof(BlockedWebDomainCount));
+            }
+        }
+    }
+
+    private bool _safeSearchEnforced;
+    public bool SafeSearchEnforced
+    {
+        get => _safeSearchEnforced;
+        set => SetProperty(ref _safeSearchEnforced, value);
+    }
+
+    private string _newBlockedDomain = string.Empty;
+    public string NewBlockedDomain
+    {
+        get => _newBlockedDomain;
+        set => SetProperty(ref _newBlockedDomain, value);
+    }
+
+    public int BlockedWebDomainCount => BlockedWebDomains.Count;
+    public bool HasWebRestrictions => WebGuardEnabled && (BlockedWebDomains.Count > 0 || SafeSearchEnforced);
+
+    public void AddBlockedWebDomain(string domain)
+    {
+        string cleaned = Services.WebGuardService.CleanDomain(domain);
+        if (!string.IsNullOrWhiteSpace(cleaned) && !BlockedWebDomains.Contains(cleaned, StringComparer.OrdinalIgnoreCase))
+        {
+            BlockedWebDomains.Add(cleaned);
+            OnPropertyChanged(nameof(BlockedWebDomainCount));
+            OnPropertyChanged(nameof(HasWebRestrictions));
+        }
+    }
+
+    public void RemoveBlockedWebDomain(string domain)
+    {
+        string cleaned = Services.WebGuardService.CleanDomain(domain);
+        string? existing = BlockedWebDomains.FirstOrDefault(d => string.Equals(d, cleaned, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            BlockedWebDomains.Remove(existing);
+            OnPropertyChanged(nameof(BlockedWebDomainCount));
+            OnPropertyChanged(nameof(HasWebRestrictions));
+        }
+    }
     public string CurrentWindowStatus { get; private set; } = "Program yükleniyor…";
     public string CurrentStatusExplanation { get; private set; } = "—";
     public string SettingsPath => _settingsStore.FilePath;
@@ -514,6 +569,7 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(AdminPinActionText));
 
             LoadPolicyRows(_settings);
+            Services.WebGuardService.Apply(_settings);
 
             await ReloadUsageAsync();
             bool usageRecovered = _usageStore.LastLoadRecoveredFromBackup;
@@ -714,6 +770,7 @@ public sealed partial class MainViewModel : ObservableObject
                 };
                 _settings = immediate;
                 await SaveUserSettingsAsync(_settings);
+            Services.WebGuardService.Apply(_settings);
                 _stagedAdminCredential = null;
                 _stagedRecoveryCodes = null;
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
@@ -819,6 +876,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AppRules.Add(new AppRuleRow(rule));
         }
+
 
         RefreshOverview();
         StatusMessage = L(
@@ -2410,6 +2468,16 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AppRules.Add(new AppRuleRow(rule));
         }
+
+        WebGuardEnabled = settings.WebGuardEnabled;
+        SafeSearchEnforced = settings.SafeSearchEnforced;
+        BlockedWebDomains.Clear();
+        foreach (string domain in settings.BlockedWebDomains ?? [])
+        {
+            BlockedWebDomains.Add(domain);
+        }
+        OnPropertyChanged(nameof(BlockedWebDomainCount));
+        OnPropertyChanged(nameof(HasWebRestrictions));
     }
 
     private static int FromDisplayDelay(string delay) => delay switch
@@ -2560,6 +2628,9 @@ public sealed partial class MainViewModel : ObservableObject
         Schedule = CloneSchedule(settings.Schedule),
         TemporaryAllowances = CloneTemporaryAllowances(settings.TemporaryAllowances),
         AppRules = CloneAppRules(settings.AppRules),
+        WebGuardEnabled = settings.WebGuardEnabled,
+        BlockedWebDomains = [.. (settings.BlockedWebDomains ?? [])],
+        SafeSearchEnforced = settings.SafeSearchEnforced,
         PendingChange = settings.PendingChange is null
             ? null
             : new PendingPolicyChange
@@ -2599,7 +2670,10 @@ public sealed partial class MainViewModel : ObservableObject
             DefaultDailyLimitMinutes = DefaultDailyLimitMinutes,
             Schedule = schedule.Count == 0 ? ControlSettings.CreateDefaultSchedule() : schedule,
             TemporaryAllowances = TemporaryAllowances.Select(row => row.ToModel()).ToList(),
-            AppRules = AppRules.Select(row => row.ToModel()).ToList()
+            AppRules = AppRules.Select(row => row.ToModel()).ToList(),
+            WebGuardEnabled = WebGuardEnabled,
+            BlockedWebDomains = BlockedWebDomains.ToList(),
+            SafeSearchEnforced = SafeSearchEnforced
         };
     }
 

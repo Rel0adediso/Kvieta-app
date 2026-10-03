@@ -149,6 +149,11 @@ public sealed class ApplicationRuleEnforcer : IDisposable
                     if (rule.Mode == AppRuleMode.Limited)
                     {
                         ReachedApplicationLimitRuleId ??= rule.Id;
+                        DesktopToastWindow.ShowToast(rule.Name, $"{rule.Name} için günlük kullanım süresi doldu.", "⏳");
+                    }
+                    else if (rule.Mode == AppRuleMode.Blocked)
+                    {
+                        DesktopToastWindow.ShowToast(rule.Name, $"{rule.Name} kural gereği engellendi.", "🚫");
                     }
                     TryTerminate(process.Process);
                 }

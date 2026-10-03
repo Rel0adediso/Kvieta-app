@@ -920,6 +920,50 @@
                                             </Border>
                                         </Grid>
                                     </Border>
+
+                                    <!-- Web Guard Section -->
+                                    <Expander Header="{DynamicResource WebGuardTitle}" IsExpanded="False" Margin="0,24,0,0" Style="{StaticResource SectionExpanderStyle}" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="20" Margin="0,8,0,0">
+                                            <StackPanel>
+                                                <DockPanel Margin="0,0,0,14">
+                                                    <StackPanel DockPanel.Dock="Left" MaxWidth="540">
+                                                        <TextBlock Text="{DynamicResource WebGuardTitle}" FontSize="14" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource WebGuardDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <CheckBox IsChecked="{Binding WebGuardEnabled}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{DynamicResource WebGuardEnableSwitch}"/>
+                                                </DockPanel>
+
+                                                <Separator Background="{DynamicResource BorderBrush}" Margin="0,0,0,14"/>
+
+                                                <DockPanel Margin="0,0,0,16">
+                                                    <StackPanel DockPanel.Dock="Left" MaxWidth="540">
+                                                        <TextBlock Text="{DynamicResource SafeSearchTitle}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource SafeSearchDescription}" Style="{StaticResource CaptionStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <CheckBox IsChecked="{Binding SafeSearchEnforced}" IsEnabled="{Binding WebGuardEnabled}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{DynamicResource SafeSearchSwitch}"/>
+                                                </DockPanel>
+
+                                                <TextBlock Text="{DynamicResource BlockedDomainsTitle}" FontSize="12.5" FontWeight="SemiBold" Margin="0,4,0,6"/>
+                                                <DockPanel Margin="0,0,0,10">
+                                                    <Button Content="{DynamicResource AddDomainButton}" DockPanel.Dock="Right" Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0" Click="AddBlockedDomain_Click" IsEnabled="{Binding WebGuardEnabled}"/>
+                                                    <TextBox x:Name="NewDomainTextBox" Text="{Binding NewBlockedDomain, UpdateSourceTrigger=PropertyChanged}" Padding="10,6" MaxLength="100" IsEnabled="{Binding WebGuardEnabled}"/>
+                                                </DockPanel>
+
+                                                <ItemsControl ItemsSource="{Binding BlockedWebDomains}" Margin="0,4,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8" Padding="12,8" Margin="0,3">
+                                                                <DockPanel>
+                                                                    <Button Content="✕" DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Padding="6,2" Click="RemoveBlockedDomain_Click" Tag="{Binding}"/>
+                                                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" FontSize="12" FontWeight="Medium"/>
+                                                                </DockPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </Expander>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabItem>

@@ -262,4 +262,12 @@
     <sys:String x:Key="UsageInsightsDetails">Kullanım içgörüleri</sys:String>
     <sys:String x:Key="EditApplicationRule">Sınırı düzenle</sys:String>
     <sys:String x:Key="AndroidDashboard">Telefonum · QR ile bağla ve yönet</sys:String>
+    <sys:String x:Key="WebGuardTitle">Web ve İnternet Koruması</sys:String>
+    <sys:String x:Key="WebGuardDescription">Tarayıcılarda istenmeyen web sitelerini alan adı düzeyinde engelleyin ve arama motorlarında güvenli modu zorlayın.</sys:String>
+    <sys:String x:Key="WebGuardEnableSwitch">Web Korumasını Aç</sys:String>
+    <sys:String x:Key="SafeSearchTitle">Güvenli Arama (SafeSearch &amp; YouTube)</sys:String>
+    <sys:String x:Key="SafeSearchDescription">Google, Bing ve YouTube üzerinde kısıtlı ve güvenli arama modunu zorunlu kılar.</sys:String>
+    <sys:String x:Key="SafeSearchSwitch">Zorla</sys:String>
+    <sys:String x:Key="BlockedDomainsTitle">Engellenen Web Siteleri</sys:String>
+    <sys:String x:Key="AddDomainButton">Site Ekle</sys:String>
 </ResourceDictionary>

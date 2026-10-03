@@ -262,4 +262,12 @@
     <sys:String x:Key="UsageInsightsDetails">Usage insights</sys:String>
     <sys:String x:Key="EditApplicationRule">Edit limit</sys:String>
     <sys:String x:Key="AndroidDashboard">My phone · Pair and manage</sys:String>
+    <sys:String x:Key="WebGuardTitle">Web &amp; Domain Guard</sys:String>
+    <sys:String x:Key="WebGuardDescription">Block distracting or adult websites at domain level across all browsers and enforce search engine safe mode.</sys:String>
+    <sys:String x:Key="WebGuardEnableSwitch">Enable Web Guard</sys:String>
+    <sys:String x:Key="SafeSearchTitle">SafeSearch (Google, Bing &amp; YouTube)</sys:String>
+    <sys:String x:Key="SafeSearchDescription">Enforces strict safe search mode on Google, Bing and YouTube.</sys:String>
+    <sys:String x:Key="SafeSearchSwitch">Enforce</sys:String>
+    <sys:String x:Key="BlockedDomainsTitle">Blocked Websites</sys:String>
+    <sys:String x:Key="AddDomainButton">Add Site</sys:String>
 </ResourceDictionary>

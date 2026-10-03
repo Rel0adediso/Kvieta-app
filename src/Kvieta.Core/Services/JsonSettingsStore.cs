@@ -142,6 +142,7 @@ public sealed class JsonSettingsStore
             settings.Schedule ??= ControlSettings.CreateDefaultSchedule();
             settings.TemporaryAllowances ??= [];
             settings.AppRules ??= [];
+            settings.BlockedWebDomains ??= [];
             foreach (AppRule rule in settings.AppRules)
             {
                 rule.LauncherExecutablePaths ??= [];

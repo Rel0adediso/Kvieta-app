@@ -2279,4 +2279,21 @@ public partial class MainWindow : Window
             return null;
         }
     }
+
+    private void AddBlockedDomain_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ViewModels.MainViewModel vm && !string.IsNullOrWhiteSpace(vm.NewBlockedDomain))
+        {
+            vm.AddBlockedWebDomain(vm.NewBlockedDomain);
+            vm.NewBlockedDomain = string.Empty;
+        }
+    }
+
+    private void RemoveBlockedDomain_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string domain } && DataContext is ViewModels.MainViewModel vm)
+        {
+            vm.RemoveBlockedWebDomain(domain);
+        }
+    }
 }

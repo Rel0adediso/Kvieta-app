@@ -67,6 +67,15 @@ public static class MobileAppRuleStore
             }
 
             await store.SaveAsync(settings, cancellation);
+
+            string modeDesc = ruleMode switch
+            {
+                AppRuleMode.Blocked => "engellendi",
+                AppRuleMode.Limited => $"{command.DailyLimitMinutes} dk ile sınırlandı",
+                _ => "sınırsız yapıldı"
+            };
+            DesktopToastWindow.ShowToast("Uygulama Kuralı", $"{appName} için kural telefondan güncellendi ({modeDesc}).", "📱");
+
             return true;
         }
         catch { return false; }

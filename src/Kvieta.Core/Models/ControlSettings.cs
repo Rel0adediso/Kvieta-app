@@ -76,6 +76,9 @@ public sealed class ControlSettings
     public List<DaySchedule> Schedule { get; set; } = CreateDefaultSchedule();
     public List<TemporaryAllowance> TemporaryAllowances { get; set; } = [];
     public List<AppRule> AppRules { get; set; } = [];
+    public bool WebGuardEnabled { get; set; }
+    public List<string> BlockedWebDomains { get; set; } = [];
+    public bool SafeSearchEnforced { get; set; }
 
     [JsonIgnore]
     public bool RequiresGuardian =>

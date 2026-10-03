@@ -286,6 +286,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
                     _pauseStartedAt = null;
                     RefreshSnapshot(notifyStateChange: true);
                     await _usageStore.SaveAsync(_engine.Ledger);
+                    DesktopToastWindow.ShowToast("Uzaktan Yönetim", "Bilgisayar telefondan uzaktan kilitlendi.", "🔒");
                     break;
                 case RemoteSessionCommand.Pause:
                     if (_engine.Ledger.State == SessionState.Active)
@@ -293,6 +294,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
                         PauseForSystemInterruption();
                         SystemMediaController.StopPlayback();
                         await SaveAsync();
+                        DesktopToastWindow.ShowToast("Uzaktan Yönetim", "Telefondan oturuma mola verildi.", "☕");
                     }
                     break;
                 case RemoteSessionCommand.Resume:
@@ -300,6 +302,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
                     if (_engine.Ledger.State is SessionState.Paused or SessionState.Ready or SessionState.TimeExpired)
                     {
                         await StartOrResumeAsync();
+                        DesktopToastWindow.ShowToast("Uzaktan Yönetim", "Oturum kilidi telefondan açıldı.", "▶️");
                     }
                     break;
             }
