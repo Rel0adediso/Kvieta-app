@@ -124,9 +124,23 @@ public sealed partial class MainViewModel : ObservableObject
     public int SelectedPageIndex
     {
         get => _selectedPageIndex;
-        set => SetProperty(
-            ref _selectedPageIndex,
-            !HasScheduledPlan && value == 1 ? 0 : value);
+        set
+        {
+            if (SetProperty(ref _selectedPageIndex, !HasScheduledPlan && value == 1 ? 0 : value))
+                OnPropertyChanged(nameof(SelectedNavigationIndex));
+        }
+    }
+
+    // Keep page identities stable for guides and internal links; History belongs to Today.
+    public int SelectedNavigationIndex
+    {
+        get => SelectedPageIndex switch { 2 => 1, 1 => 2, 4 => 3, _ => 0 };
+        set
+        {
+            if (value is < 0 or > 3) return;
+            SelectedPageIndex = value switch { 1 => 2, 2 => 1, 3 => 4, _ => 0 };
+            OnPropertyChanged(nameof(SelectedNavigationIndex));
+        }
     }
 
     public string DeviceName

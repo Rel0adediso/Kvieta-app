@@ -43,6 +43,10 @@ internal static class TodayDashboardPreview
                 usageStore.SaveAsync(ledger).GetAwaiter().GetResult();
                 var application = new Kvieta.App.App();
                 application.InitializeComponent();
+                foreach (UsageMode mode in new[] { UsageMode.Personal, UsageMode.Family, UsageMode.Insights })
+                {
+                settings.Mode = mode;
+                settingsStore.SaveAsync(settings).GetAwaiter().GetResult();
                 var viewModel = new MainViewModel(settingsStore, usageStore);
                 viewModel.InitializeAsync().GetAwaiter().GetResult();
                 foreach (string theme in new[] { "Light", "Dark" })
@@ -69,9 +73,10 @@ internal static class TodayDashboardPreview
                         bitmap.Render(surface);
                         var encoder = new PngBitmapEncoder();
                         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                        using var file = File.Create(Path.Combine(output, $"today-{theme.ToLowerInvariant()}-{width}.png"));
+                        using var file = File.Create(Path.Combine(output, $"today-{mode.ToString().ToLowerInvariant()}-{theme.ToLowerInvariant()}-{width}.png"));
                         encoder.Save(file);
                     }
+                }
                 }
                 application.Shutdown();
                 Console.WriteLine($"Today previews: {output}");

@@ -1013,7 +1013,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            await OpenManagerDeviceAsync(startPairing);
+            await OpenPhoneHubAsync();
         }
         catch (Exception exception)
         {
@@ -1031,7 +1031,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task OpenManagerDeviceAsync(bool startPairing)
+    private async Task OpenManagerDeviceAsync(bool startPairing, Window? phoneOwner = null)
     {
         if (!_viewModel.HasAdminPin)
         {
@@ -1060,7 +1060,7 @@ public partial class MainWindow : Window
                 : startPairing
                     ? "Telefonunu bağlamak için yönetici PIN'ini gir. İstersen iptal edip daha sonra Ayarlar'dan devam edebilirsin."
                     : "Güvenilir telefonu görüntülemek veya değiştirmek için yönetici PIN'ini gir.");
-        verification.Owner = this;
+        verification.Owner = phoneOwner ?? this;
         if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
         {
             return;
@@ -1150,7 +1150,7 @@ public partial class MainWindow : Window
                 },
                 startPairing)
             {
-                Owner = this
+                Owner = phoneOwner ?? this
             };
             if (window.ShowDialog() == true)
             {
@@ -2048,6 +2048,20 @@ public partial class MainWindow : Window
                 _viewModel.IsFamilyMode))
         {
             _backgroundSessionWindow?.ResumeFromControlCenter();
+        }
+    }
+
+    private void TodayHistory_Click(object sender, RoutedEventArgs e) => _viewModel.SelectedPageIndex = 3;
+
+    private void HistoryBack_Click(object sender, RoutedEventArgs e) => _viewModel.SelectedPageIndex = 0;
+
+    private void SettingsSection_Expanded(object sender, RoutedEventArgs e)
+    {
+        if (!ReferenceEquals(sender, e.OriginalSource)) return;
+        foreach (System.Windows.Controls.Expander? section in new[]
+                 { AppearanceSection, ProtectionSection, PrivacySection, MaintenanceSection })
+        {
+            if (section is not null && !ReferenceEquals(section, sender)) section.IsExpanded = false;
         }
     }
 

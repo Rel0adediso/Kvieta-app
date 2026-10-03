@@ -381,49 +381,6 @@
             <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
         </Style>
-        <Style x:Key="SectionExpanderStyle" TargetType="Expander">
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Expander">
-                        <Border Background="{DynamicResource SurfaceBrush}" BorderThickness="0" CornerRadius="22">
-                            <StackPanel>
-                                <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="22,18">
-                                    <ToggleButton.Template>
-                                        <ControlTemplate TargetType="ToggleButton">
-                                            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="22">
-                                                <DockPanel>
-                                                    <TextBlock x:Name="Arrow" DockPanel.Dock="Right" Text="＋" FontSize="20" Foreground="{DynamicResource PrimaryBrush}" Margin="12,0,0,0"/>
-                                                    <ContentPresenter VerticalAlignment="Center"/>
-                                                </DockPanel>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="Arrow" Property="Text" Value="−"/>
-                                                </Trigger>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsKeyboardFocused" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </ToggleButton.Template>
-                                    <TextBlock Text="{TemplateBinding Header}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                </ToggleButton>
-                                <ContentPresenter x:Name="SectionContent" Visibility="Collapsed" ContentSource="Content" HorizontalAlignment="Stretch"/>
-                            </StackPanel>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsExpanded" Value="True">
-                                <Setter TargetName="SectionContent" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
     <Border x:Name="RootFrame" Background="{DynamicResource BackgroundBrush}" BorderThickness="0" CornerRadius="12" ClipToBounds="True">
         <Grid x:Name="TourHost">
@@ -478,17 +435,11 @@
                                 </Button.Style>
                             </Button>
                         </Grid>
-                        <ListBox Grid.Row="1" SelectedIndex="{Binding SelectedPageIndex, Mode=TwoWay}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource NavItemStyle}" Margin="0,8,0,0">
+                        <ListBox x:Name="PrimaryNavigation" Grid.Row="1" SelectedIndex="{Binding SelectedNavigationIndex, Mode=TwoWay}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource NavItemStyle}" Margin="0,8,0,0">
                             <ListBoxItem AutomationProperties.Name="{DynamicResource Today}">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Data="{StaticResource HomeIconGeometry}" Style="{StaticResource NavIconStyle}"/>
                                     <TextBlock Text="{DynamicResource Today}" Margin="8,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
-                                </StackPanel>
-                            </ListBoxItem>
-                            <ListBoxItem AutomationProperties.Name="{DynamicResource Plan}" Visibility="{Binding HasScheduledPlan, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <Path Data="{StaticResource PlanIconGeometry}" Style="{StaticResource NavIconStyle}"/>
-                                    <TextBlock Text="{DynamicResource Plan}" Margin="8,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
                                 </StackPanel>
                             </ListBoxItem>
                             <ListBoxItem AutomationProperties.Name="{DynamicResource Applications}">
@@ -497,10 +448,10 @@
                                     <TextBlock Text="{DynamicResource Applications}" Margin="8,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
                                 </StackPanel>
                             </ListBoxItem>
-                            <ListBoxItem AutomationProperties.Name="{DynamicResource History}">
+                            <ListBoxItem AutomationProperties.Name="{DynamicResource MyPlan}" Visibility="{Binding HasScheduledPlan, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <Path Data="{StaticResource HistoryIconGeometry}" Style="{StaticResource NavIconStyle}"/>
-                                    <TextBlock Text="{DynamicResource History}" Margin="8,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
+                                    <Path Data="{StaticResource PlanIconGeometry}" Style="{StaticResource NavIconStyle}"/>
+                                    <TextBlock Text="{DynamicResource MyPlan}" Margin="8,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
                                 </StackPanel>
                             </ListBoxItem>
                             <ListBoxItem AutomationProperties.Name="{DynamicResource Settings}">
@@ -562,7 +513,7 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <controls:TodayDashboard x:Name="TodayTimeCard" Grid.Row="1" PrimaryActionRequested="TodayPrimaryAction_Click"/>
+                                    <controls:TodayDashboard x:Name="TodayTimeCard" Grid.Row="1" PrimaryActionRequested="TodayPrimaryAction_Click" HistoryRequested="TodayHistory_Click"/>
                                     <Expander Grid.Row="4" Header="{DynamicResource TodayMoreFocusOptions}" Margin="0,22,0,0" Padding="4" Visibility="{Binding IsPersonalMode, Converter={StaticResource BooleanToVisibilityConverter}}" x:Name="QuickFocusCard">
                                         <StackPanel>
                                             <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
@@ -641,12 +592,49 @@
                                         </StackPanel>
                                     </Grid>
                                     <Border Grid.Row="1" Style="{StaticResource PanelStyle}" Margin="0,18,0,0" ClipToBounds="True">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="0"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            <ItemsControl x:Name="WeeklyScheduleList" Grid.Row="1" ItemsSource="{Binding ScheduleRows}" Margin="12">
+                                        <StackPanel Margin="18">
+                                            <TextBlock Text="{DynamicResource PlanOverviewTitle}" FontSize="18" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{DynamicResource PlanDraftHint}" Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Margin="0,6,0,12"/>
+                                            <ItemsControl x:Name="WeeklyScheduleOverview" ItemsSource="{Binding ScheduleRows}">
+                                                <ItemsControl.Style>
+                                                    <Style TargetType="ItemsControl">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers><DataTrigger Binding="{Binding IsExpanded, ElementName=WeeklyScheduleEditor}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                                                    </Style>
+                                                </ItemsControl.Style>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="4,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                                <TextBlock Text="{Binding DayName}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                                <StackPanel Grid.Column="1">
+                                                                    <StackPanel.Style>
+                                                                        <Style TargetType="StackPanel">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                            <Style.Triggers><DataTrigger Binding="{Binding IsEnabled}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                                                                        </Style>
+                                                                    </StackPanel.Style>
+                                                                    <TextBlock Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap">
+                                                                        <Run Text="{Binding AllowedFrom, Mode=OneWay}"/><Run Text=" – "/><Run Text="{Binding AllowedUntil, Mode=OneWay}"/>
+                                                                        <Run Text=" · "/><Run Text="{Binding DailyLimitMinutes, Mode=OneWay}"/><Run Text=" "/><Run Text="{DynamicResource MinuteShort}"/>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                                <TextBlock Grid.Column="1" Text="{DynamicResource PlanDayDisabled}" Foreground="{DynamicResource MutedTextBrush}">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            <Style.Triggers><DataTrigger Binding="{Binding IsEnabled}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Expander x:Name="WeeklyScheduleEditor" Header="{DynamicResource EditWeeklyPlan}" IsExpanded="False" Margin="0,18,0,0">
+                                            <ItemsControl x:Name="WeeklyScheduleList" ItemsSource="{Binding ScheduleRows}" Margin="0,12,0,0">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,11">
@@ -679,7 +667,8 @@
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
-                                        </Grid>
+                                            </Expander>
+                                        </StackPanel>
                                     </Border>
                                     <Border Grid.Row="2" Background="{DynamicResource PrimarySoftBrush}" CornerRadius="24" Margin="0,18,0,0" Padding="24,20">
                                         <Grid>
@@ -727,7 +716,8 @@
                                         <Button Content="{DynamicResource AddApplication}" Style="{StaticResource PrimaryButtonStyle}" Click="AddApplication_Click" VerticalAlignment="Center" Margin="16,0,0,0" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Right"/>
                                     </controls:ResponsiveColumns>
                                     <StackPanel x:Name="AppsUsageCard" Margin="-6,18,-6,0">
-                                        <controls:ResponsiveColumns MinimumColumnWidth="220" MaximumColumns="3" Visibility="{Binding HasApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Expander x:Name="ApplicationInsights" Header="{DynamicResource UsageInsightsDetails}" IsExpanded="False" Margin="6,0" Visibility="{Binding HasApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <controls:ResponsiveColumns MinimumColumnWidth="220" MaximumColumns="3">
                                             <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="20" Margin="6" MinHeight="150">
                                                 <Grid>
                                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -769,6 +759,7 @@
                                             </Border>
                                         </controls:ResponsiveColumns>
 
+                                        </Expander>
                                         <controls:ResponsiveColumns MinimumColumnWidth="360" MaximumColumns="2" Margin="0,14,0,0" Visibility="{Binding HasApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <Border x:Name="ApplicationCategoriesPanel" Background="{DynamicResource SurfaceBrush}" CornerRadius="20" Padding="18" Margin="6" VerticalAlignment="Top">
                                                 <StackPanel>
@@ -878,6 +869,8 @@
                                                                     <TextBlock Text="{Binding PreviewText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="9.5" TextTrimming="CharacterEllipsis" Margin="0,3,16,0" ToolTip="{Binding PreviewText}" AutomationProperties.Name="{Binding PreviewText}"/>
                                                                 </StackPanel>
                                                             </DockPanel>
+                                                            <Expander Header="{DynamicResource EditApplicationRule}" IsExpanded="False">
+                                                            <StackPanel Margin="0,10,0,0">
                                                             <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" SelectionChanged="ApplicationMode_SelectionChanged" ToolTip="{Binding Mode.Description}" ToolTipService.InitialShowDelay="250" Height="32" MinHeight="32" Margin="0,0,0,10" VerticalAlignment="Center" Width="190" HorizontalAlignment="Left">
                                                                 <ComboBox.ItemTemplate>
                                                                     <DataTemplate>
@@ -903,6 +896,8 @@
                                                                 <TextBlock Text="{DynamicResource MinuteShort}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,0" IsHitTestVisible="False"/>
                                                             </Grid>
                                                             <Button Content="{DynamicResource Remove}" HorizontalAlignment="Left" Style="{StaticResource SecondaryButtonStyle}" Click="RemoveApplication_Click" Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            </Expander>
                                                          </StackPanel>
                                                         </Border>
                                                     </DataTemplate>
@@ -938,6 +933,7 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <StackPanel>
+                                        <Button x:Name="HistoryBackButton" Content="{DynamicResource BackToToday}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" Margin="0,0,0,14" Click="HistoryBack_Click"/>
                                         <TextBlock Text="{DynamicResource History}" Style="{StaticResource PageTitleStyle}"/>
                                         <TextBlock Text="{DynamicResource HistoryDescription}" Style="{StaticResource PageDescriptionStyle}"/>
                                     </StackPanel>
@@ -1165,7 +1161,7 @@
                                         <TextBlock Text="{DynamicResource Settings}" Style="{StaticResource PageTitleStyle}"/>
                                         <TextBlock Text="{DynamicResource SettingsDescription}" Style="{StaticResource PageDescriptionStyle}"/>
                                     </StackPanel>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource AppearanceAndLanguage}" x:Name="AppearanceSection" IsExpanded="True">
+                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource AppearanceAndLanguage}" x:Name="AppearanceSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
                                         <controls:ResponsiveColumns Margin="18,8,18,16" MinimumColumnWidth="300" MaximumColumns="2">
                                             <StackPanel Margin="0,8,0,10">
                                                 <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
@@ -1209,7 +1205,7 @@
                                             </StackPanel>
                                         </controls:ResponsiveColumns>
                                     </Expander>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource ProtectionSettings}" x:Name="ProtectionSection" IsExpanded="False">
+                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource ProtectionSettings}" x:Name="ProtectionSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
                                         <StackPanel Margin="18,8,18,16">
                                             <StackPanel Margin="0,8,0,10">
                                                 <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
@@ -1247,7 +1243,6 @@
                                                     <Button Content="{Binding AdminPinActionText}" Style="{StaticResource SecondaryButtonStyle}" Click="AdminPin_Click"/>
                                                     <TextBlock Text="{DynamicResource AdminPinActive}" Foreground="{DynamicResource SuccessBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" Visibility="{Binding HasAdminPin, Converter={StaticResource BooleanToVisibilityConverter}}" TextWrapping="Wrap"/>
                                                     <Button Content="{DynamicResource RecoveryCodes}" Style="{StaticResource SecondaryButtonStyle}" Click="RecoveryCodes_Click" Margin="14,0,0,0"/>
-                                                    <Button Content="{DynamicResource ManagerDevice}" Style="{StaticResource SecondaryButtonStyle}" Click="ManagerDevice_Click" Margin="8,0,0,0"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                             <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16" Visibility="{Binding HasPersonalChangeDelay, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -1289,8 +1284,9 @@
                                             </Border>
                                         </StackPanel>
                                     </Expander>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource PrivacyCenter}" x:Name="PrivacySection" IsExpanded="False">
+                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource PrivacyCenter}" x:Name="PrivacySection" IsExpanded="False" Expanded="SettingsSection_Expanded">
                                         <StackPanel Margin="18,8,18,16">
+                                            <Button Content="{DynamicResource AndroidDashboard}" Style="{StaticResource SecondaryButtonStyle}" Click="AndroidDashboard_Click" HorizontalAlignment="Left" Margin="0,10"/>
                                             <StackPanel Margin="0,8,0,10" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
                                                     <TextBlock Text="{DynamicResource AwarenessTracking}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
@@ -1316,7 +1312,7 @@
                                             </Border>
                                         </StackPanel>
                                     </Expander>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource RecoveryAndRepair}" x:Name="MaintenanceSection" IsExpanded="False">
+                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource RecoveryAndRepair}" x:Name="MaintenanceSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
                                         <StackPanel Margin="18,8,18,16">
                                             <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16">
                                                 <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">

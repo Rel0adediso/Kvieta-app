@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using Kvieta.App.Services;
@@ -57,7 +59,7 @@ public partial class SessionSurfaceWindow : Window
         // A PIN-protected exit is a transition to management, not a request to
         // tear down the Guardian service that owns this session.
         _returnToControlCenter = returnToControlCenter || requirePinToExit;
-        _shortcutGuard = new SessionShortcutGuard(ShouldRecoverSessionSurface);
+        _shortcutGuard = new SessionShortcutGuard(ShouldGuardShortcuts);
         _displayShieldManager = new SessionDisplayShieldManager(this, ShouldCoverAllDisplays);
         ExitButton.Content = LocalizationService.Get(
             requirePinToExit ? "AdminExit" : returnToControlCenter ? "ControlCenter" : !isDirectSession ? "ExitPreview" : "ExitKvieta");
@@ -112,6 +114,10 @@ public partial class SessionSurfaceWindow : Window
         {
             await _viewModel.TickAsync();
             EnsureCorrectSurface();
+            if (ShouldGuardShortcuts())
+            {
+                EnsureOnCurrentVirtualDesktop();
+            }
             ShowWarningIfDue();
             await HandleLimitReachedAsync();
         }
@@ -197,6 +203,34 @@ public partial class SessionSurfaceWindow : Window
         _extraTimeRequestInProgress = true;
         try
         {
+            if (_viewModel.IsFamilyMode && MobileTimeRequestStore.IsAvailable())
+            {
+                MobileTimeRequest? current = MobileTimeRequestStore.Current();
+                if (current?.Status is MobileTimeRequestStatus.Pending or MobileTimeRequestStatus.ApprovedAwaitingDevice or MobileTimeRequestStatus.Applying)
+                {
+                    string state = current.Status == MobileTimeRequestStatus.Pending
+                        ? (LocalizationService.CurrentLanguage == LanguagePreference.English ? "The request is waiting for a decision on the phone." : "Talep telefonda karar bekliyor.")
+                        : (LocalizationService.CurrentLanguage == LanguagePreference.English ? "The request was approved and is waiting for this computer." : "Talep onaylandı; bu bilgisayara uygulanması bekleniyor.");
+                    System.Windows.MessageBox.Show(this, state, "Kvieta", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                MobileTimeRequestWindow request = PrepareSessionModal(new MobileTimeRequestWindow());
+                _modalDialogOpen = true;
+                try
+                {
+                    if (request.ShowDialog() == true)
+                    {
+                        MobileTimeRequestStore.Create(request.SelectedMinutes, request.Note);
+                        string sent = LocalizationService.CurrentLanguage == LanguagePreference.English
+                            ? "Request sent. Time will be added only after the paired phone approves it."
+                            : "Talep gönderildi. Süre, eşleşmiş telefondan onaylandıktan sonra eklenecek.";
+                        System.Windows.MessageBox.Show(this, sent, "Kvieta", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                finally { _modalDialogOpen = false; }
+                return;
+            }
+
             AdminCredential credential = await LoadExitCredentialAsync();
             if (!credential.IsConfigured && _requirePinToExit)
             {
@@ -631,6 +665,16 @@ public partial class SessionSurfaceWindow : Window
             _surfaceTransitionInProgress);
     }
 
+    private bool ShouldGuardShortcuts()
+    {
+        return SessionSurfaceRecoveryPolicy.ShouldGuardShortcuts(
+            _viewModel.ShouldShowSessionSurfaces,
+            IsVisible,
+            _forceSurfaceVisible || !_viewModel.IsActive,
+            _controlCenterOpen,
+            _surfaceTransitionInProgress);
+    }
+
     private bool ShouldCoverAllDisplays()
     {
         return SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
@@ -669,6 +713,8 @@ public partial class SessionSurfaceWindow : Window
                 Show();
             }
 
+            EnsureOnCurrentVirtualDesktop();
+
             ShowInTaskbar = true;
             WindowState = WindowState.Maximized;
             Topmost = true;
@@ -691,6 +737,11 @@ public partial class SessionSurfaceWindow : Window
 
     private void Window_Deactivated(object? sender, EventArgs e)
     {
+        if (ShouldGuardShortcuts())
+        {
+            EnsureOnCurrentVirtualDesktop();
+        }
+
         QueueSessionSurfaceRecovery();
     }
 
@@ -1080,6 +1131,84 @@ public partial class SessionSurfaceWindow : Window
             _modalDialogOpen = false;
             EnsureCorrectSurface();
         }
+    }
+
+    private static readonly Lazy<IVirtualDesktopManager?> _virtualDesktopManager = new(() =>
+    {
+        try
+        {
+            return (IVirtualDesktopManager)new VirtualDesktopManager();
+        }
+        catch
+        {
+            return null;
+        }
+    });
+
+    private bool IsOnCurrentVirtualDesktop()
+    {
+        try
+        {
+            IVirtualDesktopManager? manager = _virtualDesktopManager.Value;
+            if (manager is null)
+            {
+                return true;
+            }
+
+            nint handle = new WindowInteropHelper(this).Handle;
+            if (handle != 0 && manager.IsWindowOnCurrentVirtualDesktop(handle, out bool onCurrent) == 0)
+            {
+                return onCurrent;
+            }
+        }
+        catch
+        {
+        }
+
+        return true;
+    }
+
+    private void EnsureOnCurrentVirtualDesktop()
+    {
+        if (IsOnCurrentVirtualDesktop())
+        {
+            return;
+        }
+
+        nint handle = new WindowInteropHelper(this).Handle;
+        if (handle != 0)
+        {
+            SwitchToThisWindow(handle, true);
+            SetForegroundWindow(handle);
+        }
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(nint hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern void SwitchToThisWindow(nint hWnd, [MarshalAs(UnmanagedType.Bool)] bool fUnknown);
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("a5cd92ff-29be-454c-8d04-c828707b8575")]
+    private interface IVirtualDesktopManager
+    {
+        [PreserveSig]
+        int IsWindowOnCurrentVirtualDesktop(nint topLevelWindow, [MarshalAs(UnmanagedType.Bool)] out bool onCurrentDesktop);
+
+        [PreserveSig]
+        int GetWindowDesktopId(nint topLevelWindow, out Guid desktopId);
+
+        [PreserveSig]
+        int MoveWindowToDesktop(nint topLevelWindow, ref Guid desktopId);
+    }
+
+    [ComImport]
+    [Guid("aa509086-5ca9-4c25-8f95-589d3c07b48a")]
+    private class VirtualDesktopManager
+    {
     }
 
     private void Window_Closed(object? sender, EventArgs e)

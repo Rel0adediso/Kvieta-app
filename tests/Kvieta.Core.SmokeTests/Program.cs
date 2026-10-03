@@ -9,6 +9,28 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography;
 
+if (args.Length == 2 && args[0] == "--relay-interop")
+{
+    await RelayInteropChecks.CreateAsync(args[1]);
+    return;
+}
+if (args.Length == 2 && args[0] == "--relay-cleanup")
+{
+    await RelayInteropChecks.CleanupAsync(args[1]);
+    return;
+}
+if (args.Length == 2 && args[0] == "--relay-decision-check")
+{
+    await RelayInteropChecks.CheckDecisionAsync(args[1]);
+    return;
+}
+
+if (args.Contains("--phone-window-checks", StringComparer.Ordinal))
+{
+    PhoneWindowChecks.Run();
+    return;
+}
+
 if (args.Contains("--companion-preview", StringComparer.Ordinal))
 {
     await using LocalManagerDeviceEnrollmentEndpoint previewEndpoint =
@@ -23,6 +45,27 @@ if (args.Contains("--today-preview", StringComparer.Ordinal))
     TodayDashboardPreview.Render();
     return;
 }
+
+if (args.Length == 2 && args[0] == "--dashboard-interop")
+{
+    string fixtureDirectory = Path.Combine(Path.GetTempPath(), "Kvieta-Interop-" + Guid.NewGuid().ToString("N"));
+    await using DashboardEndpoint endpoint = await DashboardEndpoint.StartAsync(Path.Combine(fixtureDirectory, "pairing.bin"), () => Task.FromResult<object>(new
+    {
+        deviceName = "Interop desktop", mode = "Personal", localDay = "2026-09-21", observedAtUtc = DateTimeOffset.UtcNow,
+        servedAtUtc = DateTimeOffset.UtcNow, stale = false, usedSeconds = 300, remainingSeconds = 600,
+        applications = new[] { new { name = "Code", seconds = 300 } }
+    }));
+    endpoint.Changed += () => { if (endpoint.PendingName is not null) endpoint.Approve(); };
+    File.WriteAllText(args[1], endpoint.CreateInvitation());
+    Console.WriteLine("Isolated interop fixture ready (2 minutes).");
+    await Task.Delay(TimeSpan.FromMinutes(2));
+    return;
+}
+
+MobileTimeRequestChecks.Run();
+if (args.Contains("--mobile-time-checks", StringComparer.Ordinal)) return;
+await DashboardEndpointChecks.RunAsync();
+if (args.Contains("--dashboard-checks", StringComparer.Ordinal)) return;
 
 ControlSettings settings = new();
 #if KVIETA_DEVELOPMENT_BUILD
@@ -65,6 +108,28 @@ Thread adminPinWindowThread = new(() =>
         Kvieta.App.App application = new();
         application.InitializeComponent();
         var mainWindow = new Kvieta.App.MainWindow();
+        Assert(mainWindow.FindName("PrimaryNavigation") is System.Windows.Controls.ListBox { Items.Count: 4 } &&
+               mainWindow.FindName("HistoryBackButton") is System.Windows.Controls.Button,
+            "Ana gezinme dört bölümden oluşmalı ve geçmişten Bugün'e dönüş bulunmalı.");
+        var planEditor = (System.Windows.Controls.Expander)mainWindow.FindName("WeeklyScheduleEditor");
+        var planOverview = (System.Windows.Controls.ItemsControl)mainWindow.FindName("WeeklyScheduleOverview");
+        Assert(!planEditor.IsExpanded && planOverview.Visibility == System.Windows.Visibility.Visible,
+            "Plan ilk açılışta düzenleme alanları yerine özet göstermeli.");
+        var simpleToday = new Kvieta.App.Controls.TodayDashboard();
+        Assert(mainWindow.FindName("ApplicationInsights") is System.Windows.Controls.Expander { IsExpanded: false },
+            "Uygulama içgörüleri ilk açılışta kapalı olmalı.");
+        var settingsSections = new[] { "AppearanceSection", "ProtectionSection", "PrivacySection", "MaintenanceSection" }
+            .Select(name => (System.Windows.Controls.Expander)mainWindow.FindName(name)).ToArray();
+        Assert(settingsSections.All(section => !section.IsExpanded), "Ayarlar sade bölüm listesiyle açılmalı.");
+        foreach (var section in settingsSections)
+        {
+            section.IsExpanded = true;
+            Assert(section.IsExpanded && settingsSections.Count(item => item.IsExpanded) == 1,
+                "Ayarlar aynı anda yalnızca seçilen bölümü açık tutmalı.");
+        }
+        settingsSections[^1].IsExpanded = false;
+        Assert(simpleToday.FindName("DailyDetails") is System.Windows.Controls.Expander { IsExpanded: false },
+            "Saatlik ayrıntılar Bugün ilk açılışında kapalı olmalı.");
         var allowanceWindow = new Kvieta.App.TemporaryAllowanceWindow();
         Assert(allowanceWindow.FindName("SelectedDateText") is System.Windows.Controls.TextBlock &&
                allowanceWindow.FindName("PreviousDateButton") is System.Windows.Controls.Button &&
@@ -821,6 +886,27 @@ Assert(!SessionSurfaceRecoveryPolicy.ShouldRecover(
         isModalDialogOpen: false,
         isTransitionInProgress: false),
     "Farkındalık modu yanlışlıkla tam ekran yüzey korumasını etkinleştiriyor.");
+Assert(SessionSurfaceRecoveryPolicy.ShouldGuardShortcuts(
+        shouldShowSessionSurfaces: true,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: false,
+        isTransitionInProgress: false),
+    "Zorunlu oturum yüzeyinde ve modal yönetici doğrulamasında kısayol koruması etkin olmalı.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldGuardShortcuts(
+        shouldShowSessionSurfaces: true,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: true,
+        isTransitionInProgress: false),
+    "Kontrol Merkezi açıkken kısayol koruması devre dışı olmalı.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldGuardShortcuts(
+        shouldShowSessionSurfaces: false,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: false,
+        isTransitionInProgress: false),
+    "Oturum yüzeyi gerekmiyorken kısayol koruması etkinleştirilmemeli.");
 FocusSessionGoal focusGoal = new(25);
 HashSet<int> shownWarnings = [];
 Assert(SessionWarningPolicy.GetDueWarningMinutes(14 * 60, [15, 5, 1], shownWarnings) == 15,
@@ -898,6 +984,11 @@ Assert(SessionShortcutGuard.ShouldBlockShortcut(
         shiftPressed: false) &&
     SessionShortcutGuard.ShouldBlockShortcut(
         SessionShortcutGuard.VirtualKeyTab,
+        controlPressed: false,
+        altPressed: true,
+        shiftPressed: false) &&
+    SessionShortcutGuard.ShouldBlockShortcut(
+        SessionShortcutGuard.VirtualKeyEscape,
         controlPressed: false,
         altPressed: true,
         shiftPressed: false),
@@ -1255,6 +1346,22 @@ MainViewModel todayOverviewViewModel = new(
     new JsonSettingsStore(todayOverviewSettingsPath),
     new JsonUsageStore(todayOverviewUsagePath));
 await todayOverviewViewModel.InitializeAsync();
+Assert(todayOverviewViewModel.TodayMainMetricText == todayOverviewViewModel.TodayMeasuredText &&
+       todayOverviewViewModel.ShowTodayUsageRing && todayOverviewViewModel.ShowTodayHistoryShortcut,
+    "Kişisel Bugün özeti ölçülen kullanımı ve geçmiş bağlantısını göstermeli.");
+todayOverviewViewModel.SelectedNavigationIndex = 1;
+Assert(todayOverviewViewModel.SelectedPageIndex == 2, "Uygulamalar menüsü yanlış sayfayı açtı.");
+todayOverviewViewModel.SelectedNavigationIndex = 2;
+Assert(todayOverviewViewModel.SelectedPageIndex == 1, "Planım menüsü yanlış sayfayı açtı.");
+todayOverviewViewModel.SelectedNavigationIndex = 3;
+Assert(todayOverviewViewModel.SelectedPageIndex == 4, "Ayarlar menüsü yanlış sayfayı açtı.");
+todayOverviewViewModel.SelectedPageIndex = 3;
+Assert(todayOverviewViewModel.SelectedNavigationIndex == 0 &&
+       todayOverviewViewModel.SelectedPageIndex == 3, "Geçmiş, Bugün altında açık kalmalı.");
+todayOverviewViewModel.SelectedNavigationIndex = -1;
+Assert(todayOverviewViewModel.SelectedPageIndex == 3, "Boş menü seçimi açık ayrıntıyı değiştirmemeli.");
+todayOverviewViewModel.SelectedNavigationIndex = 0;
+Assert(todayOverviewViewModel.SelectedPageIndex == 0, "Bugün'e dönüş başarısız.");
 Assert(todayOverviewViewModel.TodayApplications.Count == 2 &&
        todayOverviewViewModel.TodayApplications[0].Name == "Browser" &&
        todayOverviewViewModel.TodayChangeText.Contains("%50", StringComparison.Ordinal) &&
@@ -1537,6 +1644,9 @@ MainViewModel protectedTransitionViewModel = new(
     protectedTransitionSettingsStore,
     new JsonUsageStore(Path.Combine(testDirectory, "protected-transition-usage.json")));
 await protectedTransitionViewModel.InitializeAsync();
+Assert(protectedTransitionViewModel.TodayMainMetricText == protectedTransitionViewModel.TodayMeasuredText &&
+       !protectedTransitionViewModel.ShowTodayHistoryShortcut && !protectedTransitionViewModel.ShowTodayScheduledLimit,
+    "İçgörü modunda limit veya yinelenen geçmiş işlemi gösterilmemeli.");
 protectedTransitionViewModel.StageUsageMode(
     UsageMode.Family,
     PersonalProtectionLevel.Balanced,
@@ -1548,6 +1658,10 @@ IReadOnlyList<string> stagedFamilyCodes = protectedTransitionViewModel.PrepareSt
 Assert(stagedFamilyCodes.Count == 8 && await protectedTransitionViewModel.SaveAsync(),
     "Onaylanmış Aile kurtarma hazırlığı policy taslağına aktarılamadı.");
 ControlSettings savedFamilyTransition = await protectedTransitionSettingsStore.LoadAsync();
+Assert(protectedTransitionViewModel.TodayMainMetricText == protectedTransitionViewModel.RemainingText &&
+       protectedTransitionViewModel.TodaySecondaryMetricText == protectedTransitionViewModel.TodayMeasuredText &&
+       !protectedTransitionViewModel.ShowTodayUsageRing && protectedTransitionViewModel.ShowTodayScheduledLimit,
+    "Aile Bugün özeti kalan süreyi öne almalı ve kullanım halkasıyla karıştırmamalı.");
 Assert(savedFamilyTransition.Mode == UsageMode.Family &&
        AdminPinService.Verify("2468", savedFamilyTransition.AdminPin) &&
        savedFamilyTransition.RecoveryCodes.Count == 8 &&
@@ -2712,6 +2826,11 @@ string historicalExportCsv = await historicalExportViewModel.ExportUsageCsvAsync
 Assert(historicalExportJson.Contains("Archive App", StringComparison.Ordinal) &&
        historicalExportCsv.Contains("Archive App", StringComparison.Ordinal),
     "Geçmiş kural kaydının uygulama adı JSON/CSV dışa aktarımında boş kaldı.");
+
+Assert(await MobileRemoteActionStore.RecordActionAsync("{\"command\":\"lock\"}"), "MobileRemoteActionStore lock kaydı başarısız.");
+var claimedAction = MobileRemoteActionStore.TryClaimPending();
+Assert(claimedAction is not null && claimedAction.Command == RemoteSessionCommand.Lock, "MobileRemoteActionStore lock talebi okunamadı.");
+Assert(MobileRemoteActionStore.TryClaimPending() is null, "MobileRemoteActionStore talep edilmiş eylemi tekrar verdi.");
 
 Directory.Delete(testDirectory, true);
 Console.WriteLine("Kvieta çekirdek kontrolleri başarılı.");

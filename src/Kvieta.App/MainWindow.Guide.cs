@@ -21,6 +21,7 @@ public partial class MainWindow
     private TaskCompletionSource? _guideCompletion;
     private IInputElement? _guidePreviousFocus;
     private bool _guideRhythmWasExpanded;
+    private Expander? _guidePreviousSettingsSection;
     private FrameworkElement? _guidePageContent;
     private Thickness _guidePageMargin;
     private bool IsGuideOpen => TourOverlay?.Visibility == Visibility.Visible;
@@ -90,15 +91,15 @@ public partial class MainWindow
                   "Choose a preset or your own duration. You can also repeat your last focus session."), 0, QuickFocusCard));
         if (_viewModel.HasScheduledPlan)
             _guideSteps.Add(new(T("Haftanı planla", "Plan your week"),
-                T("Her gün için saat aralığını ve süre limitini seç. Değişikliklerini üstteki Kaydet ile uygula.",
-                  "Choose allowed hours and a time limit for each day. Apply changes with Save at the top."), 1, MainTabs));
+                T("Haftanın özetini burada gör. Saat veya limit değiştirmek için Planı düzenle bölümünü aç; ardından üstteki Kaydet ile uygula.",
+                  "See your week here. Open Edit weekly plan to change hours or limits, then apply with Save at the top."), 1, MainTabs));
         _guideSteps.Add(new(T("Uygulamalarını tanı", "Explore your applications"),
             T("En çok kullandığın uygulamalar artık burada. Aşağıda bugünkü kullanımını kategoriler halinde inceleyebilirsin.",
               "Your most-used applications live here. Explore today's usage grouped into categories below."), 2, AppsUsageCard));
         if (_viewModel.HasRestrictions)
             _guideSteps.Add(new(T("Uygulama kuralları", "Application rules"),
-                T("Kullanım kartından kural oluşturabilir veya .exe ekleyebilirsin. Limit ve davranış seçimini Kaydet ile uygula.",
-                  "Create a rule from a usage card or add an .exe. Choose its limit and behavior, then Save."), 2, AppRulesCard));
+                T("Zamanlayıcıdan kural oluşturabilir veya .exe ekleyebilirsin. Mevcut bir kuralda Sınırı düzenle bölümünü aç; değişikliklerini Kaydet ile uygula.",
+                  "Create a rule using Timer or add an .exe. Open Edit limit on an existing rule, then apply changes with Save."), 2, AppRulesCard));
         _guideSteps.Add(new(T("Ritmini incele", "Explore your rhythm"),
             T("Bu bölüm açılıp kapanır. Haftalık eğilimlerini, hedeflerini ve odak süreni burada görebilirsin; aşağıdaki günlerden birini seçerek geçmişini incele.",
               "Expand this section for weekly trends, goals and focus time. Select a day below to explore your history."), 3, RhythmExpander));
@@ -108,6 +109,8 @@ public partial class MainWindow
         _guideIndex = 0;
         _guidePreviousFocus = Keyboard.FocusedElement;
         _guideRhythmWasExpanded = RhythmExpander.IsExpanded;
+        _guidePreviousSettingsSection = new[] { AppearanceSection, ProtectionSection, PrivacySection, MaintenanceSection }
+            .FirstOrDefault(section => section.IsExpanded);
         _guideCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TourOverlay.Visibility = Visibility.Visible;
         KeyboardNavigation.SetTabNavigation(TourOverlay, KeyboardNavigationMode.Cycle);
@@ -193,6 +196,9 @@ public partial class MainWindow
         _guideRenderRevision++;
         RestoreGuidePageMargin();
         RhythmExpander.IsExpanded = _guideRhythmWasExpanded;
+        foreach (Expander section in new[] { AppearanceSection, ProtectionSection, PrivacySection, MaintenanceSection })
+            section.IsExpanded = ReferenceEquals(section, _guidePreviousSettingsSection);
+        _guidePreviousSettingsSection = null;
         _guideCompletion?.TrySetResult();
         if (_guidePreviousFocus is UIElement element && element.IsVisible) element.Focus();
         else MainTabs.Focus();

@@ -38,7 +38,7 @@ public sealed class SessionShortcutGuard : IDisposable
     {
         _ = shiftPressed;
         return virtualKey is VirtualKeyLeftWindows or VirtualKeyRightWindows ||
-            virtualKey == VirtualKeyEscape && controlPressed ||
+            virtualKey == VirtualKeyEscape && (controlPressed || altPressed) ||
             virtualKey == VirtualKeyTab && altPressed;
     }
 

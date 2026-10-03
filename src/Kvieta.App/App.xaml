@@ -9,6 +9,49 @@
                 <ResourceDictionary Source="Localization/Strings.tr.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <Style x:Key="SectionExpanderStyle" TargetType="Expander">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Expander">
+                            <Border Background="{DynamicResource SurfaceBrush}" BorderThickness="0" CornerRadius="22">
+                                <StackPanel>
+                                    <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="22,18">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="22">
+                                                    <DockPanel>
+                                                        <TextBlock x:Name="Arrow" DockPanel.Dock="Right" Text="＋" FontSize="20" Foreground="{DynamicResource PrimaryBrush}" Margin="12,0,0,0"/>
+                                                        <ContentPresenter VerticalAlignment="Center"/>
+                                                    </DockPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="Arrow" Property="Text" Value="−"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                        <TextBlock Text="{TemplateBinding Header}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                    </ToggleButton>
+                                    <ContentPresenter x:Name="SectionContent" Visibility="Collapsed" ContentSource="Content" HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsExpanded" Value="True">
+                                    <Setter TargetName="SectionContent" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
             <ControlTemplate x:Key="KvietaAppIconTemplate" TargetType="{x:Type ContentControl}">
                 <Viewbox Stretch="Uniform">

@@ -52,15 +52,15 @@
             <StackPanel>
                 <local:ResponsiveColumns MinimumColumnWidth="310" MaximumColumns="2">
                     <Grid Margin="0,3,8,8">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="132"/></Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                            <TextBlock Text="{DynamicResource TodayMeasuredApps}" Style="{StaticResource QuietLabel}"/>
+                            <TextBlock Text="{Binding TodayMainMetricLabel}" Style="{StaticResource QuietLabel}"/>
                             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" MaxHeight="58" Margin="0,9,0,9">
-                                <TextBlock Text="{Binding TodayMeasuredText}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="40" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+                                <TextBlock Text="{Binding TodayMainMetricText}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="40" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
                             </Viewbox>
-                            <TextBlock Text="{Binding TodayMeasuredChangeText}" Style="{StaticResource QuietLabel}" FontSize="11"/>
+                            <TextBlock Text="{Binding TodayMainMetricHint}" Style="{StaticResource QuietLabel}" FontSize="11"/>
                         </StackPanel>
-                        <Grid Grid.Column="1" Width="132" Height="132" VerticalAlignment="Center">
+                        <Grid Grid.Column="1" Width="132" Height="132" VerticalAlignment="Center" Visibility="{Binding ShowTodayUsageRing, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <local:UsageDonutChart ItemsSource="{Binding TodayApplications}" TrackBrush="{DynamicResource SurfaceHoverBrush}" StrokeThickness="14" IsHitTestVisible="False" Focusable="False"/>
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding TodayApplications.Count}" FontSize="25" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center"/>
@@ -101,9 +101,9 @@
                 <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="12" Padding="14,10" Margin="0,18,0,0" Visibility="{Binding ShowTodayScheduledLimit, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource RemainingTime}" Style="{StaticResource QuietLabel}" Margin="0,0,10,0"/>
-                            <TextBlock Text="{Binding RemainingText}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding TodaySecondaryMetricLabel}" Style="{StaticResource QuietLabel}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding TodaySecondaryMetricText}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="18,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding TodayLimitDisplayText}" Style="{StaticResource QuietLabel}" FontSize="10" HorizontalAlignment="Right"/>
@@ -124,7 +124,9 @@
             </local:ResponsiveColumns>
         </Border>
 
-        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="24" Padding="24,22" Margin="0,14,0,0">
+        <Button Content="{DynamicResource ViewUsageHistory}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" Margin="0,16,0,0" Click="History_Click" Visibility="{Binding ShowTodayHistoryShortcut, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <Expander x:Name="DailyDetails" Header="{DynamicResource TodayDayFlow}" IsExpanded="False" Margin="0,18,0,0">
+        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="24" Padding="24,22" Margin="0,10,0,0">
             <StackPanel>
                 <DockPanel>
                     <TextBlock Text="{DynamicResource TodayHourlyScale}" Style="{StaticResource QuietLabel}" FontSize="10" DockPanel.Dock="Right" Margin="12,4,0,0"/>
@@ -164,6 +166,7 @@
                 </Border>
             </StackPanel>
         </Border>
+        </Expander>
         <local:ResponsiveColumns MinimumColumnWidth="260" MaximumColumns="2" Margin="4,22,4,0">
             <StackPanel Margin="0,0,16,0">
                 <TextBlock Text="{DynamicResource RightNow}" Style="{StaticResource QuietLabel}" FontSize="10"/>

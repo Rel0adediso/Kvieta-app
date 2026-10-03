@@ -25,6 +25,7 @@
     <InformationalVersion Condition="'$(Configuration)' == 'Release'">$(Version)+public</InformationalVersion>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Compile Remove="Controls/TimeWheelPicker.xaml.cs" />
     <Page Remove="Controls/TimeWheelPicker.xaml" />
     <ProjectReference Include="../Kvieta.Controls/Kvieta.Controls.csproj" />

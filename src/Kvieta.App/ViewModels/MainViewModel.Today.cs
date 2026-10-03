@@ -36,6 +36,13 @@ public sealed partial class MainViewModel
     public bool HasTodayHourlyUsage => TodayHours.Any(hour => hour.UsedSeconds > 0);
     public bool HasNoTodayHourlyUsage => !HasTodayHourlyUsage;
     public bool ShowTodayScheduledLimit => HasScheduledPlan;
+    public bool ShowTodayUsageRing => !IsFamilyMode;
+    public bool ShowTodayHistoryShortcut => !IsInsightsMode;
+    public string TodayMainMetricLabel => IsFamilyMode ? LocalizationService.Get("RemainingTime") : LocalizationService.Get("TodayMeasuredApps");
+    public string TodayMainMetricText => IsFamilyMode ? RemainingText : TodayMeasuredText;
+    public string TodayMainMetricHint => IsFamilyMode ? CurrentWindowStatus : TodayMeasuredChangeText;
+    public string TodaySecondaryMetricLabel => IsFamilyMode ? LocalizationService.Get("TodayMeasuredApps") : LocalizationService.Get("RemainingTime");
+    public string TodaySecondaryMetricText => IsFamilyMode ? TodayMeasuredText : RemainingText;
 
     private void BuildTodayPresentation(DailyUsageRecord current, DailyUsageRecord previous)
     {
@@ -75,7 +82,9 @@ public sealed partial class MainViewModel
     private void NotifyTodayPresentation()
     {
         foreach (string property in new[] { nameof(TodayDateText), nameof(HasTodayFocus), nameof(TodayHeadline), nameof(TodayLeadText),
-            nameof(TodayPrimaryActionText), nameof(TodayPrimaryActionHint), nameof(ShowTodayScheduledLimit) })
+            nameof(TodayPrimaryActionText), nameof(TodayPrimaryActionHint), nameof(ShowTodayScheduledLimit),
+            nameof(ShowTodayUsageRing), nameof(ShowTodayHistoryShortcut), nameof(TodayMainMetricLabel),
+            nameof(TodayMainMetricText), nameof(TodayMainMetricHint), nameof(TodaySecondaryMetricLabel), nameof(TodaySecondaryMetricText) })
         {
             OnPropertyChanged(property);
         }

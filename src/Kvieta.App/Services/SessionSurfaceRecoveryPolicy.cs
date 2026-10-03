@@ -30,4 +30,18 @@ public static class SessionSurfaceRecoveryPolicy
             !isModalDialogOpen &&
             !isTransitionInProgress;
     }
+
+    public static bool ShouldGuardShortcuts(
+        bool shouldShowSessionSurfaces,
+        bool isSurfaceVisible,
+        bool isFullSurfaceRequired,
+        bool isControlCenterOpen,
+        bool isTransitionInProgress)
+    {
+        return shouldShowSessionSurfaces &&
+            isSurfaceVisible &&
+            isFullSurfaceRequired &&
+            !isControlCenterOpen &&
+            !isTransitionInProgress;
+    }
 }

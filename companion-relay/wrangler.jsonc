@@ -1,0 +1,12 @@
+{
+  "name": "kvieta-companion-relay",
+  "main": "src/worker.mjs",
+  "account_id": "9dc914a7c7a2f3d65d1ef4a5844ce298",
+  "compatibility_date": "2026-09-21",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false },
+  "durable_objects": { "bindings": [{ "name": "MAILBOX", "class_name": "Mailbox" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Mailbox"] }],
+  "ratelimits": [{ "name": "REQUEST_LIMIT", "namespace_id": "1101", "simple": { "limit": 60, "period": 60 } }]
+}

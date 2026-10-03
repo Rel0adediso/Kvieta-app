@@ -36,7 +36,9 @@ public sealed class SessionEngine
         long limitSeconds = GetLimitSeconds(now);
         long remainingSeconds = Math.Max(0, limitSeconds - Ledger.UsedSeconds);
 
-        string reason = Ledger.State switch
+        string reason = Ledger.RemoteLockActive
+            ? Localize("Ebeveyn tarafından uzaktan kilitlendi.", "Remotely locked by guardian.")
+            : Ledger.State switch
         {
             SessionState.Active => Localize("Oturum aktif. Süre işliyor.", "Session active. Time is running."),
             SessionState.Paused => Localize("Mola modu aktif. Süre durduruldu.", "Break active. Time is paused."),
@@ -62,7 +64,7 @@ public sealed class SessionEngine
     public bool StartOrResume(DateTimeOffset now)
     {
         Refresh(now);
-        if (Ledger.State is not (SessionState.Ready or SessionState.Paused))
+        if (Ledger.RemoteLockActive || Ledger.State is not (SessionState.Ready or SessionState.Paused))
         {
             return false;
         }
@@ -199,6 +201,7 @@ public sealed class SessionEngine
         }
 
         Refresh(now);
+        Ledger.RemoteLockActive = false;
         Ledger.BonusMinutes = Math.Min(1440, Ledger.BonusMinutes + minutes);
         Ledger.ExtraTimeGrantCount++;
         AddEvent(UsageEventKind.ExtraTimeGranted, now, minutes);
@@ -292,6 +295,13 @@ public sealed class SessionEngine
                 Ledger.RhythmApprovedMinutes,
                 Math.Max(0, schedule.DailyLimitMinutes - regularLimit));
         }
+        if (Ledger.RemoteLockActive)
+        {
+            Ledger.State = SessionState.TimeExpired;
+            Touch(now);
+            return;
+        }
+
         if (!schedule.IsAllowed)
         {
             Ledger.State = SessionState.OutsideSchedule;

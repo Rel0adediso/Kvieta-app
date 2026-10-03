@@ -118,6 +118,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         _settings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible;
     public bool CanRequestExtraTime => _settings is not null &&
         ShouldAllowExtraTimeRequest(_settings, State);
+    public bool IsFamilyMode => _settings?.Mode == UsageMode.Family;
     public bool CanPlanTomorrow => _settings is not null &&
         (_settings.Mode == UsageMode.Family ||
          _settings.Mode == UsageMode.Personal &&
@@ -249,6 +250,59 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         if (_engine is null)
         {
             return;
+        }
+
+        if (_pendingApplyAfterUtc is not null && _pendingApplyAfterUtc <= DateTimeOffset.UtcNow || GetSettingsLastWriteUtc() > _settingsLastWriteUtc)
+            await ReloadSettingsAsync();
+        MobileTimeRequest? mobileGrant = IsFamilyMode && _engine.Ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today) && MobileTimeRequestStore.IsAvailable()
+            ? MobileTimeRequestStore.TryClaimApproved(_engine.Ledger.BonusMinutes) : null;
+        if (mobileGrant?.GrantedMinutes is { } grantedMinutes)
+        {
+            try
+            {
+                int targetBonus = mobileGrant.TargetBonusMinutes ?? checked(_engine.Ledger.BonusMinutes + grantedMinutes);
+                int missingMinutes = Math.Max(0, targetBonus - _engine.Ledger.BonusMinutes);
+                if (missingMinutes > 0) _engine.AddBonusMinutes(missingMinutes, DateTimeOffset.Now);
+                RefreshSnapshot(notifyStateChange: true);
+                // Unlike the normal best-effort save, a receipt requires a successful disk write.
+                await _usageStore.SaveAsync(_engine.Ledger);
+                MobileTimeRequestStore.MarkApplied(mobileGrant.Id);
+            }
+            catch
+            {
+                MobileTimeRequestStore.ReleaseClaim(mobileGrant.Id);
+                throw;
+            }
+        }
+
+        MobileRemoteAction? remoteAction = MobileRemoteActionStore.TryClaimPending();
+        if (remoteAction is not null)
+        {
+            switch (remoteAction.Command)
+            {
+                case RemoteSessionCommand.Lock:
+                    _engine.Ledger.RemoteLockActive = true;
+                    _engine.Ledger.State = SessionState.TimeExpired;
+                    _pauseStartedAt = null;
+                    RefreshSnapshot(notifyStateChange: true);
+                    await _usageStore.SaveAsync(_engine.Ledger);
+                    break;
+                case RemoteSessionCommand.Pause:
+                    if (_engine.Ledger.State == SessionState.Active)
+                    {
+                        PauseForSystemInterruption();
+                        SystemMediaController.StopPlayback();
+                        await SaveAsync();
+                    }
+                    break;
+                case RemoteSessionCommand.Resume:
+                    _engine.Ledger.RemoteLockActive = false;
+                    if (_engine.Ledger.State is SessionState.Paused or SessionState.Ready or SessionState.TimeExpired)
+                    {
+                        await StartOrResumeAsync();
+                    }
+                    break;
+            }
         }
 
         if (_pendingApplyAfterUtc is not null && _pendingApplyAfterUtc <= DateTimeOffset.UtcNow)

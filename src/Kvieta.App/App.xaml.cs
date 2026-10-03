@@ -16,6 +16,7 @@ public partial class App : System.Windows.Application
     private MainWindow? _activatedControlCenter;
     private bool _controlCenterActivationInProgress;
     private AdminCredential? _guardianCredential;
+    private DashboardRelayPublisher? _dashboardRelay;
 
     public SystemThemeService ThemeService => _themeService;
 
@@ -98,6 +99,7 @@ public partial class App : System.Windows.Application
         }
 
         _singleInstance.ActivationRequested += SingleInstance_ActivationRequested;
+        _dashboardRelay = new DashboardRelayPublisher(Kvieta.App.MainWindow.ReadDashboardSnapshotAsync);
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         _themeService.Start(this);
@@ -323,6 +325,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _dashboardRelay?.Dispose();
         if (_singleInstance is not null)
         {
             _singleInstance.ActivationRequested -= SingleInstance_ActivationRequested;

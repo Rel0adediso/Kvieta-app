@@ -43,6 +43,8 @@ public partial class AdminPinWindow : Window
             ConfirmButton.Content = LocalizationService.Get("Unlock");
             RecoveryButton.Visibility = recoveryAction is null ? Visibility.Collapsed : Visibility.Visible;
         }
+
+        Deactivated += Window_Deactivated;
     }
 
     public string? ResultPin { get; private set; }
@@ -267,4 +269,19 @@ public partial class AdminPinWindow : Window
     }
 
     private void ShowError(string message) => ErrorText.Text = message;
+
+    private void Window_Deactivated(object? sender, EventArgs e)
+    {
+        if (Owner is SessionSurfaceWindow && IsVisible)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (IsVisible)
+                {
+                    Activate();
+                    Focus();
+                }
+            }, System.Windows.Threading.DispatcherPriority.Normal);
+        }
+    }
 }
