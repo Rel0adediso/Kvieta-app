@@ -149,9 +149,13 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
             _ => LocalizationService.Get("StateReady")
         };
 
+    public bool IsRemotelyLocked => _engine?.Ledger.RemoteLockActive == true;
+
     public string Headline => _focusGoal?.IsCompleted == true
         ? FocusClosureTitle
-        : State switch
+        : IsRemotelyLocked
+            ? (LocalizationService.CurrentLanguage == LanguagePreference.English ? "Device locked remotely" : "Bilgisayar uzaktan kilitlendi")
+            : State switch
         {
             SessionState.Paused => LocalizationService.Get("HeadlinePaused"),
             SessionState.TimeExpired => LocalizationService.Get("HeadlineExpired"),
@@ -165,7 +169,11 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         ? _sessionOutcome?.HasAccessBoundary == true
             ? FocusClosureSummary
             : LocalizationService.Get("FocusCompletedDescription")
-        : _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
+        : IsRemotelyLocked
+            ? (LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "This computer was locked remotely from the connected companion phone."
+                : "Bu bilgisayar bağlı olan telefondan uzaktan kilitlendi.")
+            : _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
     public string StatusExplanationText => CurrentStatusExplanation?.AccessibleText ?? string.Empty;
     private SessionStatusExplanation? CurrentStatusExplanation => _settings is null || _engine is null
         ? null
@@ -287,6 +295,8 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
                     RefreshSnapshot(notifyStateChange: true);
                     await _usageStore.SaveAsync(_engine.Ledger);
                     DesktopToastWindow.ShowToast("Uzaktan Yönetim", "Bilgisayar telefondan uzaktan kilitlendi.", "🔒");
+                    SystemMediaController.StopPlayback();
+                    SystemPowerController.LockWindows();
                     break;
                 case RemoteSessionCommand.Pause:
                     if (_engine.Ledger.State == SessionState.Active)
@@ -425,6 +435,26 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         }
 
         return started;
+    }
+
+    public void ApplyRemoteLock()
+    {
+        if (_engine is null) return;
+        _engine.Ledger.RemoteLockActive = true;
+        _engine.Ledger.State = SessionState.TimeExpired;
+        _pauseStartedAt = null;
+        RefreshSnapshot(notifyStateChange: true);
+    }
+
+    public async Task ApplyRemoteResumeAsync()
+    {
+        if (_engine is null) return;
+        _engine.Ledger.RemoteLockActive = false;
+        if (_engine.Ledger.State is SessionState.Paused or SessionState.Ready or SessionState.TimeExpired)
+        {
+            await StartOrResumeAsync();
+        }
+        RefreshSnapshot(notifyStateChange: true);
     }
 
     public static bool ShouldEnforceApplicationRules(ControlSettings settings, SessionState state) =>

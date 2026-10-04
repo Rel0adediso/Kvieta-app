@@ -539,6 +539,36 @@ public partial class SessionSurfaceWindow : Window
 
     private static bool IsEnglish => LocalizationService.CurrentLanguage == LanguagePreference.English;
 
+    public void ApplyRemoteLock()
+    {
+        _viewModel.ApplyRemoteLock();
+        _forceSurfaceVisible = true;
+        _widget?.Hide();
+        EnsureCorrectSurface();
+        WindowState = WindowState.Maximized;
+        Topmost = true;
+        Activate();
+    }
+
+    public async void ApplyRemotePause()
+    {
+        await _viewModel.PauseAsync();
+        _forceSurfaceVisible = true;
+        await ShowBreakSurfaceAsync();
+        EnsureCorrectSurface();
+    }
+
+    public async void ApplyRemoteResume()
+    {
+        await _viewModel.ApplyRemoteResumeAsync();
+        if (_viewModel.IsActive)
+        {
+            _forceSurfaceVisible = false;
+            await ShowWidgetSurfaceAsync();
+        }
+        EnsureCorrectSurface();
+    }
+
     private async void PauseFromWidget(object? sender, EventArgs e)
     {
         if (_surfaceTransitionInProgress)

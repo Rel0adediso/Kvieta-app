@@ -1,6 +1,9 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Windows;
+using Kvieta.Core.Models;
+using Kvieta.Core.Services;
 
 namespace Kvieta.App.Services;
 
@@ -39,18 +42,109 @@ public static class MobileRemoteActionStore
         catch { /* payload can be plain string or JSON object */ }
 
         if (!Enum.TryParse<RemoteSessionCommand>(commandText, true, out var command)) return false;
-        if (!await Gate.WaitAsync(500, cancellation)) return false;
+
+        // 1. Save to encrypted file for fallback / audit
+        if (await Gate.WaitAsync(500, cancellation))
+        {
+            try
+            {
+                var action = new MobileRemoteAction(Guid.NewGuid().ToString("N"), command, DateTimeOffset.UtcNow, Applied: false);
+                byte[] plain = JsonSerializer.SerializeToUtf8Bytes(action, Json);
+                byte[] protectedBytes = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
+                Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+                await File.WriteAllBytesAsync(FilePath, protectedBytes, cancellation);
+            }
+            catch { }
+            finally { Gate.Release(); }
+        }
+
+        // 2. Direct ledger persistence
         try
         {
-            var action = new MobileRemoteAction(Guid.NewGuid().ToString("N"), command, DateTimeOffset.UtcNow, Applied: false);
-            byte[] plain = JsonSerializer.SerializeToUtf8Bytes(action, Json);
-            byte[] protectedBytes = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            await File.WriteAllBytesAsync(FilePath, protectedBytes, cancellation);
-            return true;
+            var usageStore = new JsonUsageStore();
+            var ledger = await usageStore.LoadAsync(cancellation);
+            switch (command)
+            {
+                case RemoteSessionCommand.Lock:
+                    ledger.RemoteLockActive = true;
+                    ledger.State = SessionState.TimeExpired;
+                    ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
+                    break;
+                case RemoteSessionCommand.Pause:
+                    if (ledger.State == SessionState.Active)
+                    {
+                        ledger.State = SessionState.Paused;
+                    }
+                    ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
+                    break;
+                case RemoteSessionCommand.Resume:
+                    ledger.RemoteLockActive = false;
+                    if (ledger.State is SessionState.Paused or SessionState.TimeExpired or SessionState.Ready)
+                    {
+                        ledger.State = SessionState.Active;
+                    }
+                    ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
+                    break;
+            }
+            await usageStore.SaveAsync(ledger, cancellation);
         }
-        catch { return false; }
-        finally { Gate.Release(); }
+        catch { }
+
+        // 3. Immediate system actions
+        try
+        {
+            switch (command)
+            {
+                case RemoteSessionCommand.Lock:
+                    SystemMediaController.StopPlayback();
+                    DesktopToastWindow.ShowToast("Uzaktan Yönetim", "Bilgisayar telefondan uzaktan kilitlendi.", "🔒");
+                    SystemPowerController.LockWindows();
+                    break;
+
+                case RemoteSessionCommand.Pause:
+                    SystemMediaController.StopPlayback();
+                    DesktopToastWindow.ShowToast("Uzaktan Yönetim", "Telefondan oturuma mola verildi.", "☕");
+                    break;
+
+                case RemoteSessionCommand.Resume:
+                    DesktopToastWindow.ShowToast("Uzaktan Yönetim", "Oturum kilidi telefondan açıldı.", "▶️");
+                    break;
+            }
+        }
+        catch { }
+
+        // 4. Dispatch to active UI surfaces
+        try
+        {
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                try
+                {
+                    foreach (Window window in System.Windows.Application.Current.Windows)
+                    {
+                        if (window is SessionSurfaceWindow surface)
+                        {
+                            switch (command)
+                            {
+                                case RemoteSessionCommand.Lock:
+                                    surface.ApplyRemoteLock();
+                                    break;
+                                case RemoteSessionCommand.Pause:
+                                    surface.ApplyRemotePause();
+                                    break;
+                                case RemoteSessionCommand.Resume:
+                                    surface.ApplyRemoteResume();
+                                    break;
+                            }
+                        }
+                    }
+                }
+                catch { }
+            });
+        }
+        catch { }
+
+        return true;
     }
 
     public static MobileRemoteAction? TryClaimPending()
