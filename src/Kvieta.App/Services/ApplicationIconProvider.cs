@@ -12,6 +12,7 @@ public static class ApplicationIconProvider
 {
     private static readonly object Sync = new();
     private static readonly Dictionary<string, ImageSource?> Cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string?> Base64Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, DateTimeOffset> MissingCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly TimeSpan MissingCacheDuration = TimeSpan.FromMinutes(2);
 
@@ -54,6 +55,55 @@ public static class ApplicationIconProvider
         }
 
         return icon;
+    }
+
+    public static string? GetIconPngBase64(string applicationName)
+    {
+        string processName = Path.GetFileNameWithoutExtension(applicationName.Trim());
+        if (string.IsNullOrWhiteSpace(processName))
+        {
+            return null;
+        }
+
+        lock (Sync)
+        {
+            if (Base64Cache.TryGetValue(processName, out string? cached))
+            {
+                return cached;
+            }
+        }
+
+        ImageSource? icon = GetIcon(applicationName);
+        if (icon is not BitmapSource bitmapSource)
+        {
+            lock (Sync)
+            {
+                Base64Cache[processName] = null;
+            }
+            return null;
+        }
+
+        try
+        {
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+            using var stream = new MemoryStream();
+            encoder.Save(stream);
+            string base64 = Convert.ToBase64String(stream.ToArray());
+            lock (Sync)
+            {
+                Base64Cache[processName] = base64;
+            }
+            return base64;
+        }
+        catch
+        {
+            lock (Sync)
+            {
+                Base64Cache[processName] = null;
+            }
+            return null;
+        }
     }
 
     private static ImageSource? TryExtractFileIcon(string applicationName)

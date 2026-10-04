@@ -219,6 +219,11 @@ public sealed class DashboardRelayPublisher : IDisposable
                                     await MobileAppRuleStore.ApplyAsync(decision.PayloadJson, _stop.Token);
                                     DashboardEndpoint.RecordPairedPhone("Android Telefon");
                                 }
+                                else if (string.Equals(decision.Action, "update-web-guard", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    await MobileWebGuardStore.ApplyAsync(decision.PayloadJson, _stop.Token);
+                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                }
                                 else
                                 {
                                     MobileTimeRequestStore.AcceptDecision(decision);
@@ -226,7 +231,7 @@ public sealed class DashboardRelayPublisher : IDisposable
                                 }
 
                                 // If allowed by rate-limit window, push fresh snapshot so phone immediately sees updated state
-                                if (DateTimeOffset.UtcNow - lastPublishUtc >= TimeSpan.FromSeconds(45))
+                                if (DateTimeOffset.UtcNow - lastPublishUtc >= TimeSpan.FromSeconds(5))
                                 {
                                     try
                                     {

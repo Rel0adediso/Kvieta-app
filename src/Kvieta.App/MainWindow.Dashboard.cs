@@ -81,7 +81,8 @@ public partial class MainWindow
                     name,
                     seconds = Math.Max(0, x.Value),
                     limitMinutes = rule?.DailyLimitMinutes,
-                    mode = rule?.Mode.ToString() ?? "Unlimited"
+                    mode = rule?.Mode.ToString() ?? "Unlimited",
+                    iconBase64 = ApplicationIconProvider.GetIconPngBase64(x.Key)
                 };
             }).ToArray();
         var appRules = settings.AppRules.Select(r => new
@@ -129,6 +130,9 @@ public partial class MainWindow
             }).ToArray(),
             weeklyUsage,
             focusRemainingSeconds,
+            webGuardEnabled = settings.WebGuardEnabled,
+            safeSearchEnforced = settings.SafeSearchEnforced,
+            blockedWebDomains = settings.BlockedWebDomains.ToArray(),
             remoteDecisionToken = decisionToken,
             timeRequest = request is null ? null : new
             {
