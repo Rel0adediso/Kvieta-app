@@ -165,7 +165,17 @@ public sealed class DashboardEndpoint : IAsyncDisposable
         {
             if (_store.Relay is not null)
             {
-                if (_store.Phone is not null) throw new InvalidOperationException("Revoke the current phone first.");
+                if (_store.Phone is not null)
+                {
+                    DashboardStore next = _store with
+                    {
+                        Phone = null,
+                        Relay = RelayCredentials.Create().Upgrade(),
+                        RevokedRelays = [.. _store.RevokedRelays ?? [], _store.Relay]
+                    };
+                    Save(next);
+                    _store = next;
+                }
                 RelayClientSettings relay = _store.Relay.Client;
                 long expires = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds();
                 return $"kvieta-companion://pair?v=2&origin={Uri.EscapeDataString(relay.Origin)}&room={relay.Room}&readToken={relay.ReadToken}&key={Uri.EscapeDataString(relay.Key)}&decisionToken={relay.DecisionToken}&expires={expires}";

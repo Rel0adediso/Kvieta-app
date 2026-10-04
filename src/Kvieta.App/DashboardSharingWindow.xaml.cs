@@ -82,6 +82,10 @@ public partial class DashboardSharingWindow : Window
         if (_endpoint is not { CanPair: true }) { Update(); return; }
         try
         {
+            if (!_endpoint.RemoteEnabled)
+            {
+                try { _endpoint.EnableRemote(); } catch { }
+            }
             InvitationBox.Text = _endpoint.CreateInvitation();
             QrImage.Source = QrCodeImageService.Create(InvitationBox.Text);
             Update();
