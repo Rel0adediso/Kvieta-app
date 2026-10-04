@@ -68,6 +68,22 @@ public sealed class DashboardEndpoint : IAsyncDisposable
             _store = new(Convert.ToBase64String(pfx), null);
             Save(_store);
         }
+        GlobalStoreChanged += HandleGlobalStoreChanged;
+    }
+
+    public static event Action? GlobalStoreChanged;
+    private void HandleGlobalStoreChanged()
+    {
+        lock (_gate)
+        {
+            try
+            {
+                DashboardStore? loaded = DashboardRelay.Load(_path);
+                if (loaded is not null) _store = loaded;
+            }
+            catch { }
+        }
+        Changed?.Invoke();
     }
 
     public string CertificatePin => Convert.ToHexString(SHA256.HashData(_certificate.RawData));
@@ -270,8 +286,36 @@ public sealed class DashboardEndpoint : IAsyncDisposable
         finally { CryptographicOperations.ZeroMemory(plain); if (File.Exists(temp)) File.Delete(temp); }
     }
 
+    public static void RecordPairedPhone(string deviceName, string deviceId = "android-relay")
+    {
+        try
+        {
+            string path = DashboardRelay.StorePath;
+            if (!File.Exists(path)) return;
+            byte[] plain = ProtectedData.Unprotect(File.ReadAllBytes(path), null, DataProtectionScope.CurrentUser);
+            DashboardStore? store;
+            try { store = JsonSerializer.Deserialize<DashboardStore>(plain); }
+            finally { CryptographicOperations.ZeroMemory(plain); }
+            if (store is not null && (store.Phone is null || store.Phone.Name != deviceName))
+            {
+                DashboardStore next = store with { Phone = new DashboardPhone(deviceId, deviceName, "") };
+                byte[] updatedPlain = JsonSerializer.SerializeToUtf8Bytes(next);
+                string temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                try
+                {
+                    File.WriteAllBytes(temp, ProtectedData.Protect(updatedPlain, null, DataProtectionScope.CurrentUser));
+                    File.Move(temp, path, true);
+                }
+                finally { CryptographicOperations.ZeroMemory(updatedPlain); if (File.Exists(temp)) File.Delete(temp); }
+                GlobalStoreChanged?.Invoke();
+            }
+        }
+        catch { }
+    }
+
     public async ValueTask DisposeAsync()
     {
+        GlobalStoreChanged -= HandleGlobalStoreChanged;
         if (_app is not null) { await _app.StopAsync(); await _app.DisposeAsync(); }
         _certificate.Dispose();
     }

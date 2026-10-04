@@ -143,6 +143,9 @@ public sealed class DashboardRelayPublisher : IDisposable
     {
         _ = Task.Run(async () =>
         {
+            string? lastProcessedDecisionId = null;
+            DateTimeOffset lastPublishUtc = DateTimeOffset.MinValue;
+
             // The session and control center can be different processes. Only one publishes at a time.
             while (!_stop.IsCancellationRequested)
             {
@@ -156,41 +159,102 @@ public sealed class DashboardRelayPublisher : IDisposable
                         DashboardStore? store = DashboardRelay.Load(DashboardRelay.StorePath);
                         foreach (RelayCredentials old in store?.RevokedRelays ?? [])
                             await DashboardRelay.RevokeAsync(old, _stop.Token);
+
                         if (store?.Relay is not null)
                         {
                             RelayCredentials relay = store.Relay.Upgrade();
-                            object value = await snapshot();
-                            // A revocation or replacement may have occurred while reading the usage ledger.
-                            if (DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.Room == relay.Client.Room)
+
+                            // 1. Regular snapshot publishing (every 48 seconds to respect Cloudflare 45s write rate limit)
+                            if (DateTimeOffset.UtcNow - lastPublishUtc >= TimeSpan.FromSeconds(48))
                             {
-                                await DashboardRelay.PublishAsync(relay, value, _stop.Token);
-                                MobileTimeDecision? decision = await DashboardRelay.ReadDecisionAsync(relay, _stop.Token);
-                                if (decision is not null && DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.Room == relay.Client.Room)
+                                try
                                 {
-                                    if (string.Equals(decision.Action, "update-plan", StringComparison.OrdinalIgnoreCase))
-                                        await MobilePlanChangeStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    else if (string.Equals(decision.Action, "session-action", StringComparison.OrdinalIgnoreCase))
-                                        await MobileRemoteActionStore.RecordActionAsync(decision.PayloadJson, _stop.Token);
-                                    else if (string.Equals(decision.Action, "update-app-rule", StringComparison.OrdinalIgnoreCase))
-                                        await MobileAppRuleStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    else
-                                        MobileTimeRequestStore.AcceptDecision(decision);
+                                    object value = await snapshot();
+                                    if (DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.Room == relay.Client.Room)
+                                    {
+                                        await DashboardRelay.PublishAsync(relay, value, _stop.Token);
+                                        lastPublishUtc = DateTimeOffset.UtcNow;
+                                    }
+                                }
+                                catch (Exception) { /* transient network or rate limit, retry later */ }
+                            }
+
+                            // 2. High-frequency decision checking (every 3 seconds)
+                            MobileTimeDecision? decision = null;
+                            try { decision = await DashboardRelay.ReadDecisionAsync(relay, _stop.Token); }
+                            catch (Exception) { /* transient network error */ }
+
+                            if (decision is not null && decision.DecisionId != lastProcessedDecisionId &&
+                                DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.Room == relay.Client.Room)
+                            {
+                                lastProcessedDecisionId = decision.DecisionId;
+
+                                if (string.Equals(decision.Action, "pair-device", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    string phoneName = "Android Telefon";
+                                    try
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(decision.PayloadJson))
+                                        {
+                                            using var doc = JsonDocument.Parse(decision.PayloadJson);
+                                            if (doc.RootElement.TryGetProperty("deviceName", out var prop))
+                                                phoneName = prop.GetString() ?? phoneName;
+                                        }
+                                    }
+                                    catch { }
+                                    DashboardEndpoint.RecordPairedPhone(phoneName);
+                                }
+                                else if (string.Equals(decision.Action, "update-plan", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    await MobilePlanChangeStore.ApplyAsync(decision.PayloadJson, _stop.Token);
+                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                }
+                                else if (string.Equals(decision.Action, "session-action", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    await MobileRemoteActionStore.RecordActionAsync(decision.PayloadJson, _stop.Token);
+                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                }
+                                else if (string.Equals(decision.Action, "update-app-rule", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    await MobileAppRuleStore.ApplyAsync(decision.PayloadJson, _stop.Token);
+                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                }
+                                else
+                                {
+                                    MobileTimeRequestStore.AcceptDecision(decision);
+                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                }
+
+                                // If allowed by rate-limit window, push fresh snapshot so phone immediately sees updated state
+                                if (DateTimeOffset.UtcNow - lastPublishUtc >= TimeSpan.FromSeconds(45))
+                                {
+                                    try
+                                    {
+                                        object value = await snapshot();
+                                        await DashboardRelay.PublishAsync(relay, value, _stop.Token);
+                                        lastPublishUtc = DateTimeOffset.UtcNow;
+                                    }
+                                    catch { }
                                 }
                             }
                         }
-                        bool pending = MobileTimeRequestStore.Current()?.Status is (MobileTimeRequestStatus.Pending or MobileTimeRequestStatus.ApprovedAwaitingDevice);
-                        await Task.Delay(TimeSpan.FromSeconds(pending ? 10 : 60), _stop.Token);
+
+                        // Poll every 3 seconds for responsive remote actions
+                        await Task.Delay(TimeSpan.FromSeconds(3), _stop.Token);
                     }
                     catch (OperationCanceledException) when (_stop.IsCancellationRequested) { return; }
                     catch (Exception)
                     {
-                        // Slow retry also applies to offline/quota failures.
-                        try { await Task.Delay(TimeSpan.FromSeconds(60), _stop.Token); }
+                        // Slow retry on unexpected failures
+                        try { await Task.Delay(TimeSpan.FromSeconds(10), _stop.Token); }
                         catch (OperationCanceledException) { return; }
                     }
                 }
-                try { await Task.Delay(TimeSpan.FromSeconds(15), _stop.Token); }
-                catch (OperationCanceledException) { return; }
+                else
+                {
+                    try { await Task.Delay(TimeSpan.FromSeconds(5), _stop.Token); }
+                    catch (OperationCanceledException) { return; }
+                }
             }
         });
     }

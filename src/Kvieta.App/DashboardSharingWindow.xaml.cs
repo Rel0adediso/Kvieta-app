@@ -68,18 +68,38 @@ public partial class DashboardSharingWindow : Window
         QrBorder.Visibility = paired || pending || !_endpoint.CanPair ? Visibility.Collapsed : Visibility.Visible;
         ManualInvite.Visibility = paired || pending || !_endpoint.CanPair ? Visibility.Collapsed : Visibility.Visible;
         RevokeButton.Visibility = paired ? Visibility.Visible : Visibility.Collapsed;
-        RenewButton.Visibility = paired || !_endpoint.CanPair ? Visibility.Collapsed : Visibility.Visible;
+        RenewButton.Visibility = !_endpoint.CanPair ? Visibility.Collapsed : Visibility.Visible;
+        RenewButton.Content = paired ? T("Başka cihaz bağla (Yeni QR)", "Connect another device (New QR)") : T("Yeni bağlantı oluştur", "Create a new invitation");
         ApproveButton.Visibility = pending ? Visibility.Visible : Visibility.Collapsed;
         CodeText.Text = _endpoint.VerificationCode ?? "";
-        StatusText.Text = paired ? T($"Bağlı telefon: {_endpoint.PhoneName}", $"Paired phone: {_endpoint.PhoneName}")
+        StatusText.Text = paired ? T($"Bağlı telefon: {_endpoint.PhoneName} (Etkin ✓)", $"Paired phone: {_endpoint.PhoneName} (Active ✓)")
             : pending ? T($"{_endpoint.PendingName} bağlanmak istiyor. Kodu karşılaştır.", $"{_endpoint.PendingName} wants to connect. Compare the code.")
-            : T("Bağlantı 2 dakika geçerli. Süresi geçerse yeni bağlantı oluştur.", "Invitation valid for 2 minutes. Create a new one if it expires.");
+            : T("Bağlantı geçerli. QR kodunu Android Kvieta uygulamasından okut.", "Invitation valid. Scan this QR code using the Android Kvieta app.");
         if (!paired && !_endpoint.CanPair) StatusText.Text = T("QR eşleştirmesi için özel bir yerel ağa bağlanıp bu ekranı yeniden aç.", "Connect to a private local network and reopen this screen to pair with QR.");
     }
     private void Renew()
     {
         if (_endpoint is not { CanPair: true }) { Update(); return; }
-        try { InvitationBox.Text = _endpoint.CreateInvitation(); QrImage.Source = QrCodeImageService.Create(InvitationBox.Text); Update(); }
+        try
+        {
+            InvitationBox.Text = _endpoint.CreateInvitation();
+            QrImage.Source = QrCodeImageService.Create(InvitationBox.Text);
+            Update();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var store = DashboardRelay.Load(DashboardRelay.StorePath);
+                    if (store?.Relay is not null)
+                    {
+                        var snap = await MainWindow.ReadDashboardSnapshotAsync();
+                        await DashboardRelay.PublishAsync(store.Relay.Upgrade(), snap, CancellationToken.None);
+                    }
+                }
+                catch { }
+            });
+        }
         catch (Exception) { StatusText.Text = T("Davet oluşturulamadı. Tekrar dene.", "Could not create invitation. Try again."); }
     }
     private void Renew_Click(object sender, RoutedEventArgs e) => Renew();
