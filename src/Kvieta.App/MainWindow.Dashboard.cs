@@ -129,19 +129,28 @@ public partial class MainWindow
         bool hasAdminPin = adminCred is { IsConfigured: true, IsPublicMarker: false };
         return new
         {
-            deviceName = settings.DeviceName, mode = settings.Mode.ToString(), sessionState = ledger.State.ToString(),
+            deviceName = settings.DeviceName,
+            mode = settings.Mode.ToString(),
+            sessionState = ledger.State.ToString(),
             isRemotelyLocked = ledger.RemoteLockActive,
-            canLockRemotely = true, canPauseRemotely = true,
+            canLockRemotely = true,
+            canPauseRemotely = true,
             localDay = ledger.LocalDay.ToString("yyyy-MM-dd"),
-            observedAtUtc = ledger.LastUpdatedUtc, servedAtUtc = now.ToUniversalTime(),
+            observedAtUtc = ledger.LastUpdatedUtc,
+            servedAtUtc = now.ToUniversalTime(),
             stale = !today || now.ToUniversalTime() - ledger.LastUpdatedUtc > TimeSpan.FromMinutes(2),
-            usedSeconds = ledger.ForegroundAppUsedSeconds.Values.Sum(x => Math.Max(0, x)), remainingSeconds = remaining,
+            usedSeconds = ledger.ForegroundAppUsedSeconds.Values.Sum(x => Math.Max(0, x)),
+            remainingSeconds = remaining,
             sessionUsedSeconds = Math.Max(0, ledger.UsedSeconds),
-            applications, appRules, hourlyUsage,
+            applications,
+            appRules,
+            hourlyUsage,
             schedule = settings.Schedule.Select(day => new
             {
-                day = day.Day.ToString(), isEnabled = day.IsEnabled,
-                allowedFrom = day.AllowedFrom.ToString("HH:mm"), allowedUntil = day.AllowedUntil.ToString("HH:mm"),
+                day = day.Day.ToString(),
+                isEnabled = day.IsEnabled,
+                allowedFrom = day.AllowedFrom.ToString("HH:mm"),
+                allowedUntil = day.AllowedUntil.ToString("HH:mm"),
                 dailyLimitMinutes = Math.Clamp(day.DailyLimitMinutes, 0, 1440)
             }).ToArray(),
             weeklyUsage,

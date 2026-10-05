@@ -221,8 +221,12 @@ public sealed class DashboardEndpoint : IAsyncDisposable
     {
         lock (_gate)
         {
-            DashboardStore next = _store with { Phone = null, Relay = null,
-                RevokedRelays = _store.Relay is null ? _store.RevokedRelays : [.. _store.RevokedRelays ?? [], _store.Relay] };
+            DashboardStore next = _store with
+            {
+                Phone = null,
+                Relay = null,
+                RevokedRelays = _store.Relay is null ? _store.RevokedRelays : [.. _store.RevokedRelays ?? [], _store.Relay]
+            };
             Save(next);
             _store = next;
             _pending = null;

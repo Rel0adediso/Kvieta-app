@@ -8,13 +8,26 @@ internal static class RelayInteropChecks
         RelayCredentials credentials = RelayCredentials.Create();
         object snapshot = new
         {
-            deviceName = "Relay integration test", mode = "Personal", sessionState = "Active",
-            localDay = DateTime.UtcNow.ToString("yyyy-MM-dd"), observedAtUtc = DateTimeOffset.UtcNow,
-            stale = false, usedSeconds = 123, remainingSeconds = 456,
+            deviceName = "Relay integration test",
+            mode = "Personal",
+            sessionState = "Active",
+            localDay = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+            observedAtUtc = DateTimeOffset.UtcNow,
+            stale = false,
+            usedSeconds = 123,
+            remainingSeconds = 456,
             applications = new[] { new { name = "Synthetic", seconds = 123 } },
-            timeRequest = new { id = "11111111-1111-1111-1111-111111111111", requestedMinutes = 30, note = "Synthetic request",
-                createdAtUtc = DateTimeOffset.UtcNow, expiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(30), status = "Pending",
-                grantedMinutes = (int?)null, appliedAtUtc = (DateTimeOffset?)null }
+            timeRequest = new
+            {
+                id = "11111111-1111-1111-1111-111111111111",
+                requestedMinutes = 30,
+                note = "Synthetic request",
+                createdAtUtc = DateTimeOffset.UtcNow,
+                expiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(30),
+                status = "Pending",
+                grantedMinutes = (int?)null,
+                appliedAtUtc = (DateTimeOffset?)null
+            }
         };
         long sequence = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var fixture = new { credentials, envelope = new { sequence, box = DashboardRelay.Encrypt(credentials.Client, snapshot, sequence) } };

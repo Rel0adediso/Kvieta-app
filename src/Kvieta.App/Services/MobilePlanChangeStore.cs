@@ -29,8 +29,10 @@ public static class MobilePlanChangeStore
             ControlSettings current = await new JsonSettingsStore(path, readOnly: true).LoadAsync(cancellation);
             current.Schedule = change.Schedule.Select(day => new DaySchedule
             {
-                Day = Enum.Parse<DayOfWeek>(day.Day, true), IsEnabled = day.IsEnabled,
-                AllowedFrom = TimeOnly.Parse(day.AllowedFrom), AllowedUntil = TimeOnly.Parse(day.AllowedUntil),
+                Day = Enum.Parse<DayOfWeek>(day.Day, true),
+                IsEnabled = day.IsEnabled,
+                AllowedFrom = TimeOnly.Parse(day.AllowedFrom),
+                AllowedUntil = TimeOnly.Parse(day.AllowedUntil),
                 DailyLimitMinutes = day.DailyLimitMinutes
             }).OrderBy(day => day.Day == DayOfWeek.Sunday ? 7 : (int)day.Day).ToList();
             if (current.Schedule.Select(day => day.Day).Distinct().Count() != 7) return false;

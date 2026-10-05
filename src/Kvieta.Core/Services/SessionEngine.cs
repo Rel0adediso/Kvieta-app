@@ -39,15 +39,15 @@ public sealed class SessionEngine
         string reason = Ledger.RemoteLockActive
             ? Localize("Ebeveyn tarafından uzaktan kilitlendi.", "Remotely locked by guardian.")
             : Ledger.State switch
-        {
-            SessionState.Active => Localize("Oturum aktif. Süre işliyor.", "Session active. Time is running."),
-            SessionState.Paused => Localize("Mola modu aktif. Süre durduruldu.", "Break active. Time is paused."),
-            SessionState.TimeExpired => Localize("Bugünkü kullanım süresi tamamlandı.", "Today's usage time is complete."),
-            SessionState.OutsideSchedule when Ledger.ClockRollbackUntilUtc is not null =>
-                Localize("Sistem saati geriye alındı. Önce doğru zamanı geri yükle.", "The system clock was moved back. Restore the correct time first."),
-            SessionState.OutsideSchedule => schedule.Reason,
-            _ => Localize("Oturum başlatılmaya hazır.", "Session is ready to start.")
-        };
+            {
+                SessionState.Active => Localize("Oturum aktif. Süre işliyor.", "Session active. Time is running."),
+                SessionState.Paused => Localize("Mola modu aktif. Süre durduruldu.", "Break active. Time is paused."),
+                SessionState.TimeExpired => Localize("Bugünkü kullanım süresi tamamlandı.", "Today's usage time is complete."),
+                SessionState.OutsideSchedule when Ledger.ClockRollbackUntilUtc is not null =>
+                    Localize("Sistem saati geriye alındı. Önce doğru zamanı geri yükle.", "The system clock was moved back. Restore the correct time first."),
+                SessionState.OutsideSchedule => schedule.Reason,
+                _ => Localize("Oturum başlatılmaya hazır.", "Session is ready to start.")
+            };
 
         return new SessionSnapshot(
             Ledger.State,

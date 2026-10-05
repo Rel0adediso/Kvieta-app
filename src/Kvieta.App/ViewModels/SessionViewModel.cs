@@ -156,14 +156,14 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         : IsRemotelyLocked
             ? (LocalizationService.CurrentLanguage == LanguagePreference.English ? "Device locked remotely" : "Bilgisayar uzaktan kilitlendi")
             : State switch
-        {
-            SessionState.Paused => LocalizationService.Get("HeadlinePaused"),
-            SessionState.TimeExpired => LocalizationService.Get("HeadlineExpired"),
-            SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("HeadlineClockRollback"),
-            SessionState.OutsideSchedule => LocalizationService.Get("HeadlineOutside"),
-            SessionState.Active => LocalizationService.Get("HeadlineActive"),
-            _ => LocalizationService.Get("HeadlineReady")
-        };
+            {
+                SessionState.Paused => LocalizationService.Get("HeadlinePaused"),
+                SessionState.TimeExpired => LocalizationService.Get("HeadlineExpired"),
+                SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("HeadlineClockRollback"),
+                SessionState.OutsideSchedule => LocalizationService.Get("HeadlineOutside"),
+                SessionState.Active => LocalizationService.Get("HeadlineActive"),
+                _ => LocalizationService.Get("HeadlineReady")
+            };
 
     public string Description => _focusGoal?.IsCompleted == true
         ? _sessionOutcome?.HasAccessBoundary == true

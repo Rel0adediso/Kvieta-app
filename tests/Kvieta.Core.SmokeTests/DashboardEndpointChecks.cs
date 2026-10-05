@@ -29,7 +29,8 @@ internal static class DashboardEndpointChecks
             ServerCertificateCustomValidationCallback = (_, cert, _, _) => cert is not null && Convert.ToHexString(SHA256.HashData(cert.RawData)) == expectedPin,
             AllowAutoRedirect = false,
             UseProxy = false
-        }) { BaseAddress = new Uri(origin), Timeout = TimeSpan.FromSeconds(10) };
+        })
+        { BaseAddress = new Uri(origin), Timeout = TimeSpan.FromSeconds(10) };
 
         await using (DashboardEndpoint endpoint = await DashboardEndpoint.StartAsync(path, Snapshot, IPAddress.Loopback, 0))
         {

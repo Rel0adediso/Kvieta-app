@@ -45,38 +45,38 @@ internal static class TodayDashboardPreview
                 application.InitializeComponent();
                 foreach (UsageMode mode in new[] { UsageMode.Personal, UsageMode.Family, UsageMode.Insights })
                 {
-                settings.Mode = mode;
-                settingsStore.SaveAsync(settings).GetAwaiter().GetResult();
-                var viewModel = new MainViewModel(settingsStore, usageStore);
-                viewModel.InitializeAsync().GetAwaiter().GetResult();
-                foreach (string theme in new[] { "Light", "Dark" })
-                {
-                    application.Resources.MergedDictionaries.Add(new ResourceDictionary
+                    settings.Mode = mode;
+                    settingsStore.SaveAsync(settings).GetAwaiter().GetResult();
+                    var viewModel = new MainViewModel(settingsStore, usageStore);
+                    viewModel.InitializeAsync().GetAwaiter().GetResult();
+                    foreach (string theme in new[] { "Light", "Dark" })
                     {
-                        Source = new Uri($"/Kvieta;component/Themes/{theme}Theme.xaml", UriKind.Relative)
-                    });
-                    foreach (int width in new[] { 980, 380 })
-                    {
-                        var dashboard = new TodayDashboard { DataContext = viewModel };
-                        var surface = new Border { Padding = new Thickness(24), Child = dashboard };
-                        surface.SetResourceReference(Border.BackgroundProperty, "BackgroundBrush");
-                        surface.Measure(new Size(width, double.PositiveInfinity));
-                        int height = (int)Math.Ceiling(surface.DesiredSize.Height);
-                        surface.Arrange(new Rect(0, 0, width, height));
-                        surface.UpdateLayout();
-                        surface.InvalidateMeasure();
-                        surface.Measure(new Size(width, double.PositiveInfinity));
-                        height = (int)Math.Ceiling(surface.DesiredSize.Height);
-                        surface.Arrange(new Rect(0, 0, width, height));
-                        surface.UpdateLayout();
-                        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-                        bitmap.Render(surface);
-                        var encoder = new PngBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                        using var file = File.Create(Path.Combine(output, $"today-{mode.ToString().ToLowerInvariant()}-{theme.ToLowerInvariant()}-{width}.png"));
-                        encoder.Save(file);
+                        application.Resources.MergedDictionaries.Add(new ResourceDictionary
+                        {
+                            Source = new Uri($"/Kvieta;component/Themes/{theme}Theme.xaml", UriKind.Relative)
+                        });
+                        foreach (int width in new[] { 980, 380 })
+                        {
+                            var dashboard = new TodayDashboard { DataContext = viewModel };
+                            var surface = new Border { Padding = new Thickness(24), Child = dashboard };
+                            surface.SetResourceReference(Border.BackgroundProperty, "BackgroundBrush");
+                            surface.Measure(new Size(width, double.PositiveInfinity));
+                            int height = (int)Math.Ceiling(surface.DesiredSize.Height);
+                            surface.Arrange(new Rect(0, 0, width, height));
+                            surface.UpdateLayout();
+                            surface.InvalidateMeasure();
+                            surface.Measure(new Size(width, double.PositiveInfinity));
+                            height = (int)Math.Ceiling(surface.DesiredSize.Height);
+                            surface.Arrange(new Rect(0, 0, width, height));
+                            surface.UpdateLayout();
+                            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                            bitmap.Render(surface);
+                            var encoder = new PngBitmapEncoder();
+                            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                            using var file = File.Create(Path.Combine(output, $"today-{mode.ToString().ToLowerInvariant()}-{theme.ToLowerInvariant()}-{width}.png"));
+                            encoder.Save(file);
+                        }
                     }
-                }
                 }
                 application.Shutdown();
                 Console.WriteLine($"Today previews: {output}");

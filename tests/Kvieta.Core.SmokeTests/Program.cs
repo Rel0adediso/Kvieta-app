@@ -51,8 +51,14 @@ if (args.Length == 2 && args[0] == "--dashboard-interop")
     string fixtureDirectory = Path.Combine(Path.GetTempPath(), "Kvieta-Interop-" + Guid.NewGuid().ToString("N"));
     await using DashboardEndpoint endpoint = await DashboardEndpoint.StartAsync(Path.Combine(fixtureDirectory, "pairing.bin"), () => Task.FromResult<object>(new
     {
-        deviceName = "Interop desktop", mode = "Personal", localDay = "2026-09-21", observedAtUtc = DateTimeOffset.UtcNow,
-        servedAtUtc = DateTimeOffset.UtcNow, stale = false, usedSeconds = 300, remainingSeconds = 600,
+        deviceName = "Interop desktop",
+        mode = "Personal",
+        localDay = "2026-09-21",
+        observedAtUtc = DateTimeOffset.UtcNow,
+        servedAtUtc = DateTimeOffset.UtcNow,
+        stale = false,
+        usedSeconds = 300,
+        remainingSeconds = 600,
         applications = new[] { new { name = "Code", seconds = 300 } }
     }));
     endpoint.Changed += () => { if (endpoint.PendingName is not null) endpoint.Approve(); };

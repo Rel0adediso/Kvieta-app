@@ -998,7 +998,7 @@ public sealed partial class MainViewModel : ObservableObject
                 };
                 _settings = immediate;
                 await SaveUserSettingsAsync(_settings);
-            Services.WebGuardService.Apply(_settings);
+                Services.WebGuardService.Apply(_settings);
                 _stagedAdminCredential = null;
                 _stagedRecoveryCodes = null;
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
