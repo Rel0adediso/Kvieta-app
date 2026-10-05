@@ -9,13 +9,13 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/health') return reply(200, { service: 'kvieta-companion-relay', version: 2 });
-    const match = url.pathname.match(/^\/v1\/rooms\/([a-f0-9]{64})(\/decision)?$/);
-    if (url.search || !match || !['PUT', 'GET', 'DELETE'].includes(request.method) || match[2] && request.method === 'DELETE') return reply(404);
+    const match = url.pathname.match(/^\/v1\/rooms\/([a-f0-9]{64})(\/decision|\/fcm)?$/);
+    if (url.search || !match || !['PUT', 'GET', 'DELETE', 'POST'].includes(request.method) || (match[2] && request.method === 'DELETE')) return reply(404);
     const token = request.headers.get('Authorization')?.replace(/^Bearer /, '') ?? '';
     if (!hex.test(token)) return reply(401);
     const ip = request.headers.get('CF-Connecting-IP') ?? 'local';
     if (!(await env.REQUEST_LIMIT.limit({ key: ip })).success) return reply(429);
-    const room = match[1], decision = match[2] === '/decision';
+    const room = match[1], decision = match[2] === '/decision', fcm = match[2] === '/fcm';
     const tokenHash = await hash(token);
     // One bounded preview mailbox avoids unbounded creation of objects by anonymous callers.
     const mailbox = env.MAILBOX.getByName('preview-v1');
@@ -23,8 +23,8 @@ export default {
       if (tokenHash !== room) return reply(403);
       return mailbox.readDecision(room);
     }
-    if (!decision && request.method === 'GET') return mailbox.read(room, tokenHash);
-    if (!decision && tokenHash !== room) return reply(403);
+    if (!decision && !fcm && request.method === 'GET') return mailbox.read(room, tokenHash);
+    if (!decision && !fcm && tokenHash !== room) return reply(403);
     if (request.method === 'DELETE') return mailbox.revoke(room);
     if (Number(request.headers.get('Content-Length') ?? 0) > 16384) return reply(413);
     let total = 0;
@@ -43,6 +43,10 @@ export default {
     for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
     let body;
     try { body = JSON.parse(new TextDecoder().decode(bytes)); } catch { return reply(400); }
+    if (fcm) {
+      if (request.method !== 'POST') return reply(405);
+      return mailbox.registerFcm(room, tokenHash, body?.token);
+    }
     if (decision) return mailbox.writeDecision(room, tokenHash, body);
     if (!body || !hex.test(body.readHash) || !hex.test(body.decisionHash) || typeof body.box !== 'string' ||
         body.box.length < 40 || body.box.length > 12000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.box) ||
@@ -51,13 +55,74 @@ export default {
   }
 };
 
+async function sendFcmNotification(env, fcmToken, roomId) {
+  if (!env?.FIREBASE_SERVICE_ACCOUNT || !fcmToken) return;
+  try {
+    const sa = typeof env.FIREBASE_SERVICE_ACCOUNT === 'string'
+      ? JSON.parse(env.FIREBASE_SERVICE_ACCOUNT)
+      : env.FIREBASE_SERVICE_ACCOUNT;
+    const now = Math.floor(Date.now() / 1000);
+    const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const claim = btoa(JSON.stringify({
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/firebase.messaging',
+      aud: 'https://oauth2.googleapis.com/token',
+      exp: now + 3600,
+      iat: now
+    })).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const input = `${header}.${claim}`;
+
+    const pem = sa.private_key.replace(/-----[^\n]+-----/g, '').replace(/\s+/g, '');
+    const binaryKey = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey(
+      'pkcs8',
+      binaryKey.buffer,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(input));
+    const sigBase64 = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const jwt = `${input}.${sigBase64}`;
+
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt
+      })
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData?.access_token) return;
+
+    await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: {
+          token: fcmToken,
+          data: { room: roomId, type: 'time_request' },
+          android: { priority: 'HIGH' }
+        }
+      })
+    });
+  } catch (err) {
+    console.error('FCM send failure:', err);
+  }
+}
+
 export class Mailbox extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
+    this.env = env;
     this.sql = ctx.storage.sql;
-    this.sql.exec('CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY, reader TEXT NOT NULL, decision_reader TEXT, box TEXT, sequence INTEGER NOT NULL, updated INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0, decision_box TEXT, decision_sequence INTEGER, decision_updated INTEGER)');
-    for (const column of ['decision_reader TEXT', 'decision_box TEXT', 'decision_sequence INTEGER', 'decision_updated INTEGER']) {
-      try { this.sql.exec(`ALTER TABLE rooms ADD COLUMN ${column}`); } catch { /* Existing v2 column. */ }
+    this.sql.exec('CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY, reader TEXT NOT NULL, decision_reader TEXT, box TEXT, sequence INTEGER NOT NULL, updated INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0, decision_box TEXT, decision_sequence INTEGER, decision_updated INTEGER, fcm_token TEXT)');
+    for (const column of ['decision_reader TEXT', 'decision_box TEXT', 'decision_sequence INTEGER', 'decision_updated INTEGER', 'fcm_token TEXT']) {
+      try { this.sql.exec(`ALTER TABLE rooms ADD COLUMN ${column}`); } catch { /* Existing column. */ }
     }
     this.sql.exec('CREATE TABLE IF NOT EXISTS budget (day TEXT PRIMARY KEY, count INTEGER NOT NULL)');
   }
@@ -79,6 +144,17 @@ export class Mailbox extends DurableObject {
     }
     this.sql.exec('INSERT INTO rooms(id,reader,decision_reader,box,sequence,updated) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET decision_reader=excluded.decision_reader,box=excluded.box,sequence=excluded.sequence,updated=excluded.updated', id, body.readHash, body.decisionHash, body.box, body.sequence, now);
     if (await this.ctx.storage.getAlarm() === null) await this.ctx.storage.setAlarm(now + 86400000);
+    const target = this.sql.exec('SELECT fcm_token FROM rooms WHERE id = ?', id).toArray()[0];
+    if (target?.fcm_token) {
+      this.ctx.waitUntil(sendFcmNotification(this.env, target.fcm_token, id));
+    }
+    return reply(200);
+  }
+  registerFcm(id, reader, fcmToken) {
+    if (!fcmToken || typeof fcmToken !== 'string' || fcmToken.length < 20 || fcmToken.length > 500) return reply(400);
+    const row = this.sql.exec('SELECT * FROM rooms WHERE id = ?', id).toArray()[0];
+    if (!row || row.reader !== reader || row.revoked) return reply(403);
+    this.sql.exec('UPDATE rooms SET fcm_token = ? WHERE id = ?', fcmToken, id);
     return reply(200);
   }
   read(id, reader) {
