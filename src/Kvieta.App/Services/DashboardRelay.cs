@@ -207,27 +207,27 @@ public sealed class DashboardRelayPublisher : IDisposable
                                 else if (string.Equals(decision.Action, "update-plan", StringComparison.OrdinalIgnoreCase))
                                 {
                                     await MobilePlanChangeStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
                                 }
                                 else if (string.Equals(decision.Action, "session-action", StringComparison.OrdinalIgnoreCase))
                                 {
                                     await MobileRemoteActionStore.RecordActionAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
                                 }
                                 else if (string.Equals(decision.Action, "update-app-rule", StringComparison.OrdinalIgnoreCase))
                                 {
                                     await MobileAppRuleStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
                                 }
                                 else if (string.Equals(decision.Action, "update-web-guard", StringComparison.OrdinalIgnoreCase))
                                 {
                                     await MobileWebGuardStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
                                 }
                                 else
                                 {
                                     MobileTimeRequestStore.AcceptDecision(decision);
-                                    DashboardEndpoint.RecordPairedPhone("Android Telefon");
+                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
                                 }
 
                                 // If allowed by rate-limit window, push fresh snapshot so phone immediately sees updated state

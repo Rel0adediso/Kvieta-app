@@ -38,7 +38,7 @@
     <sys:String x:Key="AnimationsEnabled">Hareketler</sys:String><sys:String x:Key="AnimationsDescription">Kısa geçişleri açar. Windows hareket azaltma tercihi her zaman önceliklidir.</sys:String>
     <sys:String x:Key="StrictPersonalMode">Sıkı kişisel mod</sys:String><sys:String x:Key="StrictPersonalModeDescription">Süre dolduğunda kendine anında ek süre vermeyi kapatır. Bu seçeneği kapatmak gevşetme beklemesine girer.</sys:String><sys:String x:Key="HistoryShowAll">TÜMÜNÜ GÖR ›</sys:String><sys:String x:Key="HistoryApplicationDetails">Uygulama kullanım ayrıntıları</sys:String><sys:String x:Key="HistoryApplicationDetailsDescription">Ön planda kullanılan uygulamalar, en uzundan en kısaya.</sys:String>
     <sys:String x:Key="RhythmBaseline">BAŞLANGIÇ RİTMİ</sys:String><sys:String x:Key="RhythmWeeklyChange">HAFTALIK DEĞİŞİM</sys:String><sys:String x:Key="RhythmPlanAligned">PLANLA UYUMLU</sys:String><sys:String x:Key="RhythmObservedDays">ÖLÇÜLEN GÜN</sys:String><sys:String x:Key="RhythmReclaimed">GERİ KAZANILAN</sys:String><sys:String x:Key="RhythmPeakHour">YOĞUN KULLANIM SAATİ</sys:String><sys:String x:Key="RhythmWeekPattern">HAFTA RİTMİ</sys:String><sys:String x:Key="RhythmGoal">KÜÇÜK HEDEF</sys:String><sys:String x:Key="RhythmNoGoal">Hedef yok</sys:String><sys:String x:Key="RhythmGoalLessFormat">%{0} daha az</sys:String>
-    <sys:String x:Key="PrivacyCenter">Gizlilik ve veri</sys:String><sys:String x:Key="PrivacyCenterDescription">Veriler bu bilgisayarda saklanır. Android paylaşımını açarsan kullanım özeti onayladığın telefona yerel ağ üzerinden aktarılır. Saklama ve dışa aktarma kontrolü sende.</sys:String><sys:String x:Key="RetentionPeriod">SAKLAMA SÜRESİ</sys:String><sys:String x:Key="RetentionDaysFormat">{0} gün</sys:String><sys:String x:Key="ExportUsage">Kullanım verisini dışa aktar</sys:String><sys:String x:Key="ExportCompleted">Kullanım verisi dışa aktarıldı</sys:String><sys:String x:Key="ExportFailed">Dışa aktarma başarısız</sys:String><sys:String x:Key="ClearHistory">Kullanım ve ritmi sil</sys:String><sys:String x:Key="ClearHistoryConfirmation">Bugün dahil kullanım geçmişi, mevcut ve en iyi Ritim Serisi ile Ritim Koruyucular bu cihazdan kalıcı olarak silinsin mi? Planların, uygulama kuralların ve koruma ayarların değişmez.</sys:String><sys:String x:Key="ClearHistoryFailed">Kullanım ve ritim verisi silinemedi</sys:String>
+    <sys:String x:Key="PrivacyCenter">Gizlilik ve veri</sys:String><sys:String x:Key="PrivacyCenterDescription">Veriler bu bilgisayarda saklanır. Kvieta Mobil bağlantısını açarsan kullanım özeti onayladığın telefona güvenli biçimde aktarılır. Saklama ve dışa aktarma kontrolü sende.</sys:String><sys:String x:Key="RetentionPeriod">SAKLAMA SÜRESİ</sys:String><sys:String x:Key="RetentionDaysFormat">{0} gün</sys:String><sys:String x:Key="ExportUsage">Kullanım verisini dışa aktar</sys:String><sys:String x:Key="ExportCompleted">Kullanım verisi dışa aktarıldı</sys:String><sys:String x:Key="ExportFailed">Dışa aktarma başarısız</sys:String><sys:String x:Key="ClearHistory">Kullanım ve ritmi sil</sys:String><sys:String x:Key="ClearHistoryConfirmation">Bugün dahil kullanım geçmişi, mevcut ve en iyi Ritim Serisi ile Ritim Koruyucular bu cihazdan kalıcı olarak silinsin mi? Planların, uygulama kuralların ve koruma ayarların değişmez.</sys:String><sys:String x:Key="ClearHistoryFailed">Kullanım ve ritim verisi silinemedi</sys:String>
     <sys:String x:Key="SavedShort">Kaydedildi</sys:String>
     <sys:String x:Key="ConfirmModeSelection">Seçimi onayla</sys:String>
     <sys:String x:Key="NoHistoryApplications">Henüz uygulama kullanım verisi oluşmadı.</sys:String>
@@ -261,7 +261,16 @@
     <sys:String x:Key="BackToToday">← Bugün'e dön</sys:String>
     <sys:String x:Key="UsageInsightsDetails">Kullanım içgörüleri</sys:String>
     <sys:String x:Key="EditApplicationRule">Sınırı düzenle</sys:String>
-    <sys:String x:Key="AndroidDashboard">Telefonum · QR ile bağla ve yönet</sys:String>
+    <sys:String x:Key="AndroidDashboard">Kvieta Mobil · Bağlantı ve Yönetim</sys:String>
+    <sys:String x:Key="KvietaMobile">Kvieta Mobil</sys:String>
+    <sys:String x:Key="ConnectKvietaMobile">Kvieta Mobil'e Bağla</sys:String>
+    <sys:String x:Key="KvietaMobileConnected">Kvieta Mobil: Bağlı ✓</sys:String>
+    <sys:String x:Key="KvietaMobileCardTitle">Kvieta Mobil ile Kontrolü Yanına Al</sys:String>
+    <sys:String x:Key="KvietaMobileCardDesc">Telefonundan kullanım sürelerini takip et, ek süre taleplerini anında yanıtla ve bilgisayarı uzaktan kilitle.</sys:String>
+    <sys:String x:Key="KvietaMobileCardButton">📱 Telefonu Bağla (QR)</sys:String>
+    <sys:String x:Key="KvietaMobileActiveCardTitle">Kvieta Mobil Aktif</sys:String>
+    <sys:String x:Key="KvietaMobileActiveCardDesc">Kullanım özetleri ve uzaktan kilit senkronize ediliyor.</sys:String>
+    <sys:String x:Key="KvietaMobileActiveCardButton">📱 Yönet / Yeni Cihaz</sys:String>
     <sys:String x:Key="WebGuardTitle">Web ve İnternet Koruması</sys:String>
     <sys:String x:Key="WebGuardDescription">Tarayıcılarda istenmeyen web sitelerini alan adı düzeyinde engelleyin ve arama motorlarında güvenli modu zorlayın.</sys:String>
     <sys:String x:Key="WebGuardEnableSwitch">Web Korumasını Aç</sys:String>

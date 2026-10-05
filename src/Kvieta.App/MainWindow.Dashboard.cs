@@ -111,6 +111,22 @@ public partial class MainWindow
         string? decisionToken = null;
         try { decisionToken = DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.DecisionToken; }
         catch { /* A damaged pairing store must not stop the local dashboard. */ }
+        AdminCredential? adminCred = settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker
+            ? settings.AdminPin
+            : null;
+        if (adminCred is null)
+        {
+            try
+            {
+                var userSettings = await new JsonSettingsStore().LoadAsync();
+                if (userSettings.AdminPin.IsConfigured && !userSettings.AdminPin.IsPublicMarker)
+                {
+                    adminCred = userSettings.AdminPin;
+                }
+            }
+            catch { }
+        }
+        bool hasAdminPin = adminCred is { IsConfigured: true, IsPublicMarker: false };
         return new
         {
             deviceName = settings.DeviceName, mode = settings.Mode.ToString(), sessionState = ledger.State.ToString(),
@@ -134,6 +150,10 @@ public partial class MainWindow
             safeSearchEnforced = settings.SafeSearchEnforced,
             blockedWebDomains = settings.BlockedWebDomains.ToArray(),
             remoteDecisionToken = decisionToken,
+            hasAdminPin,
+            adminPinSalt = hasAdminPin ? adminCred!.SaltBase64 : null,
+            adminPinHash = hasAdminPin ? adminCred!.HashBase64 : null,
+            adminPinIterations = hasAdminPin ? adminCred!.Iterations : 0,
             timeRequest = request is null ? null : new
             {
                 id = request.Id,

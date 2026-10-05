@@ -34,6 +34,24 @@ public partial class MainWindow
             {
                 QuickGuide_Click(this, new RoutedEventArgs());
                 if (_guideCompletion is not null) await _guideCompletion.Task;
+
+                if (!_viewModel.IsPhonePaired)
+                {
+                    bool english = LocalizationService.CurrentLanguage == LanguagePreference.English;
+                    var result = System.Windows.MessageBox.Show(
+                        this,
+                        english
+                            ? "Would you like to connect Kvieta Mobile now? You can follow usage and manage computer limits directly from your phone."
+                            : "Kvieta Mobil'e şimdi bağlanmak ister misin? Telefonundan kullanım sürelerini takip edebilir ve bilgisayarı uzaktan yönetebilirsin.",
+                        english ? "Connect Kvieta Mobile" : "Kvieta Mobil'e Bağlan",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        await OpenPhoneHubAsync();
+                    }
+                }
             }
         }
         catch (Exception exception) { _viewModel.StatusMessage = exception.Message; }
@@ -85,6 +103,9 @@ public partial class MainWindow
         _guideSteps.Add(new(T("Bugünün zamanı", "Your time today"),
             T("Kalan süre ve bugünkü kullanım burada. Yanında şu anki durumunu ve sıradaki planını görebilirsin.",
               "Find your remaining time and today's usage here, alongside your current status and next plan."), 0, TodayTimeCard));
+        _guideSteps.Add(new(T("Kvieta Mobil", "Kvieta Mobile"),
+            T("Telefonunu bağlayarak bilgisayarını uzaktan takip et, ek süre taleplerini anında yanıtla ve dilediğinde kilitle.",
+              "Connect your phone to follow your computer remotely, approve extra-time requests instantly, and lock it anytime."), 0, TodayKvietaMobileCard));
         if (_viewModel.IsPersonalMode)
             _guideSteps.Add(new(T("Bir odak oturumu başlat", "Start a focus session"),
                 T("Hazır sürelerden birini seç veya kendi süreni belirle. Son kullandığın süreyi de tekrar başlatabilirsin.",

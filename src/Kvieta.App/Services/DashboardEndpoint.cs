@@ -294,6 +294,7 @@ public sealed class DashboardEndpoint : IAsyncDisposable
             File.Move(temp, _path, true);
         }
         finally { CryptographicOperations.ZeroMemory(plain); if (File.Exists(temp)) File.Delete(temp); }
+        GlobalStoreChanged?.Invoke();
     }
 
     public static void RecordPairedPhone(string deviceName, string deviceId = "android-relay")

@@ -38,7 +38,7 @@
     <sys:String x:Key="AnimationsEnabled">Motion</sys:String><sys:String x:Key="AnimationsDescription">Enables short transitions. Windows Reduce Motion always takes priority.</sys:String>
     <sys:String x:Key="StrictPersonalMode">Strict personal mode</sys:String><sys:String x:Key="StrictPersonalModeDescription">Disables instant self-granted extra time after the limit. Turning this off uses the relaxation delay.</sys:String><sys:String x:Key="HistoryShowAll">SHOW ALL ›</sys:String><sys:String x:Key="HistoryApplicationDetails">Application usage details</sys:String><sys:String x:Key="HistoryApplicationDetailsDescription">Foreground applications ordered from longest to shortest use.</sys:String>
     <sys:String x:Key="RhythmBaseline">STARTING RHYTHM</sys:String><sys:String x:Key="RhythmWeeklyChange">WEEKLY CHANGE</sys:String><sys:String x:Key="RhythmPlanAligned">PLAN-ALIGNED</sys:String><sys:String x:Key="RhythmObservedDays">OBSERVED DAYS</sys:String><sys:String x:Key="RhythmReclaimed">RECLAIMED</sys:String><sys:String x:Key="RhythmPeakHour">PEAK USAGE HOUR</sys:String><sys:String x:Key="RhythmWeekPattern">WEEKLY RHYTHM</sys:String><sys:String x:Key="RhythmGoal">SMALL GOAL</sys:String><sys:String x:Key="RhythmNoGoal">No goal</sys:String><sys:String x:Key="RhythmGoalLessFormat">{0}% less</sys:String>
-    <sys:String x:Key="PrivacyCenter">Privacy and data</sys:String><sys:String x:Key="PrivacyCenterDescription">Data is stored on this computer. If you enable Android sharing, its usage summary is sent to your approved phone over the local network. You control retention and exports.</sys:String><sys:String x:Key="RetentionPeriod">RETENTION PERIOD</sys:String><sys:String x:Key="RetentionDaysFormat">{0} days</sys:String><sys:String x:Key="ExportUsage">Export usage data</sys:String><sys:String x:Key="ExportCompleted">Usage data exported</sys:String><sys:String x:Key="ExportFailed">Export failed</sys:String><sys:String x:Key="ClearHistory">Delete usage and Rhythm</sys:String><sys:String x:Key="ClearHistoryConfirmation">Permanently delete usage history including today, the current and best Rhythm Streak, and Rhythm Protectors from this device? Your plans, application rules, and protection settings will not change.</sys:String><sys:String x:Key="ClearHistoryFailed">Usage and Rhythm data could not be deleted</sys:String>
+    <sys:String x:Key="PrivacyCenter">Privacy and data</sys:String><sys:String x:Key="PrivacyCenterDescription">Data is stored on this computer. If you enable Kvieta Mobile, its usage summary is securely shared with your approved phone. You control retention and exports.</sys:String><sys:String x:Key="RetentionPeriod">RETENTION PERIOD</sys:String><sys:String x:Key="RetentionDaysFormat">{0} days</sys:String><sys:String x:Key="ExportUsage">Export usage data</sys:String><sys:String x:Key="ExportCompleted">Usage data exported</sys:String><sys:String x:Key="ExportFailed">Export failed</sys:String><sys:String x:Key="ClearHistory">Delete usage and Rhythm</sys:String><sys:String x:Key="ClearHistoryConfirmation">Permanently delete usage history including today, the current and best Rhythm Streak, and Rhythm Protectors from this device? Your plans, application rules, and protection settings will not change.</sys:String><sys:String x:Key="ClearHistoryFailed">Usage and Rhythm data could not be deleted</sys:String>
     <sys:String x:Key="SavedShort">Saved</sys:String>
     <sys:String x:Key="ConfirmModeSelection">Confirm selection</sys:String>
     <sys:String x:Key="NoHistoryApplications">No application usage data yet.</sys:String>
@@ -261,7 +261,16 @@
     <sys:String x:Key="BackToToday">← Back to Today</sys:String>
     <sys:String x:Key="UsageInsightsDetails">Usage insights</sys:String>
     <sys:String x:Key="EditApplicationRule">Edit limit</sys:String>
-    <sys:String x:Key="AndroidDashboard">My phone · Pair and manage</sys:String>
+    <sys:String x:Key="AndroidDashboard">Kvieta Mobile · Connection &amp; Management</sys:String>
+    <sys:String x:Key="KvietaMobile">Kvieta Mobile</sys:String>
+    <sys:String x:Key="ConnectKvietaMobile">Connect Kvieta Mobile</sys:String>
+    <sys:String x:Key="KvietaMobileConnected">Kvieta Mobile: Connected ✓</sys:String>
+    <sys:String x:Key="KvietaMobileCardTitle">Take Control With You: Kvieta Mobile</sys:String>
+    <sys:String x:Key="KvietaMobileCardDesc">Track usage times from your phone, answer extra-time requests instantly, and remotely lock your PC.</sys:String>
+    <sys:String x:Key="KvietaMobileCardButton">📱 Connect Phone (QR)</sys:String>
+    <sys:String x:Key="KvietaMobileActiveCardTitle">Kvieta Mobile Active</sys:String>
+    <sys:String x:Key="KvietaMobileActiveCardDesc">Usage summaries and remote lock are synchronized.</sys:String>
+    <sys:String x:Key="KvietaMobileActiveCardButton">📱 Manage / Pair New</sys:String>
     <sys:String x:Key="WebGuardTitle">Web &amp; Domain Guard</sys:String>
     <sys:String x:Key="WebGuardDescription">Block distracting or adult websites at domain level across all browsers and enforce search engine safe mode.</sys:String>
     <sys:String x:Key="WebGuardEnableSwitch">Enable Web Guard</sys:String>

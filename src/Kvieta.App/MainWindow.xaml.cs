@@ -179,13 +179,12 @@ public partial class MainWindow : Window
         _isInitializing = false;
         await ShowFirstRunGuideAsync();
         if (!IsVisible) return;
-        if (_openManagerDeviceOnLoad && _viewModel.IsFamilyMode)
+        if (_openManagerDeviceOnLoad)
         {
             _openManagerDeviceOnLoad = false;
             try
             {
-                if (await _displayPreferencesStore.TryClaimPairingPromptAsync() &&
-                    ManagerDeviceEnrollmentStore.Load()?.IsActive != true)
+                if (await _displayPreferencesStore.TryClaimPairingPromptAsync() && !_viewModel.IsPhonePaired)
                 {
                     await TryOpenManagerDeviceAsync(startPairing: true);
                 }
@@ -193,8 +192,8 @@ public partial class MainWindow : Window
             catch (Exception)
             {
                 _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
-                    ? "You can connect your phone later from Settings."
-                    : "Telefonunu daha sonra Ayarlar'dan bağlayabilirsin.";
+                    ? "You can connect Kvieta Mobile later from the Today tab or Settings."
+                    : "Kvieta Mobil'i daha sonra Bugün sekmesinden veya Ayarlar'dan bağlayabilirsin.";
             }
         }
     }

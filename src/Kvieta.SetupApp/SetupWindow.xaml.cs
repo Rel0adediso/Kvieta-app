@@ -881,8 +881,7 @@ public partial class SetupWindow : Window
             _ => T("ilk ritim hedefi: günlük dengeni koru", "first rhythm goal: keep your daily balance")
         });
         if (_plan.RequiresGuardian) options.Add("Guardian");
-        if (_plan.RequiresUserPin) options.Add(T("8 tek kullanımlık kurtarma kodu", "8 one-time recovery codes"));
-        if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall) options.Add(T("isteğe bağlı telefon eşleştirme", "optional phone pairing"));
+        if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall) options.Add(T("Kvieta Mobil bağlantısı", "Kvieta Mobile connection"));
         SummaryOptionsValue.Text = options.Count == 0 ? T("Ek seçenek yok", "No optional features") : string.Join(" · ", options);
 
         ControlSettings target = _plan.ComposeSettings(null);
@@ -1093,8 +1092,8 @@ public partial class SetupWindow : Window
         CopyRecoveryCodesButton.Content = T("Kodları kopyala", "Copy codes");
         SaveRecoveryCodesButton.Content = T("Dosyaya kaydet", "Save to file");
         RecoveryAcknowledgementBox.Content = T("Kodları güvenli ve cihazdan ayrı bir yere kaydettim", "I stored the codes securely and away from this device");
-        PairManagerDeviceBox.Content = T("Kurulumdan sonra güvenilir telefonu eşleştir", "Pair a trusted phone after installation");
-        PairManagerDeviceHint.Text = T("İsteğe bağlıdır; PIN kurtarma yetkisi daha sonra da eklenebilir.", "Optional; PIN recovery access can also be added later.");
+        PairManagerDeviceBox.Content = T("Kurulumdan sonra Kvieta Mobil'i bağla", "Connect Kvieta Mobile after installation");
+        PairManagerDeviceHint.Text = T("İsteğe bağlıdır; telefonundan kullanım sürelerini takip edebilir, uzaktan kilitleyebilir ve PIN kurtarma yetkisi verebilirsin.", "Optional; track usage, remotely lock, and set PIN recovery permissions from your phone.");
         RecoveryBackButton.Content = BackText;
         RecoveryNextButton.Content = ContinueText;
         SummaryTitle.Text = T("Kuruluma hazır", "Ready to install"); SummaryDescription.Text = T("Seçimlerini ve gerçek sistem sonuçlarını kontrol et. Kur düğmesi gerektiğinde ayrıca yönetici izni isteyecek.", "Review your choices and real system outcomes. Install will separately request administrator approval when required.");

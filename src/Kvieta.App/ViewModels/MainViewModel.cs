@@ -71,11 +71,29 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _localWriteFailed;
     private string? _localWriteFailureMessage;
     private AppCategoryUsageRow? _selectedApplicationCategory;
+    private bool _isPhonePaired;
+    private string? _pairedPhoneName;
+    private string _phoneCompanionStatusText = "Kvieta Mobil'e Bağla";
+    private string _phoneCompanionBadgeText = "Bağla";
+    private string _phoneCompanionStatusDetail = "";
 
     public MainViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
         _settingsStore = settingsStore ?? new JsonSettingsStore();
         _usageStore = usageStore ?? new JsonUsageStore();
+        DashboardEndpoint.GlobalStoreChanged += () =>
+        {
+            var app = System.Windows.Application.Current;
+            if (app?.Dispatcher is not null && !app.Dispatcher.HasShutdownStarted)
+            {
+                app.Dispatcher.InvokeAsync(RefreshPhoneCompanionState);
+            }
+            else
+            {
+                RefreshPhoneCompanionState();
+            }
+        };
+        RefreshPhoneCompanionState();
     }
 
     public ObservableCollection<DayScheduleRow> ScheduleRows { get; } = [];
@@ -142,6 +160,110 @@ public sealed partial class MainViewModel : ObservableObject
             SelectedPageIndex = value switch { 1 => 2, 2 => 1, 3 => 4, _ => 0 };
             OnPropertyChanged(nameof(SelectedNavigationIndex));
         }
+    }
+
+    public bool IsPhonePaired
+    {
+        get => _isPhonePaired;
+        private set
+        {
+            if (SetProperty(ref _isPhonePaired, value))
+            {
+                OnPropertyChanged(nameof(IsPhoneUnpaired));
+                OnPropertyChanged(nameof(PhoneCompanionCardTitle));
+                OnPropertyChanged(nameof(PhoneCompanionCardDescription));
+                OnPropertyChanged(nameof(PhoneCompanionCardButtonText));
+                OnPropertyChanged(nameof(PhoneCompanionSidebarTooltip));
+            }
+        }
+    }
+
+    public bool IsPhoneUnpaired => !IsPhonePaired;
+
+    public string? PairedPhoneName
+    {
+        get => _pairedPhoneName;
+        private set
+        {
+            if (SetProperty(ref _pairedPhoneName, value))
+            {
+                OnPropertyChanged(nameof(PhoneCompanionSidebarTooltip));
+            }
+        }
+    }
+
+    public string PhoneCompanionStatusText
+    {
+        get => _phoneCompanionStatusText;
+        private set => SetProperty(ref _phoneCompanionStatusText, value);
+    }
+
+    public string PhoneCompanionBadgeText
+    {
+        get => _phoneCompanionBadgeText;
+        private set => SetProperty(ref _phoneCompanionBadgeText, value);
+    }
+
+    public string PhoneCompanionStatusDetail
+    {
+        get => _phoneCompanionStatusDetail;
+        private set => SetProperty(ref _phoneCompanionStatusDetail, value);
+    }
+
+    public string PhoneCompanionCardTitle => IsPhonePaired
+        ? L("Kvieta Mobil Aktif", "Kvieta Mobile Active")
+        : L("Kvieta Mobil ile Kontrolü Yanına Al", "Take Control With You: Kvieta Mobile");
+
+    public string PhoneCompanionCardDescription => IsPhonePaired
+        ? L("Kullanım özetleri ve uzaktan kilit senkronize ediliyor.", "Usage summaries and remote lock are synchronized.")
+        : L("Telefonundan kullanım sürelerini takip et, ek süre taleplerini anında yanıtla ve bilgisayarı uzaktan kilitle.", "Track usage times from your phone, answer extra-time requests instantly, and remotely lock the computer.");
+
+    public string PhoneCompanionCardButtonText => IsPhonePaired
+        ? L("Yönet / Yeni Cihaz", "Manage / Pair New")
+        : L("Kvieta Mobil'e Bağla", "Connect Kvieta Mobile");
+
+    public string PhoneCompanionSidebarTooltip => IsPhonePaired
+        ? $"{PhoneCompanionStatusText} · {PhoneCompanionBadgeText}"
+        : L("Kvieta Mobil'e Bağla (QR)", "Connect Kvieta Mobile (QR)");
+
+    public void RefreshPhoneCompanionState()
+    {
+        try
+        {
+            DashboardStore? store = DashboardRelay.Load(DashboardRelay.StorePath);
+            bool paired = store?.Phone is not null;
+            string? name = store?.Phone?.Name;
+
+            IsPhonePaired = paired;
+            PairedPhoneName = name;
+            if (paired)
+            {
+                PhoneCompanionStatusText = string.IsNullOrWhiteSpace(name)
+                    ? L("Kvieta Mobil", "Kvieta Mobile")
+                    : name;
+                PhoneCompanionBadgeText = L("Bağlı ✓", "Connected ✓");
+                PhoneCompanionStatusDetail = L("Kullanım özetleri ve uzaktan kilit senkronize ediliyor.", "Usage summaries and remote lock synchronized.");
+            }
+            else
+            {
+                PhoneCompanionStatusText = L("Kvieta Mobil'e Bağla", "Connect Kvieta Mobile");
+                PhoneCompanionBadgeText = L("Bağla", "Connect");
+                PhoneCompanionStatusDetail = L("Telefonundan takip et ve uzaktan kilitle.", "Follow from phone and lock remotely.");
+            }
+        }
+        catch
+        {
+            IsPhonePaired = false;
+            PairedPhoneName = null;
+            PhoneCompanionStatusText = L("Kvieta Mobil'e Bağla", "Connect Kvieta Mobile");
+            PhoneCompanionBadgeText = L("Bağla", "Connect");
+            PhoneCompanionStatusDetail = string.Empty;
+        }
+
+        OnPropertyChanged(nameof(PhoneCompanionCardTitle));
+        OnPropertyChanged(nameof(PhoneCompanionCardDescription));
+        OnPropertyChanged(nameof(PhoneCompanionCardButtonText));
+        OnPropertyChanged(nameof(PhoneCompanionSidebarTooltip));
     }
 
     public string DeviceName
@@ -2210,6 +2332,7 @@ public sealed partial class MainViewModel : ObservableObject
             BuildRhythm(_lastUsageLedger);
         }
         RefreshOverview();
+        RefreshPhoneCompanionState();
         StatusMessage = language == LanguagePreference.English ? "Language changed" : "Dil değiştirildi";
     }
 

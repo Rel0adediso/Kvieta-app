@@ -11,6 +11,7 @@
         <Geometry x:Key="SettingsIconGeometry">M4,7 H9 M13,7 H20 M4,12 H14 M18,12 H20 M4,17 H7 M11,17 H20 M9,5 V9 M16,10 V14 M7,15 V19</Geometry>
         <Geometry x:Key="ClockIconGeometry">M12,3 A9,9 0 1 1 11.99,3 M12,7 V12 L16,12</Geometry>
         <Geometry x:Key="ChevronIconGeometry">M9,6 L15,12 L9,18</Geometry>
+        <Geometry x:Key="PhoneIconGeometry">M7,2 H17 A2,2 0 0 1 19,4 V20 A2,2 0 0 1 17,22 H7 A2,2 0 0 1 5,20 V4 A2,2 0 0 1 7,2 Z M11,18 H13</Geometry>
         <Style x:Key="NavIconStyle" TargetType="Path">
             <Setter Property="Width" Value="18"/>
             <Setter Property="Height" Value="18"/>
@@ -92,6 +93,34 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="CardSurface" Property="Opacity" Value="0.42"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SidebarPhoneButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="Padding" Value="7,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocusVisual}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.75"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -461,12 +490,50 @@
                                 </StackPanel>
                             </ListBoxItem>
                         </ListBox>
-                        <Border Grid.Row="2" Background="{DynamicResource PrimarySoftBrush}" CornerRadius="12" Margin="10,3" Padding="10,8">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse Fill="{DynamicResource SuccessBrush}" Width="6" Height="6"/>
-                                <TextBlock Text="{DynamicResource OnlyThisDevice}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                            </StackPanel>
-                        </Border>
+                        <Button Grid.Row="2" Style="{StaticResource SidebarPhoneButtonStyle}" Click="AndroidDashboard_Click" Margin="8,4" ToolTip="{Binding PhoneCompanionSidebarTooltip}">
+                            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Grid Grid.Column="0" VerticalAlignment="Center" Margin="2,0,0,0">
+                                    <Path Data="{StaticResource PhoneIconGeometry}" Style="{StaticResource NavIconStyle}" Width="15" Height="15" Stroke="{DynamicResource PrimaryBrush}"/>
+                                    <Ellipse Width="6" Height="6" Fill="{DynamicResource SuccessBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0"
+                                             Visibility="{Binding IsPhonePaired, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                </Grid>
+
+                                <TextBlock Grid.Column="1" Text="{Binding PhoneCompanionStatusText}" Margin="8,0,4,0" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                <Border Grid.Column="2" CornerRadius="6" Padding="5,1.5" VerticalAlignment="Center"
+                                        Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPhonePaired}" Value="True">
+                                                    <Setter Property="Background" Value="#222EB886"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding PhoneCompanionBadgeText}" FontSize="9.5" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPhonePaired}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </Grid>
+                        </Button>
                     </Grid>
                 </Border>
                 <Grid Grid.Column="1">
@@ -514,6 +581,76 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <controls:TodayDashboard x:Name="TodayTimeCard" Grid.Row="1" PrimaryActionRequested="TodayPrimaryAction_Click" HistoryRequested="TodayHistory_Click"/>
+                                    <!-- Kvieta Mobil Dashboard Card (Fikir D) -->
+                                    <Border x:Name="TodayKvietaMobileCard" Grid.Row="2" Margin="0,18,0,0" Padding="20,16" CornerRadius="16" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Left Icon Container -->
+                                            <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12" VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPhonePaired}" Value="True">
+                                                                <Setter Property="Background" Value="#1E2EB886"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Path Data="{StaticResource PhoneIconGeometry}" Width="19" Height="19" Stretch="Uniform" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Stroke" Value="{DynamicResource PrimaryBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsPhonePaired}" Value="True">
+                                                                    <Setter Property="Stroke" Value="{DynamicResource SuccessBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                            </Border>
+
+                                            <!-- Center Details -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding PhoneCompanionCardTitle}" FontSize="14.5" FontWeight="SemiBold"/>
+                                                    <!-- Live green pill badge if paired -->
+                                                    <Border Margin="10,0,0,0" CornerRadius="8" Padding="7,2" Background="#222EB886" VerticalAlignment="Center"
+                                                            Visibility="{Binding IsPhonePaired, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Ellipse Width="6" Height="6" Fill="{DynamicResource SuccessBrush}" Margin="0,0,5,0"/>
+                                                            <TextBlock Text="{Binding PairedPhoneName, FallbackValue='Bağlı'}" Foreground="{DynamicResource SuccessBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding PhoneCompanionCardDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="17"/>
+                                            </StackPanel>
+
+                                            <!-- Right Action Button -->
+                                            <Button Grid.Column="2" Click="AndroidDashboard_Click" VerticalAlignment="Center"
+                                                    Visibility="{Binding IsPhoneUnpaired, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                    Style="{StaticResource PrimaryButtonStyle}" Padding="15,8">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource PhoneIconGeometry}" Width="13" Height="13" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.6" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding PhoneCompanionCardButtonText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Grid.Column="2" Click="AndroidDashboard_Click" VerticalAlignment="Center"
+                                                    Visibility="{Binding IsPhonePaired, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                    Style="{StaticResource SecondaryButtonStyle}" Padding="14,8">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource PhoneIconGeometry}" Width="13" Height="13" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.6" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding PhoneCompanionCardButtonText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
                                     <Expander Grid.Row="4" Header="{DynamicResource TodayMoreFocusOptions}" Margin="0,22,0,0" Padding="4" Visibility="{Binding IsPersonalMode, Converter={StaticResource BooleanToVisibilityConverter}}" x:Name="QuickFocusCard">
                                         <StackPanel>
                                             <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
@@ -1330,7 +1467,12 @@
                                     </Expander>
                                     <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource PrivacyCenter}" x:Name="PrivacySection" IsExpanded="False" Expanded="SettingsSection_Expanded">
                                         <StackPanel Margin="18,8,18,16">
-                                            <Button Content="{DynamicResource AndroidDashboard}" Style="{StaticResource SecondaryButtonStyle}" Click="AndroidDashboard_Click" HorizontalAlignment="Left" Margin="0,10"/>
+                                            <Button Style="{StaticResource SecondaryButtonStyle}" Click="AndroidDashboard_Click" HorizontalAlignment="Left" Margin="0,10" Padding="14,8">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource PhoneIconGeometry}" Width="13" Height="13" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.6" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{DynamicResource AndroidDashboard}" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </Button>
                                             <StackPanel Margin="0,8,0,10" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
                                                     <TextBlock Text="{DynamicResource AwarenessTracking}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>

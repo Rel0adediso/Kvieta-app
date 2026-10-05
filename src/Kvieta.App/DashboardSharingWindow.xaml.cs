@@ -15,21 +15,21 @@ public partial class DashboardSharingWindow : Window
         InitializeComponent();
         _endpoint = endpoint;
         _manageRecovery = manageRecovery;
-        Heading.Text = T("Telefonum", "My phone");
-        Explanation.Text = T("Bilgisayarındaki günü telefonundan takip et. İki cihazı aynı Wi-Fi'a bağla, Android'de Bilgisayar bağla → QR kodunu okut'a dokun.",
-            "Follow your day from your phone. Connect both devices to the same Wi-Fi, then choose Connect computer → Scan computer QR on Android.");
-        UsageTitle.Text = T("Android eşlikçi", "Android companion");
-        UsagePermission.Text = T("Yetki: kullanım özetini görme ve yalnızca bilgisayardan gelen ek süre taleplerini yanıtlama. Planı ve PIN'i değiştiremez.", "Permission: view usage and answer only extra-time requests created by this computer. Cannot change the plan or PIN.");
+        Heading.Text = T("Kvieta Mobil", "Kvieta Mobile");
+        Explanation.Text = T("Bilgisayarındaki günü telefonundan takip et. Kvieta Mobil uygulamasında Bilgisayar bağla → QR kodunu okut'a dokun.",
+            "Follow your day from your phone. In Kvieta Mobile, tap Connect computer → Scan computer QR.");
+        UsageTitle.Text = T("Kvieta Mobil Bağlantısı", "Kvieta Mobile Connection");
+        UsagePermission.Text = T("Yetki: kullanım özetini görme, uzaktan kilitleme ve ek süre taleplerini yanıtlama. Planı ve PIN'i değiştiremez.", "Permission: view usage summaries, remote lock, and answer extra-time requests. Cannot change the plan or PIN.");
         ManualInvite.Header = T("QR okutamıyorum · Daveti elle gir", "Cannot scan? Enter invitation manually");
         RecoverySection.Header = T("PIN kurtarma yetkisi", "PIN recovery permission");
-        RecoveryHint.Text = T("Mevcut güvenilir telefonun burada korunur. Kurtarma, telefon tarayıcısına ayrıca verilen bir yetkidir; Android bağlantısı bu yetkiyi otomatik almaz.",
-            "Your existing trusted phone is preserved here. Recovery is a separate permission held by the phone browser; pairing Android does not grant it automatically.");
+        RecoveryHint.Text = T("Mevcut güvenilir telefonun burada korunur. Kurtarma, telefon tarayıcısına ayrıca verilen bir yetkidir; Kvieta Mobil bu yetkiyi otomatik almaz.",
+            "Your existing trusted phone is preserved here. Recovery is a separate permission held by the phone browser; Kvieta Mobile does not grant it automatically.");
         RecoveryButton.Content = T("Kurtarma telefonunu yönet", "Manage recovery phone");
-        SharingHint.Text = T("Paylaşılanlar: bilgisayar adı, kullanım süreleri, en çok kullanılan uygulamalar ve varsa ek süre talebi. Telefon planı veya PIN'i değiştiremez.",
-            "Shared: computer name, usage totals, most-used applications and an active extra-time request. The phone cannot change your plan or PIN.");
+        SharingHint.Text = T("Paylaşılanlar: bilgisayar adı, kullanım süreleri, en çok kullanılan uygulamalar, uzaktan kilit durumu ve ek süre talepleri. Kvieta Mobil planı veya PIN'i değiştiremez.",
+            "Shared: computer name, usage totals, most-used applications, remote lock status, and extra-time requests. Kvieta Mobile cannot change your plan or PIN.");
         ApproveButton.Content = T("Kodlar aynı · Onayla", "Codes match · Approve");
         RenewButton.Content = T("Yeni bağlantı oluştur", "Create a new invitation");
-        RevokeButton.Content = T("Telefon erişimini kaldır", "Revoke phone access");
+        RevokeButton.Content = T("Kvieta Mobil erişimini kaldır", "Revoke Kvieta Mobile access");
         RemoteButton.Content = T("Dışarıdan erişimi aç", "Enable remote access");
         if (_endpoint is not null) _endpoint.Changed += EndpointChanged;
         UpdateRecovery();
@@ -72,9 +72,9 @@ public partial class DashboardSharingWindow : Window
         RenewButton.Content = paired ? T("Başka cihaz bağla (Yeni QR)", "Connect another device (New QR)") : T("Yeni bağlantı oluştur", "Create a new invitation");
         ApproveButton.Visibility = pending ? Visibility.Visible : Visibility.Collapsed;
         CodeText.Text = _endpoint.VerificationCode ?? "";
-        StatusText.Text = paired ? T($"Bağlı telefon: {_endpoint.PhoneName} (Etkin ✓)", $"Paired phone: {_endpoint.PhoneName} (Active ✓)")
+        StatusText.Text = paired ? T($"Bağlı Kvieta Mobil: {_endpoint.PhoneName} (Etkin ✓)", $"Paired Kvieta Mobile: {_endpoint.PhoneName} (Active ✓)")
             : pending ? T($"{_endpoint.PendingName} bağlanmak istiyor. Kodu karşılaştır.", $"{_endpoint.PendingName} wants to connect. Compare the code.")
-            : T("Bağlantı geçerli. QR kodunu Android Kvieta uygulamasından okut.", "Invitation valid. Scan this QR code using the Android Kvieta app.");
+            : T("Bağlantı geçerli. QR kodunu Kvieta Mobil uygulamasından okut.", "Invitation valid. Scan this QR code using the Kvieta Mobile app.");
         if (!paired && !_endpoint.CanPair) StatusText.Text = T("QR eşleştirmesi için özel bir yerel ağa bağlanıp bu ekranı yeniden aç.", "Connect to a private local network and reopen this screen to pair with QR.");
     }
     private void Renew()
@@ -122,8 +122,8 @@ public partial class DashboardSharingWindow : Window
     }
     private async void Revoke_Click(object sender, RoutedEventArgs e)
     {
-        if (System.Windows.MessageBox.Show(this, T("Telefonun kullanım özetine erişimi kaldırılacak. PIN kurtarma yetkisi etkilenmez.",
-            "Remove this phone's usage access? PIN recovery is unaffected."), T("Telefon erişimini kaldır", "Revoke phone access"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        if (System.Windows.MessageBox.Show(this, T("Kvieta Mobil uygulamasının bu bilgisayara erişimi kaldırılacak. PIN kurtarma yetkisi etkilenmez.",
+            "Remove Kvieta Mobile access for this computer? PIN recovery is unaffected."), T("Kvieta Mobil erişimini kaldır", "Revoke Kvieta Mobile access"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         try { _endpoint?.Revoke(); Renew(); }
         catch (Exception)
         {
