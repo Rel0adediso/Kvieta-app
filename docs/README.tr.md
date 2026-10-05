@@ -123,7 +123,7 @@ Korumalı mod esas olarak ayrı bir yönetici hesabı tarafından yönetilen **s
 
 ## Geliştirme yaklaşımı
 
-**İnsan tarafından yönlendirilen ürün · AI destekli geliştirme.** Ürün yönü, UX kararları ve gerçek kullanım testleri [Rel0adediso](https://github.com/Rel0adediso) tarafından yürütülür. Mimari, uygulama ve test geliştirme süreci OpenAI Codex ile iş birliği içinde ilerler.
+**İnsan tarafından yönlendirilen ürün · AI destekli geliştirme.** Ürün yönü, UX kararları ve gerçek kullanım testleri [Rel0adediso](https://github.com/Rel0adediso) tarafından yürütülür. Mimari, uygulama ve test geliştirme süreci yapay zekâ desteğiyle yürütülür.
 
 Kvieta, [MIT Lisansı](../LICENSE) altında yayımlanan açık kaynak bir yazılımdır.
 

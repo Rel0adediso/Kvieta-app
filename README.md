@@ -123,7 +123,7 @@ Protected mode is designed primarily for a **standard Windows account** managed 
 
 ## Development approach
 
-**Human-directed product · AI-assisted development.** Product direction, UX decisions, and hands-on testing are led by [Rel0adediso](https://github.com/Rel0adediso). Architecture, implementation, and test development are carried out collaboratively with OpenAI Codex.
+**Human-directed product · AI-assisted development.** Product direction, UX decisions, and hands-on testing are led by [Rel0adediso](https://github.com/Rel0adediso). Architecture, implementation, and test development are carried out with AI assistance.
 
 Kvieta is open-source software released under the [MIT License](LICENSE).
 
