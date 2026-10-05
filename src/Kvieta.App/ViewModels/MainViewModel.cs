@@ -427,6 +427,61 @@ public sealed partial class MainViewModel : ObservableObject
             return $"Installer {release} · Guardian {guardian} · {compatibility}";
         }
     }
+
+    private bool _isCheckingForUpdates;
+    public bool IsCheckingForUpdates
+    {
+        get => _isCheckingForUpdates;
+        private set => SetProperty(ref _isCheckingForUpdates, value);
+    }
+
+    private bool _isUpdateAvailable;
+    public bool IsUpdateAvailable
+    {
+        get => _isUpdateAvailable;
+        private set
+        {
+            if (SetProperty(ref _isUpdateAvailable, value))
+            {
+                OnPropertyChanged(nameof(UpdateBadgeText));
+            }
+        }
+    }
+
+    private string? _latestVersionLabel;
+    public string? LatestVersionLabel
+    {
+        get => _latestVersionLabel;
+        private set => SetProperty(ref _latestVersionLabel, value);
+    }
+
+    private string? _updateReleaseUrl;
+    public string? UpdateReleaseUrl
+    {
+        get => _updateReleaseUrl;
+        private set => SetProperty(ref _updateReleaseUrl, value);
+    }
+
+    private string? _updateDownloadUrl;
+    public string? UpdateDownloadUrl
+    {
+        get => _updateDownloadUrl;
+        private set => SetProperty(ref _updateDownloadUrl, value);
+    }
+
+    private string _updateStatusText = string.Empty;
+    public string UpdateStatusText
+    {
+        get => string.IsNullOrWhiteSpace(_updateStatusText)
+            ? L("Güncellemeleri denetle", "Check for updates")
+            : _updateStatusText;
+        private set => SetProperty(ref _updateStatusText, value);
+    }
+
+    public string UpdateBadgeText => IsUpdateAvailable
+        ? string.Format(L("Yeni sürüm hazır: {0}", "New version ready: {0}"), LatestVersionLabel ?? "Update")
+        : string.Empty;
+
     public string LocalDataHealthText =>
         _usageReadFailed
             ? L("Okunamadı", "Unreadable")
@@ -701,10 +756,61 @@ public sealed partial class MainViewModel : ObservableObject
                 : settingsRecovered || usageRecovered
                     ? L("Veriler son sağlam yedekten kurtarıldı", "Data was recovered from the last known good backup")
                     : L("Ayarlar yüklendi", "Settings loaded");
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(4000).ConfigureAwait(false);
+                if (System.Windows.Application.Current?.Dispatcher is { } dispatcher)
+                {
+                    await dispatcher.InvokeAsync(() => CheckForUpdatesAsync(isManual: false));
+                }
+            });
         }
         catch (Exception exception)
         {
             StatusMessage = $"{L("Ayarlar okunamadı", "Could not read settings")}: {exception.Message}";
+        }
+    }
+
+    public async Task CheckForUpdatesAsync(bool isManual = false)
+    {
+        if (IsCheckingForUpdates) return;
+        IsCheckingForUpdates = true;
+        UpdateStatusText = L("Denetleniyor...", "Checking...");
+        try
+        {
+            UpdateCheckResult result = await UpdateCheckService.CheckForUpdatesAsync().ConfigureAwait(true);
+            if (result.IsUpdateAvailable)
+            {
+                IsUpdateAvailable = true;
+                LatestVersionLabel = result.ReleaseName ?? result.LatestVersion;
+                UpdateReleaseUrl = result.ReleaseUrl;
+                UpdateDownloadUrl = result.DownloadUrl;
+                UpdateStatusText = string.Format(L("Yeni sürüm mevcut ({0})", "New version available ({0})"), LatestVersionLabel);
+            }
+            else if (result.HasError)
+            {
+                if (isManual)
+                {
+                    UpdateStatusText = L("Kontrol edilemedi", "Could not check");
+                }
+            }
+            else
+            {
+                IsUpdateAvailable = false;
+                UpdateStatusText = L("Kvieta güncel", "Kvieta is up to date");
+            }
+        }
+        catch
+        {
+            if (isManual)
+            {
+                UpdateStatusText = L("Kontrol edilemedi", "Could not check");
+            }
+        }
+        finally
+        {
+            IsCheckingForUpdates = false;
         }
     }
 

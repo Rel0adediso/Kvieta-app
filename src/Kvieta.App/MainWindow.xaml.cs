@@ -543,6 +543,30 @@ public partial class MainWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        await _viewModel.CheckForUpdatesAsync(isManual: true);
+    }
+
+    private void DownloadUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        string? targetUrl = _viewModel.UpdateDownloadUrl ?? _viewModel.UpdateReleaseUrl;
+        if (!string.IsNullOrWhiteSpace(targetUrl))
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = targetUrl,
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+            }
+        }
+    }
+
     private async void UninstallKvieta_Click(object sender, RoutedEventArgs e)
     {
         if (System.Windows.Application.Current is not App app)

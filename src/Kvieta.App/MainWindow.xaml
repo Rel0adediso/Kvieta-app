@@ -1557,7 +1557,10 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Visibility="Collapsed" Text="{Binding SettingsPath}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom"/>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button x:Name="CheckUpdatesButton" Content="{Binding UpdateStatusText}" Style="{StaticResource SecondaryButtonStyle}" FontSize="10" Padding="10,4" Click="CheckUpdates_Click"/>
+                                            <Button x:Name="DownloadUpdateButton" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" Content="{Binding UpdateBadgeText}" Style="{StaticResource PrimaryButtonStyle}" FontSize="10" Margin="8,0,0,0" Padding="10,4" Click="DownloadUpdate_Click"/>
+                                        </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="18,0,0,0">
                                             <TextBlock Text="{Binding BuildInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" TextAlignment="Right"/>
                                             <TextBlock Text="{Binding InstallationInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" TextAlignment="Right" Margin="0,3,0,0"/>
