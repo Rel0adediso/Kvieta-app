@@ -687,6 +687,7 @@ public static class ProtectionServiceManager
             RunSc("failure", ServiceName, "reset=", "60", "actions=", "restart/3000/restart/3000/restart/3000");
             TraceInstallStep("service.configured");
             RunSc("start", ServiceName);
+            ConfigureSafeBootRegistration(true);
             TraceInstallStep("complete");
             return 0;
         }
@@ -754,6 +755,7 @@ public static class ProtectionServiceManager
             HardenReadOnlyFileAcl(PostInstallControlCenterPath, request.UserSid);
             TryDelete(AdministrativeActivityPath);
             ProtectionPolicyChannel.ResetAuthenticationThrottleAfterProvisioning();
+            ConfigureSafeBootRegistration(true);
             TraceInstallStep("provision.complete");
             return 0;
         }
@@ -920,6 +922,7 @@ public static class ProtectionServiceManager
             TryDelete(ProcessStatePath);
             TryDelete(PostInstallControlCenterPath);
             TryDelete(ProtectedSettingsPath);
+            ConfigureSafeBootRegistration(false);
             return 0;
         }
         catch
@@ -1067,6 +1070,35 @@ public static class ProtectionServiceManager
         "*S-1-5-18:F",
         "*S-1-5-32-544:F",
         $"*{userSid}:R");
+
+    public static void ConfigureSafeBootRegistration(bool enable)
+    {
+        if (!OperatingSystem.IsWindows() || !IsAdministrator()) return;
+
+        try
+        {
+            const string minimalPath = @"SYSTEM\CurrentControlSet\Control\SafeBoot\Minimal";
+            const string networkPath = @"SYSTEM\CurrentControlSet\Control\SafeBoot\Network";
+
+            if (enable)
+            {
+                using var minKey = Registry.LocalMachine.CreateSubKey($@"{minimalPath}\{ServiceName}");
+                minKey?.SetValue(null, "Service");
+
+                using var netKey = Registry.LocalMachine.CreateSubKey($@"{networkPath}\{ServiceName}");
+                netKey?.SetValue(null, "Service");
+            }
+            else
+            {
+                using var minKey = Registry.LocalMachine.OpenSubKey(minimalPath, writable: true);
+                minKey?.DeleteSubKeyTree(ServiceName, throwOnMissingSubKey: false);
+
+                using var netKey = Registry.LocalMachine.OpenSubKey(networkPath, writable: true);
+                netKey?.DeleteSubKeyTree(ServiceName, throwOnMissingSubKey: false);
+            }
+        }
+        catch { }
+    }
 
     public static void HardenProtectedPolicyAcl(string userSid) => RunIcacls(
         ProtectedSettingsPath,

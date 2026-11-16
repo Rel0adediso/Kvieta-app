@@ -41,7 +41,7 @@ public static class BuildInfo
         string value = releaseLabel.Trim();
         Match alphaMatch = Regex.Match(
             value,
-            @"^(?:v?\d+\.\d+\.\d+-)?alpha[.-]?(?<number>\d+)$",
+            @"^(?:v?\d+\.\d+\.\d+-)?alpha[.-]?(?<number>[\d\.]+)$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         return alphaMatch.Success
             ? $"Alpha {alphaMatch.Groups["number"].Value}"

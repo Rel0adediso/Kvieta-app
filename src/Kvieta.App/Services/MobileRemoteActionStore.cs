@@ -79,7 +79,7 @@ public static class MobileRemoteActionStore
                     break;
                 case RemoteSessionCommand.Resume:
                     ledger.RemoteLockActive = false;
-                    if (ledger.State is SessionState.Paused or SessionState.TimeExpired or SessionState.Ready)
+                    if (ledger.State is SessionState.Paused or SessionState.Ready)
                     {
                         ledger.State = SessionState.Active;
                     }

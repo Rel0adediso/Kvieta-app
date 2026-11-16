@@ -99,6 +99,7 @@ public partial class App : System.Windows.Application
         }
 
         _singleInstance.ActivationRequested += SingleInstance_ActivationRequested;
+        ProcessSecurityHardener.ProtectCurrentProcess();
         _dashboardRelay = new DashboardRelayPublisher(Kvieta.App.MainWindow.ReadDashboardSnapshotAsync);
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;

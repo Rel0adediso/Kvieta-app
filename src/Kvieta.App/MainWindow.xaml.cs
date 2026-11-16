@@ -548,23 +548,9 @@ public partial class MainWindow : Window
         await _viewModel.CheckForUpdatesAsync(isManual: true);
     }
 
-    private void DownloadUpdate_Click(object sender, RoutedEventArgs e)
+    private async void DownloadUpdate_Click(object sender, RoutedEventArgs e)
     {
-        string? targetUrl = _viewModel.UpdateDownloadUrl ?? _viewModel.UpdateReleaseUrl;
-        if (!string.IsNullOrWhiteSpace(targetUrl))
-        {
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = targetUrl,
-                    UseShellExecute = true
-                });
-            }
-            catch
-            {
-            }
-        }
+        await _viewModel.StartOrApplyUpdateAsync();
     }
 
     private async void UninstallKvieta_Click(object sender, RoutedEventArgs e)

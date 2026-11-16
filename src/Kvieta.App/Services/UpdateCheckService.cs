@@ -1,3 +1,5 @@
+using System.IO;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -102,6 +104,125 @@ public static class UpdateCheckService
                 PublishedAt: null,
                 HasError: true,
                 ErrorMessage: ex.Message);
+        }
+    }
+
+    public static async Task<string?> DownloadUpdateAsync(
+        string downloadUrl,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(downloadUrl) || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri))
+        {
+            return null;
+        }
+
+        string updatesDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Kvieta",
+            "Updates");
+        Directory.CreateDirectory(updatesDirectory);
+
+        string rawFileName = Path.GetFileName(uri.LocalPath);
+        if (string.IsNullOrWhiteSpace(rawFileName) ||
+            (!rawFileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+             !rawFileName.EndsWith(".msi", StringComparison.OrdinalIgnoreCase)))
+        {
+            rawFileName = "Kvieta-Setup.exe";
+        }
+
+        string targetPath = Path.Combine(updatesDirectory, rawFileName);
+        string tempPath = targetPath + ".downloading";
+
+        try
+        {
+            using HttpResponseMessage response = await HttpClient.GetAsync(
+                downloadUrl,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken).ConfigureAwait(false);
+
+            response.EnsureSuccessStatusCode();
+            long? totalBytes = response.Content.Headers.ContentLength;
+
+            using (Stream sourceStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+            using (FileStream targetStream = new(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            {
+                byte[] buffer = new byte[81920];
+                long totalRead = 0;
+                int bytesRead;
+
+                while ((bytesRead = await sourceStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    await targetStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+                    totalRead += bytesRead;
+
+                    if (totalBytes is > 0)
+                    {
+                        progress?.Report((double)totalRead / totalBytes.Value * 100.0);
+                    }
+                }
+            }
+
+            if (File.Exists(targetPath))
+            {
+                File.Delete(targetPath);
+            }
+            File.Move(tempPath, targetPath);
+
+            // Authenticode verification
+            if (!BuildInfo.IsDevelopmentBuild)
+            {
+                if (!AuthenticodeTrustVerifier.IsTrusted(targetPath))
+                {
+                    try { File.Delete(targetPath); } catch { }
+                    throw new InvalidOperationException("Downloaded update failed Authenticode signature verification.");
+                }
+            }
+
+            return targetPath;
+        }
+        catch
+        {
+            try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { }
+            throw;
+        }
+    }
+
+    public static bool ApplyUpdate(string installerPath)
+    {
+        if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = installerPath,
+                UseShellExecute = true
+            };
+
+            if (installerPath.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+            {
+                startInfo.FileName = "msiexec.exe";
+                startInfo.Arguments = $"/i \"{installerPath}\" /passive";
+            }
+            else
+            {
+                startInfo.Arguments = "--elevated-install";
+            }
+
+            System.Diagnostics.Process.Start(startInfo);
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                System.Windows.Application.Current.Shutdown(0);
+            });
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 

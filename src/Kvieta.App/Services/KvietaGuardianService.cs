@@ -20,7 +20,7 @@ public sealed class KvietaGuardianService : ServiceBase
     public KvietaGuardianService()
     {
         ServiceName = ProtectionServiceManager.ServiceName;
-        CanStop = true;
+        CanStop = false;
         CanShutdown = true;
         AutoLog = false;
     }
@@ -69,6 +69,44 @@ public sealed class KvietaGuardianService : ServiceBase
         _cancellation = null;
     }
 
+    private static readonly SemaphoreSlim WatchWakeGate = new(0, 1);
+    private static int _activeWatchedPid;
+
+    public static void TriggerWatchWake()
+    {
+        try
+        {
+            if (WatchWakeGate.CurrentCount == 0)
+            {
+                WatchWakeGate.Release();
+            }
+        }
+        catch { }
+    }
+
+    private static void StartProcessWatcher(int pid)
+    {
+        if (Interlocked.Exchange(ref _activeWatchedPid, pid) == pid)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using Process p = Process.GetProcessById(pid);
+                await p.WaitForExitAsync();
+            }
+            catch { }
+            finally
+            {
+                Interlocked.CompareExchange(ref _activeWatchedPid, 0, pid);
+                TriggerWatchWake();
+            }
+        });
+    }
+
     private static async Task WatchAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -89,7 +127,9 @@ public sealed class KvietaGuardianService : ServiceBase
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                await Task.WhenAny(
+                    Task.Delay(TimeSpan.FromSeconds(5), cancellationToken),
+                    WatchWakeGate.WaitAsync(cancellationToken));
             }
             catch (OperationCanceledException)
             {
@@ -165,6 +205,7 @@ public sealed class KvietaGuardianService : ServiceBase
                     process.SessionId,
                     process.StartTime.ToUniversalTime().Ticks));
                 TryAudit("guardian.session", "started");
+                StartProcessWatcher(processId.Value);
             }
             catch
             {
@@ -296,13 +337,20 @@ public sealed class KvietaGuardianService : ServiceBase
 
             using Process process = Process.GetProcessById(state.ProcessId);
             string? executablePath = process.MainModule?.FileName;
-            return !process.HasExited &&
+            bool isAlive = !process.HasExited &&
                 process.SessionId == sessionId &&
                 process.StartTime.ToUniversalTime().Ticks == state.StartTimeUtcTicks &&
                 string.Equals(
                     Path.GetFullPath(executablePath ?? string.Empty),
                     Path.GetFullPath(ProtectionServiceManager.InstalledExecutablePath),
                     StringComparison.OrdinalIgnoreCase);
+
+            if (isAlive)
+            {
+                StartProcessWatcher(state.ProcessId);
+            }
+
+            return isAlive;
         }
         catch
         {

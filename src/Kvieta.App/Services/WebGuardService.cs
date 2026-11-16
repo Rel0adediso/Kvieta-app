@@ -1,6 +1,8 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using Kvieta.Core.Models;
 
 namespace Kvieta.App.Services;
@@ -22,6 +24,8 @@ public static class WebGuardService
     public static bool Apply(ControlSettings settings)
     {
         if (!OperatingSystem.IsWindows()) return false;
+
+        ApplyBrowserDohAndSafeSearch(settings.WebGuardEnabled, settings.SafeSearchEnforced);
 
         string hostsPath = GetHostsPath();
         if (!File.Exists(hostsPath)) return false;
@@ -120,9 +124,22 @@ public static class WebGuardService
             : before + Environment.NewLine + after;
     }
 
+    private static readonly Regex DomainValidationRegex = new(
+        @"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     public static string CleanDomain(string input)
     {
-        string cleaned = input.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+
+        // Strip any CRLF or null bytes to prevent hosts file line injection
+        string cleaned = input.Replace("\r", string.Empty)
+                              .Replace("\n", string.Empty)
+                              .Replace("\t", string.Empty)
+                              .Replace(" ", string.Empty)
+                              .Trim()
+                              .ToLowerInvariant();
+
         if (cleaned.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
             cleaned = cleaned.Substring(8);
@@ -144,6 +161,50 @@ public static class WebGuardService
             cleaned = cleaned.Substring(0, colonIndex);
         }
 
-        return cleaned;
+        return DomainValidationRegex.IsMatch(cleaned) ? cleaned : string.Empty;
+    }
+
+    public static void ApplyBrowserDohAndSafeSearch(bool webGuardEnabled, bool safeSearchEnforced)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        try
+        {
+            string[] browserPolicies = [@"Software\Policies\Google\Chrome", @"Software\Policies\Microsoft\Edge"];
+            foreach (string basePath in browserPolicies)
+            {
+                using RegistryKey? key = Registry.LocalMachine.CreateSubKey(basePath);
+                if (key is null) continue;
+
+                if (webGuardEnabled)
+                {
+                    // Disable DoH so browser cannot bypass local hosts file
+                    key.SetValue("DnsOverHttpsMode", "off", RegistryValueKind.String);
+                    key.SetValue("BuiltInDnsClientEnabled", 0, RegistryValueKind.DWord);
+
+                    if (safeSearchEnforced)
+                    {
+                        key.SetValue("ForceGoogleSafeSearch", 1, RegistryValueKind.DWord);
+                        key.SetValue("ForceYouTubeRestrict", 2, RegistryValueKind.DWord);
+                    }
+                    else
+                    {
+                        key.DeleteValue("ForceGoogleSafeSearch", false);
+                        key.DeleteValue("ForceYouTubeRestrict", false);
+                    }
+                }
+                else
+                {
+                    key.DeleteValue("DnsOverHttpsMode", false);
+                    key.DeleteValue("BuiltInDnsClientEnabled", false);
+                    key.DeleteValue("ForceGoogleSafeSearch", false);
+                    key.DeleteValue("ForceYouTubeRestrict", false);
+                }
+            }
+        }
+        catch
+        {
+            // Silently ignore if non-elevated; applied when elevated or via Guardian
+        }
     }
 }

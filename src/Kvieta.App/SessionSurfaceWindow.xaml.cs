@@ -647,6 +647,11 @@ public partial class SessionSurfaceWindow : Window
 
         _displayShieldManager.Refresh();
 
+        if (IsSafeMode && (_viewModel.IsFamilyMode || _viewModel.IsProtectedPersonalMode || _requirePinToExit))
+        {
+            _forceSurfaceVisible = true;
+        }
+
         if (_controlCenterOpen)
         {
             _widget?.Hide();
@@ -697,12 +702,20 @@ public partial class SessionSurfaceWindow : Window
 
     private bool ShouldGuardShortcuts()
     {
-        return SessionSurfaceRecoveryPolicy.ShouldGuardShortcuts(
+        bool guard = SessionSurfaceRecoveryPolicy.ShouldGuardShortcuts(
             _viewModel.ShouldShowSessionSurfaces,
             IsVisible,
             _forceSurfaceVisible || !_viewModel.IsActive,
             _controlCenterOpen,
             _surfaceTransitionInProgress);
+        SessionTaskManagerControl.SetTaskManagerDisabled(guard);
+        return guard;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        SessionTaskManagerControl.SetTaskManagerDisabled(false);
+        base.OnClosed(e);
     }
 
     private bool ShouldCoverAllDisplays()
@@ -1212,6 +1225,10 @@ public partial class SessionSurfaceWindow : Window
             SetForegroundWindow(handle);
         }
     }
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+    private static bool IsSafeMode => GetSystemMetrics(67) != 0;
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

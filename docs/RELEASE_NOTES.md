@@ -1,5 +1,22 @@
 # Kvieta release notes
 
+## Kvieta Alpha 6.5 — In-App Updater and Anti-Tamper Hardening
+
+- In-app automatic update engine: direct background download, Authenticode signature verification, and one-click restart.
+- Windows Kernel DACL process hardening: denies external process termination and suspension from Task Manager and CLI tools.
+- Lock screen Task Manager suppression (`DisableTaskMgr = 1`) preventing Ctrl+Shift+Esc bypass.
+- Windows Safe Mode persistence: KvietaGuardian service registration in SafeBoot minimal/network registries and enforced lock surface.
+- DNS-over-HTTPS (DoH) bypass prevention via Chrome/Edge policies and Web Guard CRLF sanitization.
+- Resolved Android companion update checker loop, remote action resume flicker, and updated security dependencies across the stack.
+
+## Kvieta Alpha 6.4 — Phone Companion and Remote Supervision
+
+- Deep Kvieta Mobil companion integration: pairing card and live companion status on the Windows dashboard.
+- Accelerated remote session lock, break, and resume synchronization.
+- Secure PBKDF2-SHA256 administrator PIN verification protocol for remote extra-time approvals.
+- Web Guard remote supervision support from companion devices.
+- Refined interface animations, smoother transitions, and calm visual responsiveness.
+
 ## Kvieta Alpha 5 — Interface polish and startup reliability
 
 - Weekly Plan uses one compact, consistently aligned schedule surface; day,

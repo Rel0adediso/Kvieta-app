@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -478,9 +479,110 @@ public sealed partial class MainViewModel : ObservableObject
         private set => SetProperty(ref _updateStatusText, value);
     }
 
-    public string UpdateBadgeText => IsUpdateAvailable
-        ? string.Format(L("Yeni sürüm hazır: {0}", "New version ready: {0}"), LatestVersionLabel ?? "Update")
-        : string.Empty;
+    private bool _isDownloadingUpdate;
+    public bool IsDownloadingUpdate
+    {
+        get => _isDownloadingUpdate;
+        private set
+        {
+            if (SetProperty(ref _isDownloadingUpdate, value))
+            {
+                OnPropertyChanged(nameof(UpdateBadgeText));
+            }
+        }
+    }
+
+    private double _updateDownloadPercent;
+    public double UpdateDownloadPercent
+    {
+        get => _updateDownloadPercent;
+        private set
+        {
+            if (SetProperty(ref _updateDownloadPercent, value))
+            {
+                OnPropertyChanged(nameof(UpdateBadgeText));
+            }
+        }
+    }
+
+    private string? _downloadedInstallerPath;
+    public string? DownloadedInstallerPath
+    {
+        get => _downloadedInstallerPath;
+        private set
+        {
+            if (SetProperty(ref _downloadedInstallerPath, value))
+            {
+                OnPropertyChanged(nameof(IsUpdateReadyToInstall));
+                OnPropertyChanged(nameof(UpdateBadgeText));
+            }
+        }
+    }
+
+    public bool IsUpdateReadyToInstall => !string.IsNullOrWhiteSpace(DownloadedInstallerPath) && File.Exists(DownloadedInstallerPath);
+
+    public string UpdateBadgeText
+    {
+        get
+        {
+            if (IsDownloadingUpdate)
+            {
+                return string.Format(L("İndiriliyor... %{0:F0}", "Downloading... {0:F0}%"), UpdateDownloadPercent);
+            }
+            if (IsUpdateReadyToInstall)
+            {
+                return L("Şimdi Yükle ve Yeniden Başlat", "Install Now & Restart");
+            }
+            if (IsUpdateAvailable)
+            {
+                return string.Format(L("Yeni sürümü indir: {0}", "Download update: {0}"), LatestVersionLabel ?? "Update");
+            }
+            return string.Empty;
+        }
+    }
+
+    public async Task StartOrApplyUpdateAsync()
+    {
+        if (IsUpdateReadyToInstall && !string.IsNullOrWhiteSpace(DownloadedInstallerPath))
+        {
+            UpdateCheckService.ApplyUpdate(DownloadedInstallerPath);
+            return;
+        }
+
+        if (IsDownloadingUpdate || string.IsNullOrWhiteSpace(UpdateDownloadUrl))
+        {
+            return;
+        }
+
+        // If not a direct binary, open web page
+        if (!UpdateDownloadUrl.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+            !UpdateDownloadUrl.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(UpdateReleaseUrl ?? UpdateDownloadUrl) { UseShellExecute = true });
+            }
+            catch { }
+            return;
+        }
+
+        IsDownloadingUpdate = true;
+        UpdateDownloadPercent = 0;
+        try
+        {
+            var progress = new Progress<double>(percent => UpdateDownloadPercent = percent);
+            string? localFile = await UpdateCheckService.DownloadUpdateAsync(UpdateDownloadUrl, progress).ConfigureAwait(true);
+            DownloadedInstallerPath = localFile;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"{L("Güncelleme indirilemedi", "Update download failed")}: {ex.Message}";
+        }
+        finally
+        {
+            IsDownloadingUpdate = false;
+        }
+    }
 
     public string LocalDataHealthText =>
         _usageReadFailed

@@ -450,9 +450,18 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     {
         if (_engine is null) return;
         _engine.Ledger.RemoteLockActive = false;
-        if (_engine.Ledger.State is SessionState.Paused or SessionState.Ready or SessionState.TimeExpired)
+        if (_engine.Ledger.State is SessionState.Paused or SessionState.Ready)
         {
             await StartOrResumeAsync();
+        }
+        else if (_engine.Ledger.State == SessionState.TimeExpired)
+        {
+            bool hasTimeRemaining = (_snapshot?.RemainingSeconds ?? 0) > 0 || _settings?.Mode == UsageMode.Insights;
+            if (hasTimeRemaining)
+            {
+                _engine.Ledger.State = SessionState.Paused;
+                await StartOrResumeAsync();
+            }
         }
         RefreshSnapshot(notifyStateChange: true);
     }
