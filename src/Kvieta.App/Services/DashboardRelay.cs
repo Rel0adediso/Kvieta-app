@@ -117,7 +117,7 @@ public static class DashboardRelay
                 Encoding.UTF8.GetBytes("kvieta-relay-decision-v1\n" + client.Room));
             DecisionPayload payload = JsonSerializer.Deserialize<DecisionPayload>(plain, Json) ?? throw new InvalidDataException("Invalid relay decision");
             if (payload.Sequence != envelope.Sequence || payload.Sequence < 1) throw new InvalidDataException("Invalid relay decision sequence");
-            return new(payload.DecisionId, payload.RequestId, payload.Action, payload.GrantedMinutes, payload.DecidedAtUtc, payload.PayloadJson);
+            return new(payload.DecisionId, payload.RequestId, payload.Action, payload.GrantedMinutes, payload.DecidedAtUtc, payload.PayloadJson, payload.Sequence, payload.ParentProof);
         }
         finally { CryptographicOperations.ZeroMemory(key); CryptographicOperations.ZeroMemory(plain); }
     }
@@ -132,7 +132,7 @@ public static class DashboardRelay
     }
 
     private sealed record RelayEnvelope(string Box, long Sequence);
-    private sealed record DecisionPayload(long Sequence, string DecisionId, string RequestId, string Action, int? GrantedMinutes, DateTimeOffset DecidedAtUtc, string? PayloadJson);
+    private sealed record DecisionPayload(long Sequence, string DecisionId, string RequestId, string Action, int? GrantedMinutes, DateTimeOffset DecidedAtUtc, string? PayloadJson, string? ParentProof = null);
 }
 
 /// <summary>Only publishes explicitly enabled, encrypted summaries while Kvieta is running.</summary>
@@ -143,7 +143,7 @@ public sealed class DashboardRelayPublisher : IDisposable
     {
         _ = Task.Run(async () =>
         {
-            string? lastProcessedDecisionId = null;
+            MobileCommandJournal commands = new(MobileCommandJournal.DefaultPath);
             DateTimeOffset lastPublishUtc = DateTimeOffset.MinValue;
 
             // The session and control center can be different processes. Only one publishes at a time.
@@ -184,51 +184,35 @@ public sealed class DashboardRelayPublisher : IDisposable
                             try { decision = await DashboardRelay.ReadDecisionAsync(relay, _stop.Token); }
                             catch (Exception) { /* transient network error */ }
 
-                            if (decision is not null && decision.DecisionId != lastProcessedDecisionId &&
+                            if (decision is not null &&
                                 DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.Room == relay.Client.Room)
                             {
-                                lastProcessedDecisionId = decision.DecisionId;
-
-                                if (string.Equals(decision.Action, "pair-device", StringComparison.OrdinalIgnoreCase))
+                                await commands.ProcessAsync(relay.Client.Room, decision, async () =>
                                 {
-                                    string phoneName = "Android Telefon";
-                                    try
+                                    if (DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.Room != relay.Client.Room) return false;
+                                    bool accepted;
+                                    if (MobilePolicyCoordinator.IsPolicyAction(decision.Action))
                                     {
+                                        accepted = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+                                            ? await ProtectionPolicyChannel.ApplyMobilePolicyAsync(relay, decision, _stop.Token)
+                                            : await MobilePolicyCoordinator.ApplyAsync(decision.Action, decision.PayloadJson, _stop.Token);
+                                    }
+                                    else if (decision.Action == "session-action")
+                                        accepted = await MobileRemoteActionStore.RecordActionAsync(decision.PayloadJson, _stop.Token, decision.DecisionId);
+                                    else if (decision.Action == "pair-device")
+                                    {
+                                        string phoneName = "Kvieta Mobile";
                                         if (!string.IsNullOrWhiteSpace(decision.PayloadJson))
                                         {
                                             using var doc = JsonDocument.Parse(decision.PayloadJson);
-                                            if (doc.RootElement.TryGetProperty("deviceName", out var prop))
-                                                phoneName = prop.GetString() ?? phoneName;
+                                            if (doc.RootElement.TryGetProperty("deviceName", out var prop)) phoneName = prop.GetString() ?? phoneName;
                                         }
+                                        DashboardEndpoint.RecordPairedPhone(phoneName);
+                                        accepted = true;
                                     }
-                                    catch { }
-                                    DashboardEndpoint.RecordPairedPhone(phoneName);
-                                }
-                                else if (string.Equals(decision.Action, "update-plan", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    await MobilePlanChangeStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
-                                }
-                                else if (string.Equals(decision.Action, "session-action", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    await MobileRemoteActionStore.RecordActionAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
-                                }
-                                else if (string.Equals(decision.Action, "update-app-rule", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    await MobileAppRuleStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
-                                }
-                                else if (string.Equals(decision.Action, "update-web-guard", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    await MobileWebGuardStore.ApplyAsync(decision.PayloadJson, _stop.Token);
-                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
-                                }
-                                else
-                                {
-                                    MobileTimeRequestStore.AcceptDecision(decision);
-                                    DashboardEndpoint.RecordPairedPhone("Kvieta Mobil");
-                                }
+                                    else accepted = MobileTimeRequestStore.AcceptDecision(decision);
+                                    return accepted;
+                                }, _stop.Token);
 
                                 // If allowed by rate-limit window, push fresh snapshot so phone immediately sees updated state
                                 if (DateTimeOffset.UtcNow - lastPublishUtc >= TimeSpan.FromSeconds(5))

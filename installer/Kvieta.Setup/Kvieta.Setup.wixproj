@@ -3,7 +3,7 @@
     <OutputType>Package</OutputType>
     <Platform>x64</Platform>
     <InstallerPlatform>x64</InstallerPlatform>
-    <KvietaVersion Condition="'$(KvietaVersion)' == ''">1.0.0</KvietaVersion>
+    <KvietaVersion Condition="'$(KvietaVersion)' == ''">$(Version)</KvietaVersion>
     <KvietaReleaseLabel Condition="'$(KvietaReleaseLabel)' == ''">$(KvietaVersion)</KvietaReleaseLabel>
     <KvietaPublishDir Condition="'$(KvietaPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64</KvietaPublishDir>
     <KvietaSignerThumbprint Condition="'$(KvietaSignerThumbprint)' == ''">UNSIGNED-DEVELOPMENT-BUILD</KvietaSignerThumbprint>

@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
-    <Version>1.0.0</Version>
+    <!-- Installer/FileVersion must remain above the distributed Alpha 6.x packages. -->
+    <Version>7.0.0</Version>
     <KvietaReleaseLabel>v1.0.0</KvietaReleaseLabel>
   </PropertyGroup>
 </Project>

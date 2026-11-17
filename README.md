@@ -21,7 +21,9 @@ A calm, local-first way to understand and manage screen time on Windows.
 
 Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
-## Download Kvieta v1.0.0
+## Kvieta v1.0.0 — preparing for release
+
+The links below are the planned release locations and become available only after publication.
 
 [**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/v1.0.0/Kvieta-Setup-v1.0.0.exe)
 
@@ -32,7 +34,7 @@ SmartScreen may show an **Unknown publisher** warning.
 The standalone MSI, checksum files, release manifest, detailed notes, and known
 limitations are on the [Kvieta v1.0.0 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/v1.0.0). Verify the Setup EXE with the attached `.sha256` file before running it.
 
-> **Important:** v1.0.0 replaces earlier Alpha packages. It can be installed directly over an existing Kvieta installation while preserving settings, usage history, recovery material, and protected policy.
+> **Upgrade plan:** v1.0.0 uses numeric installer/file version **7.0.0** to remain above Alpha 6.x. The visible product version remains v1.0.0. Validate an in-place upgrade from your deployed Alpha before publishing; preserve settings, history, recovery material and protected policy. Older Alpha updaters may require a manual download.
 
 ## Choose the relationship you want with time
 
@@ -57,22 +59,24 @@ limitations are on the [Kvieta v1.0.0 release page](https://github.com/Rel0adedi
 
 - Zen UI overhaul with Mica glass backdrop, calming sage aesthetic, and intuitive Today donut dashboard.
 - Mindful Dopamine Barrier: browser interception for short-form video loops (Shorts/Reels/TikTok) with peaceful home redirect.
-- Single-file bundle compression: 64% smaller package footprint (78 MB vs 215 MB).
-- Bulletproof system recovery: automatic Task Manager restoration on exit/reboot and complete Web Guard uninstaller rollback.
-- Hardened kernel anti-tamper and seamless local companion sync.
+- Compressed single-file distribution; the Setup EXE and embedded application have different sizes. Use the final manifest for exact package sizes.
+- Recovery and policy ownership: restores Kvieta-owned settings on normal shutdown/startup and uninstall, preserving unrelated policies. Crash and upgrade paths require the final Windows test matrix.
+- Windows process access controls and Guardian supervision for standard user accounts. This is not a kernel driver or an administrator-proof boundary.
 
 ## Private by design
 
-Kvieta has no required cloud account and does not send screen-time history to a Kvieta service. The optional phone companion is served by the PC and currently requires the phone to reach that PC on the local network. Approval messages are signed, short-lived, origin-checked, rate-limited, and contain neither the administrator PIN nor recovery codes.
+Kvieta has no required cloud account. Usage history stays on the PC. Optional phone sharing sends an end-to-end encrypted summary through Cloudflare when remote access is enabled; local sharing is also available. Pairing grants the permissions shown in the phone hub. Administrator PIN verifiers and recovery codes are not included in summaries.
+
+Community releases are unsigned: update notifications open the official release page for an explicit manual download. Automatic installation is reserved for updates signed by the pinned Kvieta publisher.
 
 ## Project status
 
-**Kvieta v1.0.0 is the official release.**
+**Kvieta v1.0.0 is being prepared and has not been published by this change.**
 
 - The source is usable today and the Windows package pipeline is in place.
 - Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
 - Community installers are intentionally unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
-- The Alpha 6.5 Setup EXE, MSI, checksums, and manifest identify their exact source commit.
+- Rebuild the final Setup EXE, MSI, checksums and manifest from the accepted source commit; earlier artifacts do not contain the readiness fixes.
 - The broader installer, DPI, Guardian, escape-path, and Windows lifecycle matrix remains open before final `v1.0.0`.
 
 See the [roadmap](docs/ROADMAP.md) for the remaining validation work and [release notes](docs/RELEASE_NOTES.md) for the detailed history.

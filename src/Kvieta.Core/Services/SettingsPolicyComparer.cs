@@ -9,6 +9,15 @@ public static class SettingsPolicyComparer
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(desired);
 
+        if (current.WebGuardEnabled &&
+            (!desired.WebGuardEnabled ||
+             current.SafeSearchEnforced && !desired.SafeSearchEnforced ||
+             current.BlockShortFormVideo && !desired.BlockShortFormVideo ||
+             current.BlockedWebDomains.Except(desired.BlockedWebDomains, StringComparer.OrdinalIgnoreCase).Any()))
+        {
+            return true;
+        }
+
         if (desired.PersonalChangeDelayMinutes < current.PersonalChangeDelayMinutes)
         {
             return true;

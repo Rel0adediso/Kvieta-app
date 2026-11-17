@@ -1,17 +1,17 @@
 # Kvieta — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 6 Eylül 2026
+**Son güncelleme:** 17 Kasım 2026
 
-**Mevcut yayın:** **Kvieta Alpha 4.2** community prerelease
+**Aktif hedef:** Kvieta v1.0.0 yayın hazırlığı (henüz yayınlanmadı).
 
-**Aktif hedef:** Alpha 4.2 saha doğrulaması ve final `v1.0.0` Windows doğrulama matrisi
+Görünen sürüm v1.0.0; dahili MSI/dosya sürümü 7.0.0. Yayın öncesi kabul
+kanıtları [V1 test matrisinde](V1-TEST-MATRIX.md) tutulur. Önce güvenilir
+Windows yaşam döngüsü ve geçişler tamamlanır; ardından Android kapsamı genişletilir.
 
-**Yayın:** [Kvieta Alpha 4.2](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-4.2)
+Android için ertelenen işler [V1 sonrası notunda](POST-V1.md) tutulur; PC kaynak
+incelemesi ve push kapsamına Android istemci geliştirmesi dahil değildir.
 
-Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
-kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
-bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
-öncelikle **Aktif çalışma planı** bölümü esas alınır.
+Aşağıdaki Alpha kayıtları tarihçedir; açık/kapalı kutuları güncel kabul kanıtı yerine kullanmayın.
 
 ## Kvieta Alpha 4.2 — güncel community preview
 

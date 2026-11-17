@@ -9,23 +9,25 @@ public static class SessionTaskManagerControl
 
     public static void SetTaskManagerDisabled(bool disabled)
     {
-        if (!OperatingSystem.IsWindows()) return;
+        TrySetTaskManagerDisabled(disabled);
+    }
+
+    public static bool TrySetTaskManagerDisabled(bool disabled, string? userSid = null)
+    {
+        if (!OperatingSystem.IsWindows()) return true;
 
         try
         {
-            using RegistryKey key = Registry.CurrentUser.CreateSubKey(PoliciesSubKey);
-            if (disabled)
-            {
-                key.SetValue(DisableTaskMgrValue, 1, RegistryValueKind.DWord);
-            }
-            else
-            {
-                key.DeleteValue(DisableTaskMgrValue, throwOnMissingValue: false);
-            }
+            using RegistryKey? userRoot = userSid is null ? null : Registry.Users.OpenSubKey(
+                new System.Security.Principal.SecurityIdentifier(userSid).Value, writable: true);
+            if (userSid is not null && userRoot is null) return false;
+            using RegistryPolicyOwner owner = new(userRoot ?? Registry.CurrentUser, @"Software\Kvieta\TaskManagerOwnership");
+            owner.Set(PoliciesSubKey, DisableTaskMgrValue, disabled ? 1 : null, RegistryValueKind.DWord);
+            return true;
         }
         catch
         {
-            // Best effort policy application
+            return false;
         }
     }
 }

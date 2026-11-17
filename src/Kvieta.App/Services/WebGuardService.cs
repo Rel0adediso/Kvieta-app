@@ -14,7 +14,8 @@ public sealed record WebGuardPayload(
     bool WebGuardEnabled,
     bool SafeSearchEnforced,
     bool BlockShortFormVideo,
-    List<string> BlockedWebDomains);
+    List<string> BlockedWebDomains,
+    string? UserSid = null);
 
 public static class WebGuardService
 {
@@ -62,7 +63,8 @@ public static class WebGuardService
         settings.WebGuardEnabled,
         settings.SafeSearchEnforced,
         settings.BlockShortFormVideo,
-        settings.BlockedWebDomains ?? []);
+        settings.BlockedWebDomains ?? [],
+        WindowsIdentity.GetCurrent().User?.Value);
 
     public static bool Apply(ControlSettings settings)
     {
@@ -80,26 +82,13 @@ public static class WebGuardService
             return ApplyDirect(payload);
         }
 
-        // Try direct write first (in case running in an environment with granted permissions)
-        try
-        {
-            if (ApplyDirect(payload))
-            {
-                return true;
-            }
-        }
-        catch
-        {
-            // Fall through to elevation
-        }
-
         // Request UAC elevation via self worker process
         return RunElevatedWorker(payload);
     }
 
     private static bool NeedsApply(WebGuardPayload payload)
     {
-        if (payload.WebGuardEnabled || payload.BlockShortFormVideo || payload.SafeSearchEnforced || payload.BlockedWebDomains.Count > 0)
+        if (payload.WebGuardEnabled)
         {
             return true;
         }
@@ -112,19 +101,8 @@ public static class WebGuardService
                 return true;
             }
 
-            string[] checkPaths = [
-                @"Software\Policies\BraveSoftware\Brave\URLBlocklist",
-                @"Software\Policies\Google\Chrome\URLBlocklist",
-                @"Software\Policies\Microsoft\Edge\URLBlocklist",
-                @"Software\Policies\BraveSoftware\Brave\ExtensionInstallForcelist",
-                @"Software\Policies\Google\Chrome\ExtensionInstallForcelist",
-                @"Software\Policies\Microsoft\Edge\ExtensionInstallForcelist"
-            ];
-            foreach (string p in checkPaths)
-            {
-                using RegistryKey? key = Registry.LocalMachine.OpenSubKey(p);
-                if (key is not null) return true;
-            }
+            using RegistryKey? journal = Registry.LocalMachine.OpenSubKey(RegistryPolicyOwner.JournalPath);
+            if (journal?.GetValue("State") is string state && state != "{}") return true;
         }
         catch
         {
@@ -163,8 +141,7 @@ public static class WebGuardService
             using Process? process = Process.Start(startInfo);
             if (process is not null)
             {
-                process.WaitForExit(12000);
-                return process.ExitCode == 0;
+                return process.WaitForExit(30000) && process.ExitCode == 0;
             }
 
             return false;
@@ -200,7 +177,8 @@ public static class WebGuardService
 
     public static bool ApplyDirect(WebGuardPayload payload)
     {
-        if (!OperatingSystem.IsWindows()) return false;
+        if (!OperatingSystem.IsWindows() || !IsAdministrator()) return false;
+        payload = Normalize(payload);
 
         bool browserOk = ApplyBrowserPolicies(payload);
         bool hostsOk = ApplyHostsFile(payload);
@@ -216,17 +194,24 @@ public static class WebGuardService
         return browserOk && hostsOk;
     }
 
+    public static WebGuardPayload Normalize(WebGuardPayload payload) => payload.WebGuardEnabled ? payload : payload with
+    {
+        SafeSearchEnforced = false,
+        BlockShortFormVideo = false,
+        BlockedWebDomains = []
+    };
+
     private static bool ApplyHostsFile(WebGuardPayload payload)
     {
         string hostsPath = GetHostsPath();
-        if (!File.Exists(hostsPath)) return false;
+        if (!File.Exists(hostsPath)) return !payload.WebGuardEnabled;
 
         try
         {
             string content = File.ReadAllText(hostsPath, Encoding.UTF8);
             string sanitized = RemoveKvietaBlock(content);
 
-            bool shouldBlock = payload.WebGuardEnabled || payload.BlockShortFormVideo;
+            bool shouldBlock = payload.WebGuardEnabled;
             if (shouldBlock && (payload.BlockedWebDomains.Count > 0 || payload.SafeSearchEnforced || payload.BlockShortFormVideo))
             {
                 var sb = new StringBuilder(sanitized.TrimEnd());
@@ -290,10 +275,15 @@ public static class WebGuardService
                 File.SetAttributes(hostsPath, originalAttributes & ~FileAttributes.ReadOnly);
             }
 
-            File.WriteAllText(hostsPath, sanitized, Encoding.UTF8);
-
-            if ((originalAttributes & FileAttributes.ReadOnly) != 0)
+            string temporary = hostsPath + ".kvieta-" + Guid.NewGuid().ToString("N");
+            try
             {
+                File.WriteAllText(temporary, sanitized, new UTF8Encoding(false));
+                File.Replace(temporary, hostsPath, null);
+            }
+            finally
+            {
+                if (File.Exists(temporary)) File.Delete(temporary);
                 File.SetAttributes(hostsPath, originalAttributes);
             }
 
@@ -314,7 +304,7 @@ public static class WebGuardService
         if (startIndex == -1) return content;
 
         int endIndex = content.IndexOf(BlockEnd, StringComparison.Ordinal);
-        if (endIndex == -1) return content.Substring(0, startIndex).TrimEnd() + Environment.NewLine;
+        if (endIndex < startIndex) throw new InvalidDataException("Incomplete Kvieta hosts block; manual repair required.");
 
         endIndex += BlockEnd.Length;
         string before = content.Substring(0, startIndex).TrimEnd();
@@ -455,173 +445,39 @@ public static class WebGuardService
         foreach (string basePath in chromiumPolicies)
         {
             allOk &= ApplyToRegistryHive(Registry.LocalMachine, basePath, payload, chromiumUrlBlocklist);
-            allOk &= ApplyToRegistryHive(Registry.CurrentUser, basePath, payload, chromiumUrlBlocklist);
         }
 
-        ApplyToFirefox(payload, firefoxUrlBlocklist);
-        RefreshBrowsers();
+        allOk &= ApplyToFirefox(payload, firefoxUrlBlocklist);
         return allOk;
-    }
-
-    private static void RefreshBrowsers()
-    {
-        string[] browserNames = ["msedge", "brave", "chrome"];
-        foreach (string name in browserNames)
-        {
-            try
-            {
-                Process[] processes = Process.GetProcessesByName(name);
-                bool hasVisibleWindow = processes.Any(p => p.MainWindowHandle != nint.Zero);
-                // If the browser has no visible windows open, kill the background lingering processes
-                // (e.g. Edge Startup Boost) so the next user launch is a cold start that re-reads policies.
-                if (!hasVisibleWindow && processes.Length > 0)
-                {
-                    foreach (Process p in processes)
-                    {
-                        try { p.Kill(); } catch { }
-                    }
-                }
-            }
-            catch
-            {
-            }
-        }
     }
 
     private static bool ApplyToRegistryHive(RegistryKey root, string basePath, WebGuardPayload payload, List<string> urlBlocklist)
     {
         try
         {
-            using RegistryKey? key = root.CreateSubKey(basePath);
-            if (key is null) return false;
-
-            bool isProtectionActive = payload.WebGuardEnabled || payload.BlockShortFormVideo;
-
-            if (isProtectionActive)
-            {
-                if (payload.WebGuardEnabled)
-                {
-                    key.SetValue("DnsOverHttpsMode", "off", RegistryValueKind.String);
-                    key.SetValue("BuiltInDnsClientEnabled", 0, RegistryValueKind.DWord);
-                }
-                else
-                {
-                    key.DeleteValue("DnsOverHttpsMode", false);
-                    key.DeleteValue("BuiltInDnsClientEnabled", false);
-                }
-
-                if (payload.SafeSearchEnforced)
-                {
-                    key.SetValue("ForceGoogleSafeSearch", 1, RegistryValueKind.DWord);
-                    key.SetValue("ForceYouTubeRestrict", 2, RegistryValueKind.DWord);
-                }
-                else
-                {
-                    key.DeleteValue("ForceGoogleSafeSearch", false);
-                    key.DeleteValue("ForceYouTubeRestrict", false);
-                }
-
-                if (urlBlocklist.Count > 0)
-                {
-                    using RegistryKey blocklistKey = key.CreateSubKey("URLBlocklist");
-                    // Clean previous values
-                    foreach (string valueName in blocklistKey.GetValueNames())
-                    {
-                        blocklistKey.DeleteValue(valueName, false);
-                    }
-                    for (int i = 0; i < urlBlocklist.Count; i++)
-                    {
-                        blocklistKey.SetValue((i + 1).ToString(), urlBlocklist[i], RegistryValueKind.String);
-                    }
-                }
-                else
-                {
-                    key.DeleteSubKeyTree("URLBlocklist", false);
-                }
-
-                if (payload.BlockShortFormVideo)
-                {
-                    using RegistryKey extKey = key.CreateSubKey("ExtensionInstallForcelist");
-                    extKey.SetValue("1", "jiaopdjbehhjgokpphdfgmapkobbnmjp;https://clients2.google.com/service/update2/crx", RegistryValueKind.String);
-                }
-                else
-                {
-                    key.DeleteSubKeyTree("ExtensionInstallForcelist", false);
-                }
-            }
-            else
-            {
-                key.DeleteValue("DnsOverHttpsMode", false);
-                key.DeleteValue("BuiltInDnsClientEnabled", false);
-                key.DeleteValue("ForceGoogleSafeSearch", false);
-                key.DeleteValue("ForceYouTubeRestrict", false);
-                key.DeleteSubKeyTree("URLBlocklist", false);
-                key.DeleteSubKeyTree("ExtensionInstallForcelist", false);
-            }
-
+            using RegistryPolicyOwner owner = new(root);
+            owner.Set(basePath, "DnsOverHttpsMode", payload.WebGuardEnabled ? "off" : null);
+            owner.Set(basePath, "BuiltInDnsClientEnabled", payload.WebGuardEnabled ? 0 : null, RegistryValueKind.DWord);
+            owner.Set(basePath, "ForceGoogleSafeSearch", payload.WebGuardEnabled && payload.SafeSearchEnforced ? 1 : null, RegistryValueKind.DWord);
+            owner.Set(basePath, "ForceYouTubeRestrict", payload.WebGuardEnabled && payload.SafeSearchEnforced ? 2 : null, RegistryValueKind.DWord);
+            owner.SetList(basePath + @"\URLBlocklist", urlBlocklist);
+            // No browser extensions are installed or removed by Kvieta.
             return true;
         }
-        catch
-        {
-            return false;
-        }
+        catch { return false; }
     }
 
-    private static void ApplyToFirefox(WebGuardPayload payload, List<string> urlBlocklist)
+    private static bool ApplyToFirefox(WebGuardPayload payload, List<string> urlBlocklist)
     {
-        string[] hives = [@"Software\Policies\Mozilla\Firefox"];
-        RegistryKey[] roots = [Registry.LocalMachine, Registry.CurrentUser];
-
-        foreach (RegistryKey root in roots)
+        try
         {
-            foreach (string basePath in hives)
-            {
-                try
-                {
-                    using RegistryKey? key = root.CreateSubKey(basePath);
-                    if (key is null) continue;
-
-                    bool isProtectionActive = payload.WebGuardEnabled || payload.BlockShortFormVideo;
-                    if (isProtectionActive)
-                    {
-                        if (payload.WebGuardEnabled)
-                        {
-                            using RegistryKey dohKey = key.CreateSubKey("DNSOverHTTPS");
-                            dohKey.SetValue("Enabled", 0, RegistryValueKind.DWord);
-                            dohKey.SetValue("Locked", 1, RegistryValueKind.DWord);
-                        }
-                        else
-                        {
-                            key.DeleteSubKeyTree("DNSOverHTTPS", false);
-                        }
-
-                        if (urlBlocklist.Count > 0)
-                        {
-                            using RegistryKey filterKey = key.CreateSubKey(@"WebsiteFilter\Block");
-                            foreach (string valueName in filterKey.GetValueNames())
-                            {
-                                filterKey.DeleteValue(valueName, false);
-                            }
-                            for (int i = 0; i < urlBlocklist.Count; i++)
-                            {
-                                filterKey.SetValue((i + 1).ToString(), urlBlocklist[i], RegistryValueKind.String);
-                            }
-                        }
-                        else
-                        {
-                            key.DeleteSubKeyTree("WebsiteFilter", false);
-                        }
-                    }
-                    else
-                    {
-                        key.DeleteSubKeyTree("DNSOverHTTPS", false);
-                        key.DeleteSubKeyTree("WebsiteFilter", false);
-                    }
-                }
-                catch
-                {
-                }
-            }
+            using RegistryPolicyOwner owner = new(Registry.LocalMachine);
+            const string path = @"Software\Policies\Mozilla\Firefox";
+            owner.Set(path + @"\DNSOverHTTPS", "Enabled", payload.WebGuardEnabled ? 0 : null, RegistryValueKind.DWord);
+            owner.Set(path + @"\DNSOverHTTPS", "Locked", payload.WebGuardEnabled ? 1 : null, RegistryValueKind.DWord);
+            owner.SetList(path + @"\WebsiteFilter\Block", urlBlocklist);
+            return true;
         }
+        catch { return false; }
     }
 }

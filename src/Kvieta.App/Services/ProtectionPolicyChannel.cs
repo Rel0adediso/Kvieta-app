@@ -217,6 +217,34 @@ public static class ProtectionPolicyChannel
             cancellationToken);
     }
 
+    public static Task<bool> AuthorizeMobilePolicyAsync(RelayCredentials? relay, string? pin, AdminCredential? personalCredential = null, CancellationToken cancellation = default)
+    {
+        string authorization = JsonSerializer.Serialize(new MobilePolicyAuthorization(relay?.Client.Room ?? "", relay?.Client.Key ?? ""));
+        return SendAuthenticatedRequestAsync(new PolicyRequest("mobile-authorize", pin, Convert.ToBase64String(Encoding.UTF8.GetBytes(authorization)), null, null),
+            challenge => personalCredential is not null ? Convert.FromBase64String(personalCredential.HashBase64) : AdminPinService.DeriveHash(pin ?? "", challenge.SaltBase64, challenge.Iterations), cancellation);
+    }
+
+    public static Task<bool> ApplyMobilePolicyAsync(RelayCredentials relay, MobileTimeDecision decision, CancellationToken cancellation = default) =>
+        SendAuthenticatedRequestAsync(new PolicyRequest("mobile-command", null,
+            Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new MobilePolicyCommand(relay.Client.Room, decision))), null, null),
+            _ => Convert.FromBase64String(relay.Client.Key), cancellation);
+
+    public static async Task<MobilePinParameters?> GetMobilePinParametersAsync(CancellationToken cancellation = default)
+    {
+        try
+        {
+            using NamedPipeClientStream client = new(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            timeout.CancelAfter(TimeSpan.FromSeconds(3));
+            await client.ConnectAsync(timeout.Token);
+            if (!IsGuardianServiceServer(client)) return null;
+            using StreamReader reader = new(client, Encoding.UTF8, leaveOpen: true);
+            PolicyChallenge? challenge = await ReadChallengeAsync(reader, timeout.Token);
+            return challenge is null ? null : new MobilePinParameters(challenge.SaltBase64, challenge.Iterations);
+        }
+        catch { return null; }
+    }
+
     private static async Task<bool> SendAuthenticatedRequestAsync(
         PolicyRequest payload,
         Func<PolicyChallenge, byte[]> keyFactory,
@@ -358,6 +386,13 @@ public static class ProtectionPolicyChannel
             return;
         }
 
+        if (request.Operation is "mobile-authorize" or "mobile-command")
+        {
+            bool accepted = await HandleMobilePolicyAsync(request, enrollment, requestTimeout.Token);
+            await writer.WriteLineAsync((accepted ? "OK" : "ERR").AsMemory(), requestTimeout.Token);
+            return;
+        }
+
         if (string.Equals(request.Operation, "recovery-pin-reset", StringComparison.Ordinal))
         {
             await HandleRecoveryPinResetAsync(request, enrollment, writer, requestTimeout.Token);
@@ -492,6 +527,50 @@ public static class ProtectionPolicyChannel
         };
         await WriteEnrollmentAtomicallyAsync(updatedEnrollment, requestTimeout.Token);
         await writer.WriteLineAsync("OK".AsMemory(), requestTimeout.Token);
+    }
+
+    private static async Task<bool> HandleMobilePolicyAsync(PolicyRequest request, GuardianEnrollment enrollment, CancellationToken cancellation)
+    {
+        try
+        {
+            if (request.SettingsBase64 is null) return false;
+            byte[] bytes = Convert.FromBase64String(request.SettingsBase64);
+            if (request.Operation == "mobile-authorize")
+            {
+                if (!(IsGuardedPersonalPolicy(enrollment) && string.IsNullOrEmpty(request.Pin)) &&
+                    (string.IsNullOrEmpty(request.Pin) || !AdminPinService.Verify(request.Pin, enrollment.AdminPin))) return false;
+                var authorization = JsonSerializer.Deserialize<MobilePolicyAuthorization>(bytes);
+                if (authorization is null) return false;
+                bool revoke = authorization.Room.Length == 0 && authorization.Key.Length == 0;
+                if (!revoke && (!System.Text.RegularExpressions.Regex.IsMatch(authorization.Room, "^[a-f0-9]{64}$") || Convert.FromBase64String(authorization.Key).Length != 32)) return false;
+                await WriteEnrollmentAtomicallyAsync(enrollment with
+                {
+                    MobilePolicyRoom = revoke ? null : authorization.Room,
+                    MobilePolicyKey = revoke ? null : authorization.Key,
+                    MobilePolicySequence = enrollment.MobilePolicyRoom == authorization.Room ? enrollment.MobilePolicySequence : 0
+                }, cancellation);
+                return true;
+            }
+            var command = JsonSerializer.Deserialize<MobilePolicyCommand>(bytes);
+            if (command is null || command.Room != enrollment.MobilePolicyRoom || !MobilePolicyCoordinator.IsPolicyAction(command.Decision.Action) ||
+                !MobileCommandJournal.IsFresh(command.Decision, DateTimeOffset.UtcNow)) return false;
+            if (command.Decision.Sequence <= enrollment.MobilePolicySequence) return true;
+            ControlSettings current = await new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true).LoadAsync(cancellation);
+            if (current.Mode == UsageMode.Family && !MobileParentProof.Verify(enrollment.AdminPin, command.Room, command.Decision))
+            {
+                RegisterAuthenticationFailure(LoadThrottleState());
+                return false;
+            }
+            ControlSettings changed = MobilePolicyCoordinator.Mutate(current, command.Decision.Action, command.Decision.PayloadJson ?? "", DateTimeOffset.UtcNow);
+            byte[] policy = CreateProtectedPolicyBytes(changed);
+            await WriteBytesAtomicallyAsync(ProtectionServiceManager.ProtectedSettingsPath, policy, cancellation);
+            ProtectionServiceManager.HardenProtectedPolicyAcl(enrollment.UserSid);
+            if (!string.IsNullOrWhiteSpace(enrollment.SettingsPath)) await WriteBytesAtomicallyAsync(enrollment.SettingsPath, policy, cancellation);
+            if (!WebGuardService.ApplyDirect(WebGuardService.FromSettings(changed) with { UserSid = enrollment.UserSid })) return false;
+            await WriteEnrollmentAtomicallyAsync(enrollment with { MobilePolicySequence = command.Decision.Sequence }, cancellation);
+            return true;
+        }
+        catch { return false; }
     }
 
     private static async Task HandleRecoveryPinResetAsync(
@@ -928,8 +1007,10 @@ public static class ProtectionPolicyChannel
         {
             key = request.Operation is "sync" or "sync-guarded" or "verify-pin" or
                 "manager-device-enroll" or "manager-device-revoke" or "manager-device-transfer" or
-                "admin-activity-begin" or "admin-activity-end"
+                "admin-activity-begin" or "admin-activity-end" or "mobile-authorize"
                 ? Convert.FromBase64String(enrollment.AdminPin.HashBase64)
+                : request.Operation == "mobile-command" && enrollment.MobilePolicyKey is not null
+                    ? Convert.FromBase64String(enrollment.MobilePolicyKey)
                 : string.Equals(request.Operation, "manager-device-pin-reset", StringComparison.Ordinal) &&
                     !string.IsNullOrWhiteSpace(request.RecoveryChallengeResponse?.SignatureBase64)
                     ? SHA256.HashData(Convert.FromBase64String(

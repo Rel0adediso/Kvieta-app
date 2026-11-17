@@ -1,7 +1,12 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '1.0.0',
+    [string]$Version = '7.0.0',
+
+    [string]$BuildRoot = $env:PUBLIC,
+
+    [ValidatePattern('^[0-9A-Za-z][0-9A-Za-z.-]*$')]
+    [string]$ReleaseLabel = 'v1.0.0',
 
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Release',
@@ -34,8 +39,8 @@ if (-not (Test-Path -LiteralPath $dotnet)) {
 
 # makecab/smartcab can misread Turkish characters in the user TEMP path. Keep the
 # override local to this PowerShell process and use a writable ASCII path.
-$cabinetTempDirectory = Join-Path $env:PUBLIC 'KvietaBuildTemp'
-$wixStagingDirectory = Join-Path $env:PUBLIC "KvietaBuildStaging\release\$Version"
+$cabinetTempDirectory = Join-Path $BuildRoot 'KvietaBuildTemp'
+$wixStagingDirectory = Join-Path $BuildRoot "KvietaBuildStaging\release\$Version"
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
@@ -109,10 +114,12 @@ New-Item -ItemType Directory -Path $publishedArtifactDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $installerOutputDirectory -Force | Out-Null
 
 & $dotnet publish $applicationProject `
+    -m:1 `
     -c $Configuration `
     -r win-x64 `
     --self-contained true `
     -p:Version=$Version `
+    -p:InformationalVersion=$ReleaseLabel `
     -p:PublishSingleFile=true `
     -p:PublishDir="$publishDirectory\"
 if ($LASTEXITCODE -ne 0) {
@@ -127,8 +134,10 @@ Copy-Item -LiteralPath $publishedExecutable `
     -Destination (Join-Path $publishedArtifactDirectory 'Kvieta.exe') -Force
 
 & $dotnet build $installerProject `
+    -m:1 `
     -c $Configuration `
     -p:KvietaVersion=$Version `
+    -p:KvietaReleaseLabel=$ReleaseLabel `
     -p:KvietaPublishDir="$publishDirectory" `
     -p:KvietaSignerThumbprint=$normalizedThumbprint `
     -p:KvietaPackageKind=public `
@@ -154,11 +163,12 @@ Invoke-BinarySigning $installer $signTool $normalizedThumbprint $certificateUses
 Assert-ValidSignature $installer $normalizedThumbprint
 
 & $dotnet publish $setupProject `
+    -m:1 `
     -c Release `
     -r win-x64 `
     --self-contained true `
     -p:Version=$Version `
-    -p:InformationalVersion=$Version `
+    -p:InformationalVersion=$ReleaseLabel `
     -p:KvietaInstallerPath="$installer" `
     -p:PublishDir="$setupPublishDirectory\"
 if ($LASTEXITCODE -ne 0) {
@@ -166,7 +176,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $publishedSetup = Join-Path $setupPublishDirectory 'Kvieta.Setup.exe'
-$setup = Join-Path $installerOutputDirectory "Kvieta-Setup-$Version.exe"
+$setup = Join-Path $installerOutputDirectory "Kvieta-Setup-$ReleaseLabel.exe"
 Copy-Item -LiteralPath $publishedSetup -Destination $setup -Force
 Invoke-BinarySigning $setup $signTool $normalizedThumbprint $certificateUsesMachineStore
 Assert-ValidSignature $setup $normalizedThumbprint
@@ -194,7 +204,7 @@ Set-Content -LiteralPath "$setup.sha256" -Value "$($setupHash.Hash.ToLowerInvari
     -InstallerPath $installer `
     -SetupPath $setup `
     -ExpectedVersion $Version `
-    -ExpectedReleaseLabel $Version `
+    -ExpectedReleaseLabel $ReleaseLabel `
     -ExpectedPackageKind public `
     -ExpectedSignerThumbprint $normalizedThumbprint `
     -RequireSignature
@@ -208,7 +218,7 @@ $manifestPath = Join-Path $installerOutputDirectory 'release-manifest.json'
     -InstallerPath $installer `
     -SetupPath $setup `
     -Version $Version `
-    -ReleaseLabel $Version `
+    -ReleaseLabel $ReleaseLabel `
     -PackageKind public `
     -SignerThumbprint $normalizedThumbprint
 if ($LASTEXITCODE -ne 0) {

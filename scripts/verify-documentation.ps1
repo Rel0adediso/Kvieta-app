@@ -1,8 +1,19 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+
+[xml]$buildMetadata = Get-Content -LiteralPath (Join-Path $repositoryRoot 'Directory.Build.props') -Raw
+$releaseLabel = [string]$buildMetadata.Project.PropertyGroup.KvietaReleaseLabel
+$installerVersion = [string]$buildMetadata.Project.PropertyGroup.Version
+$releaseProcess = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/RELEASE_PROCESS.md') -Encoding UTF8 -Raw
+$roadmap = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/ROADMAP.md') -Encoding UTF8 -Raw
+if (-not $releaseProcess.Contains("Current target: **Kvieta $releaseLabel**") -or
+    $releaseProcess -notmatch [regex]::Escape("**$installerVersion**") -or
+    $roadmap -notmatch ('(?m)^\*\*Aktif hedef:\*\* Kvieta ' + [regex]::Escape($releaseLabel))) {
+    throw 'Current roadmap/release target does not match build metadata.'
+}
 
 $requiredFiles = @(
     'LICENSE'

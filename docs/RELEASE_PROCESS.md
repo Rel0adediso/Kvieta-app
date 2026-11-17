@@ -11,24 +11,22 @@ Every Kvieta version must follow this process:
 7. Publish a GitHub Release with the same English notes when release tooling is available.
 8. Attach the matching installer, verification manifest, and SHA-256 values. State clearly whether the package is Authenticode-signed.
 
-For the first Kvieta-branded community preview, the public release name is
-**Kvieta Alpha 1**. Use `alpha-1` for the Git tag and `Alpha-1` where a
-package-safe label is needed; do not present `v1.0.0-alpha.1` as the product name.
-The numeric MSI version stays `1.0.0` so Windows Installer can service the
-existing product correctly.
+Current target: **Kvieta v1.0.0**, not yet published. Public tag/label: `v1.0.0`.
+Numeric MSI/FileVersion: **7.0.0**; keep this separate from the product label.
+Previously distributed Alpha 4.x–6.x packages have higher numeric versions than
+1.0.0. Never lower the installer version or enable arbitrary downgrades.
 
-The current branded preview is **Kvieta Alpha 4.2**. Its package-safe label is
-`Alpha-4.2`; publish it under the `kvieta-alpha-4.2` tag. Use numeric MSI version
-`4.2.0`, above both the published Alpha 4 package (`1.0.0`) and the intervening
-local Alpha 4.1 test packages (`4.1.0`–`4.1.3`). Do not downgrade this version.
-Build community artifacts from the clean release commit and verify that their
-manifest names the annotated tag's commit before uploading.
+Build unsigned community artifacts with:
 
-The next field-validation build is **Kvieta Alpha 4.3**. Its package-safe label
-is `Alpha-4.3` and its numeric MSI version is `4.3.0`, so Alpha 4.2 is recognized
-as an upgrade source. Until its release commit and tag exist, Alpha 4.3 artifacts
-must be treated as unsigned local/VM validation builds and must not replace the
-published Alpha 4.2 download links.
+```powershell
+./scripts/build-test-installer.ps1 -Version 7.0.0 -ReleaseLabel v1.0.0 -CommunityRelease
+```
+
+Output: `artifacts/installer-community/7.0.0`. Rebuild after every accepted source
+change; never attach the previous 1.0.0 artifacts. Verify the exact candidate commit
+and hash, then complete [V1 acceptance](V1-TEST-MATRIX.md). Community updates use
+the official manual download page; signed automatic updates require the pinned publisher.
+Editing source does not publish a release or validate physical device behavior.
 
 Final releases must never be published while a documented release blocker remains open. Release candidates and test packages must be labeled clearly and must not be described as signed or production-ready when they are not.
 

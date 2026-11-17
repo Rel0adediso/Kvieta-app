@@ -24,6 +24,7 @@ public partial class MainWindow
             AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync, RecoverAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true) return;
+            _managementPin = verification.ResultPin;
         }
         else if (_viewModel.IsFamilyMode)
         {
@@ -46,13 +47,20 @@ public partial class MainWindow
         try
         {
             DashboardSharingWindow? window = null;
-            window = new DashboardSharingWindow(endpoint, () => OpenManagerDeviceAsync(false, window)) { Owner = this };
+            window = new DashboardSharingWindow(endpoint, () => OpenManagerDeviceAsync(false, window), AuthorizePhonePolicyAsync) { Owner = this };
             window.ShowDialog();
         }
         finally
         {
             if (endpoint is not null) await endpoint.DisposeAsync();
         }
+    }
+
+    private async Task<bool> AuthorizePhonePolicyAsync(RelayCredentials? relay)
+    {
+        if (!_viewModel.IsGuardianRequired) return true;
+        AdminCredential? personal = _viewModel.IsPersonalMode ? _viewModel.CreateSettingsSnapshot().AdminPin : null;
+        return await ProtectionPolicyChannel.AuthorizeMobilePolicyAsync(relay, personal is null ? _managementPin : null, personal);
     }
 
     internal static async Task<object> ReadDashboardSnapshotAsync()
@@ -111,22 +119,11 @@ public partial class MainWindow
         string? decisionToken = null;
         try { decisionToken = DashboardRelay.Load(DashboardRelay.StorePath)?.Relay?.Client.DecisionToken; }
         catch { /* A damaged pairing store must not stop the local dashboard. */ }
-        AdminCredential? adminCred = settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker
-            ? settings.AdminPin
-            : null;
-        if (adminCred is null)
-        {
-            try
-            {
-                var userSettings = await new JsonSettingsStore().LoadAsync();
-                if (userSettings.AdminPin.IsConfigured && !userSettings.AdminPin.IsPublicMarker)
-                {
-                    adminCred = userSettings.AdminPin;
-                }
-            }
-            catch { }
-        }
-        bool hasAdminPin = adminCred is { IsConfigured: true, IsPublicMarker: false };
+        bool hasAdminPin = settings.AdminPin.IsConfigured;
+        MobilePinParameters? pinParameters = settings.Mode == UsageMode.Family && hasAdminPin
+            ? await ProtectionPolicyChannel.GetMobilePinParametersAsync() : null;
+        MobileCommandReceipt? commandReceipt = null;
+        try { commandReceipt = new MobileCommandJournal(MobileCommandJournal.DefaultPath).Current(); } catch { }
         return new
         {
             deviceName = settings.DeviceName,
@@ -161,9 +158,10 @@ public partial class MainWindow
             blockedWebDomains = settings.BlockedWebDomains.ToArray(),
             remoteDecisionToken = decisionToken,
             hasAdminPin,
-            adminPinSalt = hasAdminPin ? adminCred!.SaltBase64 : null,
-            adminPinHash = hasAdminPin ? adminCred!.HashBase64 : null,
-            adminPinIterations = hasAdminPin ? adminCred!.Iterations : 0,
+            adminPinSalt = pinParameters?.SaltBase64,
+            adminPinIterations = pinParameters?.Iterations ?? 0,
+            policyAuthorization = "pin-hmac-v1",
+            remoteCommand = commandReceipt,
             timeRequest = request is null ? null : new
             {
                 id = request.Id,

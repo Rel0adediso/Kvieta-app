@@ -29,7 +29,7 @@ public static class MobileRemoteActionStore
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public static async Task<bool> RecordActionAsync(string? payload, CancellationToken cancellation = default)
+    public static async Task<bool> RecordActionAsync(string? payload, CancellationToken cancellation = default, string? decisionId = null)
     {
         if (string.IsNullOrWhiteSpace(payload)) return false;
         string commandText = payload.Trim().Trim('"');
@@ -43,54 +43,45 @@ public static class MobileRemoteActionStore
         }
         catch { /* payload can be plain string or JSON object */ }
 
-        if (!Enum.TryParse<RemoteSessionCommand>(commandText, true, out var command)) return false;
+        if (!Enum.TryParse<RemoteSessionCommand>(commandText, true, out var command) || !Enum.IsDefined(command)) return false;
 
-        // 1. Save to encrypted file for fallback / audit
-        if (await Gate.WaitAsync(500, cancellation))
-        {
-            try
-            {
-                var action = new MobileRemoteAction(Guid.NewGuid().ToString("N"), command, DateTimeOffset.UtcNow, Applied: false);
-                byte[] plain = JsonSerializer.SerializeToUtf8Bytes(action, Json);
-                byte[] protectedBytes = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
-                Directory.CreateDirectory(Path.GetDirectoryName(EffectiveFilePath)!);
-                await File.WriteAllBytesAsync(EffectiveFilePath, protectedBytes, cancellation);
-            }
-            catch { }
-            finally { Gate.Release(); }
-        }
-
-        // 2. Direct ledger persistence
+        if (!await Gate.WaitAsync(500, cancellation)) return false;
         try
         {
-            var usageStore = new JsonUsageStore();
-            var ledger = await usageStore.LoadAsync(cancellation);
-            switch (command)
+            string commandId = decisionId ?? Guid.NewGuid().ToString("N");
+            var usageStore = OverrideFilePath is null ? new JsonUsageStore() :
+                new JsonUsageStore(Path.Combine(Path.GetDirectoryName(EffectiveFilePath)!, "test-usage.json"));
+            bool duplicate = false;
+            await usageStore.UpdateAsync(ledger =>
             {
-                case RemoteSessionCommand.Lock:
-                    ledger.RemoteLockActive = true;
-                    ledger.State = SessionState.TimeExpired;
-                    ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
-                    break;
-                case RemoteSessionCommand.Pause:
-                    if (ledger.State == SessionState.Active)
-                    {
-                        ledger.State = SessionState.Paused;
-                    }
-                    ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
-                    break;
-                case RemoteSessionCommand.Resume:
-                    ledger.RemoteLockActive = false;
-                    if (ledger.State is SessionState.Paused or SessionState.Ready)
-                    {
-                        ledger.State = SessionState.Active;
-                    }
-                    ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
-                    break;
-            }
-            await usageStore.SaveAsync(ledger, cancellation);
+                if (ledger.LastRemoteCommandId == commandId) { duplicate = true; return ledger; }
+                switch (command)
+                {
+                    case RemoteSessionCommand.Lock: ledger.RemoteLockActive = true; ledger.State = SessionState.TimeExpired; break;
+                    case RemoteSessionCommand.Pause: if (ledger.State == SessionState.Active) ledger.State = SessionState.Paused; break;
+                    case RemoteSessionCommand.Resume:
+                        ledger.RemoteLockActive = false;
+                        if (ledger.State == SessionState.TimeExpired) ledger.State = SessionState.Ready;
+                        break;
+                }
+                ledger.LastRemoteCommandId = commandId;
+                ledger.LastUpdatedUtc = DateTimeOffset.UtcNow;
+                return ledger;
+            }, cancellation);
+            if (duplicate) return true;
+            var action = new MobileRemoteAction(commandId, command, DateTimeOffset.UtcNow, Applied: false);
+            byte[] plain = JsonSerializer.SerializeToUtf8Bytes(action, Json);
+            byte[] encrypted = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
+            Directory.CreateDirectory(Path.GetDirectoryName(EffectiveFilePath)!);
+            string temporary = EffectiveFilePath + ".tmp";
+            await File.WriteAllBytesAsync(temporary, encrypted, cancellation);
+            File.Move(temporary, EffectiveFilePath, true);
         }
-        catch { }
+        catch { return false; }
+        finally { Gate.Release(); }
+
+        // Custom repositories are used for isolated storage checks and must not affect the host desktop.
+        if (OverrideFilePath is not null) return true;
 
         // 3. Immediate system actions
         try

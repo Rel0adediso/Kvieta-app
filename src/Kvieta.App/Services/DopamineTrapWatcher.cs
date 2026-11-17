@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Automation;
 using Kvieta.Core.Models;
+using Kvieta.Core.Services;
 
 namespace Kvieta.App.Services;
 
@@ -26,22 +27,11 @@ public sealed class DopamineTrapWatcher : IDisposable
         "firefox"
     };
 
-    private static readonly string[] ShortVideoPatterns =
-    [
-        "youtube.com/shorts",
-        "youtu.be/shorts",
-        "instagram.com/reels",
-        "instagram.com/reel",
-        "facebook.com/reel",
-        "facebook.com/reels",
-        "tiktok.com"
-    ];
-
     private readonly object _gate = new();
     private System.Threading.Timer? _timer;
     private ControlSettings? _settings;
     private bool _isDisposed;
-    private bool _isChecking;
+    private int _isChecking;
     private DateTimeOffset _lastActionTime = DateTimeOffset.MinValue;
     private nint _lastActionWindow;
 
@@ -50,7 +40,7 @@ public sealed class DopamineTrapWatcher : IDisposable
         lock (_gate)
         {
             _settings = settings;
-            bool shouldRun = settings is not null && (settings.BlockShortFormVideo || (settings.WebGuardEnabled && settings.BlockedWebDomains?.Count > 0));
+            bool shouldRun = settings is not null && settings.WebGuardEnabled && (settings.BlockShortFormVideo || settings.BlockedWebDomains?.Count > 0);
 
             if (shouldRun && _timer is null && !_isDisposed)
             {
@@ -67,8 +57,7 @@ public sealed class DopamineTrapWatcher : IDisposable
 
     private void OnTimerTick(object? state)
     {
-        if (_isChecking || _isDisposed) return;
-        _isChecking = true;
+        if (_isDisposed || Interlocked.Exchange(ref _isChecking, 1) != 0) return;
 
         try
         {
@@ -79,7 +68,7 @@ public sealed class DopamineTrapWatcher : IDisposable
         }
         finally
         {
-            _isChecking = false;
+            Interlocked.Exchange(ref _isChecking, 0);
         }
     }
 
@@ -92,7 +81,7 @@ public sealed class DopamineTrapWatcher : IDisposable
         }
 
         if (settings is null) return;
-        bool checkShorts = settings.BlockShortFormVideo;
+        bool checkShorts = settings.WebGuardEnabled && settings.BlockShortFormVideo;
         List<string>? blockedDomains = settings.WebGuardEnabled ? settings.BlockedWebDomains : null;
 
         if (!checkShorts && (blockedDomains is null || blockedDomains.Count == 0))
@@ -160,14 +149,7 @@ public sealed class DopamineTrapWatcher : IDisposable
 
     private static bool MatchesShortVideo(string url)
     {
-        foreach (string pattern in ShortVideoPatterns)
-        {
-            if (url.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-        return false;
+        return WebAddressPolicy.IsShortVideo(url);
     }
 
     private static bool MatchesBlockedDomain(string url, List<string> blockedDomains)
@@ -175,7 +157,7 @@ public sealed class DopamineTrapWatcher : IDisposable
         foreach (string raw in blockedDomains)
         {
             string domain = WebGuardService.CleanDomain(raw);
-            if (!string.IsNullOrWhiteSpace(domain) && url.Contains(domain, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(domain) && WebAddressPolicy.MatchesDomain(url, domain))
             {
                 return true;
             }

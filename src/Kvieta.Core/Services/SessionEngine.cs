@@ -21,7 +21,7 @@ public sealed class SessionEngine
         Refresh(now);
 
         // A restart never resumes an active desktop silently; starts in Ready mode ("Hazırsan başlayalım.")
-        if ((Ledger.State is SessionState.Active or SessionState.TimeExpired) &&
+        if (!Ledger.RemoteLockActive && (Ledger.State is SessionState.Active or SessionState.TimeExpired) &&
             Ledger.UsedSeconds < GetLimitSeconds(now))
         {
             Ledger.State = SessionState.Ready;
@@ -33,7 +33,7 @@ public sealed class SessionEngine
     public ClockChangeKind ObserveClock(DateTimeOffset now, TimeSpan systemUptime, string? bootId = null)
     {
         ClockChangeKind change = ClockIntegrityMonitor.Observe(Ledger, now, systemUptime, bootId);
-        if (change == ClockChangeKind.Reboot)
+        if (change == ClockChangeKind.Reboot && _settings.Mode == UsageMode.Personal)
         {
             Ledger.RemoteLockActive = false;
             if (Ledger.UsedSeconds < GetLimitSeconds(now))
@@ -257,7 +257,7 @@ public sealed class SessionEngine
         {
             ArchiveCurrentDay(today);
             Ledger.LocalDay = today;
-            Ledger.RemoteLockActive = false;
+            if (_settings.Mode == UsageMode.Personal) Ledger.RemoteLockActive = false;
             Ledger.UsedSeconds = 0;
             Ledger.BonusMinutes = 0;
             Ledger.AppUsedSeconds.Clear();

@@ -535,7 +535,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
             if (IsUpdateAvailable)
             {
-                return string.Format(L("Yeni sürümü indir: {0}", "Download update: {0}"), LatestVersionLabel ?? "Update");
+                return string.Format(L("Yeni sürüm: {0} · İndirme sayfasını aç", "New version: {0} · Open download page"), LatestVersionLabel ?? "Update");
             }
             return string.Empty;
         }
@@ -545,7 +545,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (IsUpdateReadyToInstall && !string.IsNullOrWhiteSpace(DownloadedInstallerPath))
         {
-            UpdateCheckService.ApplyUpdate(DownloadedInstallerPath);
+            if (!UpdateCheckService.ApplyUpdate(DownloadedInstallerPath))
+                StatusMessage = L("Güncelleme doğrulanamadı veya başlatılamadı.", "The update could not be verified or started.");
             return;
         }
 
@@ -1123,6 +1124,10 @@ public sealed partial class MainViewModel : ObservableObject
                 immediate.Schedule = CloneSchedule(_settings.Schedule);
                 immediate.TemporaryAllowances = CloneTemporaryAllowances(_settings.TemporaryAllowances);
                 immediate.AppRules = CloneAppRules(_settings.AppRules);
+                immediate.WebGuardEnabled = _settings.WebGuardEnabled;
+                immediate.SafeSearchEnforced = _settings.SafeSearchEnforced;
+                immediate.BlockShortFormVideo = _settings.BlockShortFormVideo;
+                immediate.BlockedWebDomains = [.. _settings.BlockedWebDomains];
                 desired.PendingChange = null;
                 immediate.PendingChange = new PendingPolicyChange
                 {
@@ -1133,6 +1138,7 @@ public sealed partial class MainViewModel : ObservableObject
                 _settings = immediate;
                 await SaveUserSettingsAsync(_settings);
                 bool webGuardAppliedDelay = Services.WebGuardService.Apply(_settings);
+                Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
                 _stagedAdminCredential = null;
                 _stagedRecoveryCodes = null;
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
@@ -1150,7 +1156,8 @@ public sealed partial class MainViewModel : ObservableObject
                 _localWriteFailed = false;
                 _localWriteFailureMessage = null;
                 NotifyRuntimeHealth();
-                StatusMessage = BuildPendingStatusMessage();
+                StatusMessage = webGuardAppliedDelay ? BuildPendingStatusMessage() :
+                    L("Bekleyen değişiklik kaydedildi, ancak web koruması uygulanamadı. Yönetici onayını ve politikaları kontrol et.", "Pending change saved, but web protection could not be applied. Check administrator approval and policies.");
                 return true;
             }
 
@@ -1188,7 +1195,11 @@ public sealed partial class MainViewModel : ObservableObject
             _localWriteFailed = false;
             _localWriteFailureMessage = null;
             NotifyRuntimeHealth();
-            if (_settings.BlockShortFormVideo || _settings.WebGuardEnabled)
+            if (!webGuardApplied)
+            {
+                StatusMessage = L("Ayarlar kaydedildi, ancak web koruması uygulanamadı veya geri alınamadı. Yönetici onayını ve sistem politikalarını kontrol et.", "Settings saved, but web protection could not be applied or restored. Check administrator approval and system policies.");
+            }
+            else if (_settings.BlockShortFormVideo || _settings.WebGuardEnabled)
             {
                 StatusMessage = webGuardApplied
                     ? L("Kaydedildi · Kısa video engelinin geçerli olması için tarayıcını yeniden başlat.", "Saved · Restart your browser for short video blocking to take effect.")
@@ -2873,6 +2884,7 @@ public sealed partial class MainViewModel : ObservableObject
         WebGuardEnabled = settings.WebGuardEnabled;
         SafeSearchEnforced = settings.SafeSearchEnforced;
         BlockShortFormVideo = settings.BlockShortFormVideo;
+        WebGuardEnabled = settings.WebGuardEnabled; // Preserve the master switch after child setters.
         BlockedWebDomains.Clear();
         foreach (string domain in settings.BlockedWebDomains ?? [])
         {

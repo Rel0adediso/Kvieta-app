@@ -17,15 +17,15 @@ public static class UninstallDataCleaner
 
         try
         {
-            SessionTaskManagerControl.SetTaskManagerDisabled(false);
+            if (!SessionTaskManagerControl.TrySetTaskManagerDisabled(false, userSid)) failedPaths.Add("Task Manager policy");
         }
-        catch { }
+        catch { failedPaths.Add("Task Manager policy"); }
 
         try
         {
-            WebGuardService.ApplyDirect(new WebGuardPayload(false, false, false, []));
+            if (!WebGuardService.ApplyDirect(new WebGuardPayload(false, false, false, [], userSid))) failedPaths.Add("Web Guard policies / hosts");
         }
-        catch { }
+        catch { failedPaths.Add("Web Guard policies / hosts"); }
 
         if (removeLocalData)
         {

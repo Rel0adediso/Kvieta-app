@@ -1,10 +1,12 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '1.0.0',
+    [string]$Version = '7.0.0',
+
+    [string]$BuildRoot = $env:PUBLIC,
 
     [ValidatePattern('^[0-9A-Za-z][0-9A-Za-z.-]*$')]
-    [string]$ReleaseLabel = '1.0.0-alpha',
+    [string]$ReleaseLabel = 'v1.0.0',
 
     [switch]$CommunityRelease
 )
@@ -30,8 +32,8 @@ if (-not (Test-Path -LiteralPath $dotnet)) {
 }
 
 # Native Windows cabinet tooling is not Unicode-safe for every temporary path.
-$cabinetTempDirectory = Join-Path $env:PUBLIC 'KvietaBuildTemp'
-$wixStagingDirectory = Join-Path $env:PUBLIC "KvietaBuildStaging\$artifactKind\$Version"
+$cabinetTempDirectory = Join-Path $BuildRoot 'KvietaBuildTemp'
+$wixStagingDirectory = Join-Path $BuildRoot "KvietaBuildStaging\$artifactKind\$Version"
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
@@ -48,6 +50,7 @@ $sourceCommit = ((& git -C $repositoryRoot rev-parse HEAD) | Select-Object -Firs
 $repositoryDirty = @(& git -C $repositoryRoot status --porcelain --untracked-files=normal).Count -gt 0
 
 & $dotnet publish $applicationProject `
+    -m:1 `
     -c $buildConfiguration `
     -r win-x64 `
     --self-contained true `
@@ -65,6 +68,7 @@ Copy-Item -LiteralPath (Join-Path $publishDirectory 'Kvieta.exe') `
 $publishedExecutableHash = (Get-FileHash -LiteralPath (Join-Path $publishDirectory 'Kvieta.exe') -Algorithm SHA256).Hash
 
 & $dotnet build $installerProject `
+    -m:1 `
     -c Release `
     -p:KvietaVersion=$Version `
     -p:KvietaReleaseLabel=$ReleaseLabel `
@@ -97,6 +101,7 @@ Set-Content -LiteralPath "$installer.sha256" `
     -Encoding ascii
 
 & $dotnet publish $setupProject `
+    -m:1 `
     -c Release `
     -r win-x64 `
     --self-contained true `

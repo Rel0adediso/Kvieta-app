@@ -5,6 +5,8 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography.X509Certificates;
+using Kvieta.Core.Services;
 
 namespace Kvieta.App.Services;
 
@@ -81,12 +83,17 @@ public static class UpdateCheckService
                 .FirstOrDefault(a => a.Name is not null && (a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || a.Name.EndsWith(".msi", StringComparison.OrdinalIgnoreCase)))
                 ?.BrowserDownloadUrl ?? release.HtmlUrl;
 
+            // Unsigned community releases use an explicit browser download, never an unverified auto-install.
+            string? signer = ProtectionServiceManager.RegisteredSignerThumbprint;
+            if (string.IsNullOrWhiteSpace(signer) || !Regex.IsMatch(signer, "^[a-fA-F0-9]{40}$"))
+                setupDownloadUrl = release.HtmlUrl;
+            if (!IsOfficialReleaseUrl(setupDownloadUrl)) setupDownloadUrl = "https://github.com/Rel0adediso/Kvieta-app/releases/latest";
             return new UpdateCheckResult(
                 IsUpdateAvailable: isNewer,
                 CurrentVersion: currentVersion,
                 LatestVersion: CleanVersionString(remoteTag),
                 ReleaseName: release.Name ?? remoteTag,
-                ReleaseUrl: release.HtmlUrl ?? "https://github.com/Rel0adediso/Kvieta-app/releases/latest",
+                ReleaseUrl: IsOfficialReleaseUrl(release.HtmlUrl) ? release.HtmlUrl : "https://github.com/Rel0adediso/Kvieta-app/releases/latest",
                 DownloadUrl: setupDownloadUrl,
                 ReleaseNotes: release.Body,
                 PublishedAt: release.PublishedAt);
@@ -112,7 +119,7 @@ public static class UpdateCheckService
         IProgress<double>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(downloadUrl) || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri))
+        if (!IsOfficialDownloadUrl(downloadUrl) || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri))
         {
             return null;
         }
@@ -143,6 +150,8 @@ public static class UpdateCheckService
 
             response.EnsureSuccessStatusCode();
             long? totalBytes = response.Content.Headers.ContentLength;
+            const long maximumBytes = 256L * 1024 * 1024;
+            if (totalBytes > maximumBytes) throw new InvalidDataException("Update exceeds the download size limit.");
 
             using (Stream sourceStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
             using (FileStream targetStream = new(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
@@ -155,6 +164,7 @@ public static class UpdateCheckService
                 {
                     await targetStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
                     totalRead += bytesRead;
+                    if (totalRead > maximumBytes) throw new InvalidDataException("Update exceeds the download size limit.");
 
                     if (totalBytes is > 0)
                     {
@@ -172,7 +182,7 @@ public static class UpdateCheckService
             // Authenticode verification
             if (!BuildInfo.IsDevelopmentBuild)
             {
-                if (!AuthenticodeTrustVerifier.IsTrusted(targetPath))
+                if (!IsExpectedPublisher(targetPath))
                 {
                     try { File.Delete(targetPath); } catch { }
                     throw new InvalidOperationException("Downloaded update failed Authenticode signature verification.");
@@ -190,7 +200,7 @@ public static class UpdateCheckService
 
     public static bool ApplyUpdate(string installerPath)
     {
-        if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
+        if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath) || !IsExpectedPublisher(installerPath))
         {
             return false;
         }
@@ -210,7 +220,7 @@ public static class UpdateCheckService
             }
             else
             {
-                startInfo.Arguments = "--elevated-install";
+                startInfo.Arguments = string.Empty;
             }
 
             System.Diagnostics.Process.Start(startInfo);
@@ -226,29 +236,28 @@ public static class UpdateCheckService
         }
     }
 
-    public static bool IsRemoteVersionNewer(string currentVersion, string remoteTag)
+    public static bool IsRemoteVersionNewer(string currentVersion, string remoteTag) => ReleaseVersion.IsNewer(currentVersion, remoteTag);
+
+    public static bool IsOfficialReleaseUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) &&
+        uri.Scheme == "https" && uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) && uri.IsDefaultPort &&
+        string.IsNullOrEmpty(uri.UserInfo) && uri.AbsolutePath.StartsWith("/Rel0adediso/Kvieta-app/releases/", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsOfficialDownloadUrl(string? value) => IsOfficialReleaseUrl(value) &&
+        new Uri(value!).AbsolutePath.StartsWith("/Rel0adediso/Kvieta-app/releases/download/", StringComparison.OrdinalIgnoreCase) &&
+        (value!.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || value.EndsWith(".msi", StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsExpectedPublisher(string path)
     {
-        if (string.IsNullOrWhiteSpace(remoteTag))
+        string? pinned = ProtectionServiceManager.RegisteredSignerThumbprint;
+        if (string.IsNullOrWhiteSpace(pinned) || !Regex.IsMatch(pinned, "^[a-fA-F0-9]{40}$") || !AuthenticodeTrustVerifier.IsTrusted(path)) return false;
+        try
         {
-            return false;
+#pragma warning disable SYSLIB0057
+            using X509Certificate2 signer = new(X509Certificate.CreateFromSignedFile(path));
+#pragma warning restore SYSLIB0057
+            return pinned.Equals(signer.Thumbprint, StringComparison.OrdinalIgnoreCase);
         }
-
-        string curClean = CleanVersionString(currentVersion);
-        string remClean = CleanVersionString(remoteTag);
-
-        if (string.Equals(curClean, remClean, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (Version.TryParse(curClean, out Version? curVer) && Version.TryParse(remClean, out Version? remVer))
-        {
-            return remVer > curVer;
-        }
-
-        double curNum = ExtractNumericValue(curClean);
-        double remNum = ExtractNumericValue(remClean);
-        return remNum > curNum;
+        catch { return false; }
     }
 
     private static string CleanVersionString(string input)

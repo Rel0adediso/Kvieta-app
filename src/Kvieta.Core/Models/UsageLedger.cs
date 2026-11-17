@@ -54,6 +54,7 @@ public sealed class UsageLedger
     public DateTimeOffset? ClockChangeDetectedAtUtc { get; set; }
     public bool ClockAnomalyRequiresRecovery { get; set; }
     public bool RemoteLockActive { get; set; }
+    public string? LastRemoteCommandId { get; set; }
 }
 
 public enum ClockChangeKind

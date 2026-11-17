@@ -1,16 +1,18 @@
 # Kvieta release notes
 
-## Kvieta v1.0.0 — Official Production Release
+## Kvieta v1.0.0 — unpublished readiness changes
 
-- **Zen Interface & Visual System**: Complete overhaul of the desktop experience with subtle Mica backdrop styling, calm sage palette, and an intuitive circular daily usage breakdown.
-- **Mindful Dopamine Barrier**: Proactive browser interception on short-form feeds (YouTube Shorts, Instagram Reels, TikTok), offering a gentle pause barrier and calm one-click redirection to YouTube Home.
-- **Optimized Distribution Footprint**: Single-file self-contained bundle compressed from 215 MB to ~78 MB (64% payload reduction) without sacrificing startup responsiveness.
-- **Robust System Safety & Resilience**:
-  - Auto-restores Task Manager availability (`DisableTaskMgr = 0`) on clean shutdown and startup to ensure no lockouts survive unexpected crashes.
-  - Complete uninstaller hygiene reverting Web Guard hosts entries, DNS overrides, and group policies cleanly.
-  - Hardened multi-process synchronization and anti-tamper resilience under standard and administrative Windows environments.
-- **Unified Companion & Multi-Device Sync**: Stable peer-to-peer mobile companion discovery, remote supervisor approval, and instant session synchronization.
-- **Production Readiness**: Validated against complete smoke suites, WiX installer workflows, zero-warning release builds, and bilingual (English/Turkish) localized surfaces.
+- Zen dashboard and short-video pause surface with English/Turkish text.
+- Web Guard now journals the registry values it owns, preserves unrelated policies, and no longer forces a third-party extension installation. It uses machine policies rather than writing to the elevated administrator's user hive.
+- Family remote locks survive reboot and day rollover. Personal web-policy relaxation observes the configured delay; the Web Guard master switch disables all its children.
+- Phone policy commands use a PIN-authorized, relay-bound Guardian channel for protected accounts; ordinary Personal accounts use atomic local updates. Reopen the phone hub and create/authorize an invitation after upgrade to grant the new management channel. PIN recovery remains separate. Family policy editing requires the [parent PIN proof protocol](mobile-parent-policy-v1.md); legacy clients must be updated for this permission.
+- Command receipts persist failures and completed decision IDs across restarts; stale commands are rejected. Summaries include command status but no PIN verifier material.
+- Local enrollment/recovery handles bounded concurrent requests and survives individual request timeouts.
+- Browser URL matching uses host/path boundaries; navigation does not overwrite the clipboard or send global keyboard shortcuts to another application.
+- Community update notifications open the official download page. Signed automatic updates require the installed publisher's certificate.
+- The public label is v1.0.0; numeric MSI/FileVersion is 7.0.0 to upgrade Alpha 6.x. Rebuild all artifacts; previously built packages do not include these changes.
+- Validation status and outstanding physical Windows tests: [V1 test matrix](V1-TEST-MATRIX.md).
+- Previously overwritten/deleted registry policies cannot be reconstructed without a pre-existing backup. Legacy manually installed browser extensions or policies without ownership records require explicit inspection; the new uninstaller does not guess and delete third-party settings.
 
 ## Kvieta Alpha 6.5 — In-App Updater and Anti-Tamper Hardening
 
