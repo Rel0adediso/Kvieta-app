@@ -144,14 +144,14 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         : IsRemotelyLocked
             ? (LocalizationService.CurrentLanguage == LanguagePreference.English ? "REMOTELY LOCKED" : "UZAKTAN KİLİTLENDİ")
             : State switch
-        {
-            SessionState.Active => LocalizationService.Get("StateActive"),
-            SessionState.Paused => LocalizationService.Get("StatePaused"),
-            SessionState.TimeExpired => LocalizationService.Get("StateExpired"),
-            SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("StateClockProtection"),
-            SessionState.OutsideSchedule => LocalizationService.Get("StateOutside"),
-            _ => LocalizationService.Get("StateReady")
-        };
+            {
+                SessionState.Active => LocalizationService.Get("StateActive"),
+                SessionState.Paused => LocalizationService.Get("StatePaused"),
+                SessionState.TimeExpired => LocalizationService.Get("StateExpired"),
+                SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("StateClockProtection"),
+                SessionState.OutsideSchedule => LocalizationService.Get("StateOutside"),
+                _ => LocalizationService.Get("StateReady")
+            };
 
     public bool IsRemotelyLocked => _engine?.Ledger.RemoteLockActive == true;
     public bool CanUnlockLocally => IsPersonalMode && IsRemotelyLocked;

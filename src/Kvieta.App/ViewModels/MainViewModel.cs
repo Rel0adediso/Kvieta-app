@@ -1835,11 +1835,11 @@ public sealed partial class MainViewModel : ObservableObject
             .SelectMany(record => record.ForegroundApplications
                 .Where(app => !ForegroundApplicationTracker.IsIgnoredProcessName(app.ApplicationId) && !ForegroundApplicationTracker.IsIgnoredProcessName(app.Name))
                 .Select(application => new
-            {
-                record.LocalDay,
-                application.Name,
-                application.UsedSeconds
-            }))
+                {
+                    record.LocalDay,
+                    application.Name,
+                    application.UsedSeconds
+                }))
             .GroupBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToDictionary(
                 group => group.Key,
