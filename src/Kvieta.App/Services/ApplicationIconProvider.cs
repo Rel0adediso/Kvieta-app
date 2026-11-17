@@ -16,6 +16,45 @@ public static class ApplicationIconProvider
     private static readonly Dictionary<string, DateTimeOffset> MissingCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly TimeSpan MissingCacheDuration = TimeSpan.FromMinutes(2);
 
+    public static ImageSource? GetCachedIcon(string applicationName)
+    {
+        string processName = Path.GetFileNameWithoutExtension(applicationName.Trim());
+        if (string.IsNullOrWhiteSpace(processName))
+        {
+            return null;
+        }
+
+        lock (Sync)
+        {
+            return Cache.TryGetValue(processName, out ImageSource? cached) ? cached : null;
+        }
+    }
+
+    public static Task<ImageSource?> GetIconAsync(string applicationName)
+    {
+        string processName = Path.GetFileNameWithoutExtension(applicationName.Trim());
+        if (string.IsNullOrWhiteSpace(processName))
+        {
+            return Task.FromResult<ImageSource?>(null);
+        }
+
+        lock (Sync)
+        {
+            if (Cache.TryGetValue(processName, out ImageSource? cached))
+            {
+                return Task.FromResult<ImageSource?>(cached);
+            }
+
+            if (MissingCache.TryGetValue(processName, out DateTimeOffset checkedAt) &&
+                DateTimeOffset.UtcNow - checkedAt < MissingCacheDuration)
+            {
+                return Task.FromResult<ImageSource?>(null);
+            }
+        }
+
+        return Task.Run(() => GetIcon(applicationName));
+    }
+
     public static ImageSource? GetIcon(string applicationName)
     {
         string processName = Path.GetFileNameWithoutExtension(applicationName.Trim());

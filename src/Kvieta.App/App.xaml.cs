@@ -36,6 +36,14 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (e.Args.Any(argument => string.Equals(argument, "--apply-web-guard", StringComparison.OrdinalIgnoreCase)))
+        {
+            string? payload = e.Args.SkipWhile(argument => !string.Equals(argument, "--apply-web-guard", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault();
+            int exitCode = WebGuardService.ExecuteElevatedWorker(payload);
+            Shutdown(exitCode);
+            return;
+        }
+
         if (e.Args.Any(argument => string.Equals(argument, "--uninstall", StringComparison.OrdinalIgnoreCase)))
         {
             _themeService.Start(this);
@@ -100,6 +108,7 @@ public partial class App : System.Windows.Application
 
         _singleInstance.ActivationRequested += SingleInstance_ActivationRequested;
         ProcessSecurityHardener.ProtectCurrentProcess();
+        SessionTaskManagerControl.SetTaskManagerDisabled(false);
         _dashboardRelay = new DashboardRelayPublisher(Kvieta.App.MainWindow.ReadDashboardSnapshotAsync);
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -235,6 +244,8 @@ public partial class App : System.Windows.Application
             // The control center will surface registry errors on the next explicit save.
         }
 
+        DopamineTrapWatcher.Instance.UpdateSettings(settings);
+
         if (StartupActivationPolicy.ShouldDeferDirectSessionToGuardian(
                 guardianSession,
                 directSessionRequested,
@@ -336,6 +347,8 @@ public partial class App : System.Windows.Application
 
         ReleaseControlCenterWindow();
 
+        SessionTaskManagerControl.SetTaskManagerDisabled(false);
+        DopamineTrapWatcher.Instance.Dispose();
         _themeService.Dispose();
         base.OnExit(e);
     }

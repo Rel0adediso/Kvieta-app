@@ -12,6 +12,68 @@
         <Geometry x:Key="ClockIconGeometry">M12,3 A9,9 0 1 1 11.99,3 M12,7 V12 L16,12</Geometry>
         <Geometry x:Key="ChevronIconGeometry">M9,6 L15,12 L9,18</Geometry>
         <Geometry x:Key="PhoneIconGeometry">M7,2 H17 A2,2 0 0 1 19,4 V20 A2,2 0 0 1 17,22 H7 A2,2 0 0 1 5,20 V4 A2,2 0 0 1 7,2 Z M11,18 H13</Geometry>
+        <Geometry x:Key="ShieldIconGeometry">M12,2 L4,5 V11 C4,16.5 7.5,21.5 12,23 C16.5,21.5 20,16.5 20,11 V5 Z</Geometry>
+        <Geometry x:Key="PaletteIconGeometry">M12,2 C6.5,2 2,6.5 2,12 C2,17.5 6.5,22 12,22 C13,22 13.8,21.2 13.8,20.2 C13.8,19.7 13.6,19.3 13.3,19 C13,18.7 12.8,18.3 12.8,17.8 C12.8,16.8 13.6,16 14.6,16 H16 C19.3,16 22,13.3 22,10 C22,5.6 17.5,2 12,2 Z M6.5,12 C5.7,12 5,11.3 5,10.5 C5,9.7 5.7,9 6.5,9 C7.3,9 8,9.7 8,10.5 C8,11.3 7.3,12 6.5,12 Z M9.5,8 C8.7,8 8,7.3 8,6.5 C8,5.7 8.7,5 9.5,5 C10.3,5 11,5.7 11,6.5 C11,7.3 10.3,8 9.5,8 Z M14.5,8 C13.7,8 13,7.3 13,6.5 C13,5.7 13.7,5 14.5,5 C15.3,5 16,5.7 16,6.5 C16,7.3 15.3,8 14.5,8 Z M17.5,12 C16.7,12 16,11.3 16,10.5 C16,9.7 16.7,9 17.5,9 C18.3,9 19,9.7 19,10.5 C19,11.3 18.3,12 17.5,12 Z</Geometry>
+        <Geometry x:Key="LockIconGeometry">M19,11 H5 C3.9,11 3,11.9 3,13 V20 C3,21.1 3.9,22 5,22 H19 C20.1,22 21,21.1 21,20 V13 C21,11.9 20.1,11 19,11 Z M7,11 V7 C7,4.2 9.2,2 12,2 C14.8,2 17,4.2 17,7 V11</Geometry>
+        <Geometry x:Key="WrenchIconGeometry">M14.7,6.3 A1,1 0 0 0 14,5 H13 L11.3,6.7 A6.9,6.9 0 0 0 6.7,11.3 L2.3,15.7 A2,2 0 0 0 2.3,18.5 L5.5,21.7 A2,2 0 0 0 8.3,21.7 L12.7,17.3 A6.9,6.9 0 0 0 17.3,12.7 L19,11 V10 A1,1 0 0 0 17.7,9.3 Z</Geometry>
+        <Style x:Key="SettingsExpanderStyle" TargetType="Expander">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,0,0,14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
+                            <StackPanel>
+                                <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="18,14" Cursor="Hand">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="13">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <ContentPresenter VerticalAlignment="Center"/>
+                                                    <Border Grid.Column="1" Width="28" Height="28" CornerRadius="14" Background="{DynamicResource SurfaceRaisedBrush}" VerticalAlignment="Center">
+                                                        <Path x:Name="Chevron" Data="{StaticResource ChevronIconGeometry}" Stroke="{DynamicResource FaintTextBrush}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="7" Height="11" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                            <Path.RenderTransform>
+                                                                <RotateTransform Angle="0"/>
+                                                            </Path.RenderTransform>
+                                                        </Path>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource PrimaryBrush}"/>
+                                                    <Setter TargetName="Chevron" Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <RotateTransform Angle="90"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                    <ContentPresenter ContentSource="Header"/>
+                                </ToggleButton>
+                                <Border x:Name="Divider" Height="1" Background="{DynamicResource BorderBrush}" Visibility="Collapsed"/>
+                                <ContentPresenter x:Name="SectionContent" Visibility="Collapsed" ContentSource="Content" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="Divider" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="SectionContent" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="NavIconStyle" TargetType="Path">
             <Setter Property="Width" Value="18"/>
             <Setter Property="Height" Value="18"/>
@@ -34,13 +96,13 @@
         </Style>
         <Style x:Key="MetricLabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource FaintTextBrush}"/>
-            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style x:Key="MetricValueStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI"/>
-            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style x:Key="HistoryDayItemStyle" TargetType="Button">
@@ -104,7 +166,7 @@
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="Padding" Value="7,6"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocusVisual}"/>
@@ -149,6 +211,10 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Symbol" Property="Opacity" Value="1"/>
+                                <Setter TargetName="Dot" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Dot" Property="Opacity" Value="0.65"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -228,7 +294,7 @@
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
-            <Setter Property="Padding" Value="0,2,0,0"/>
+            <Setter Property="Padding" Value="6,3"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -396,7 +462,7 @@
         <Style x:Key="PageTitleStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI"/>
-            <Setter Property="FontSize" Value="23"/>
+            <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
         </Style>
@@ -407,7 +473,7 @@
             <Setter Property="LineHeight" Value="19"/>
         </Style>
         <Style x:Key="CaptionStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
         </Style>
     </Window.Resources>
@@ -441,7 +507,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="58"/>
                             <RowDefinition Height="*"/>
-                            <RowDefinition Height="44"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid>
                             <StackPanel Orientation="Horizontal" Margin="16,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -490,7 +556,7 @@
                                 </StackPanel>
                             </ListBoxItem>
                         </ListBox>
-                        <Button Grid.Row="2" Style="{StaticResource SidebarPhoneButtonStyle}" Click="AndroidDashboard_Click" Margin="8,4" ToolTip="{Binding PhoneCompanionSidebarTooltip}">
+                        <Button Grid.Row="2" Style="{StaticResource SidebarPhoneButtonStyle}" Click="AndroidDashboard_Click" Margin="10,8,10,14" ToolTip="{Binding PhoneCompanionSidebarTooltip}">
                             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -519,7 +585,7 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock Text="{Binding PhoneCompanionBadgeText}" FontSize="9.5" FontWeight="SemiBold">
+                                    <TextBlock Text="{Binding PhoneCompanionBadgeText}" FontSize="10" FontWeight="SemiBold">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
@@ -571,7 +637,7 @@
                         </TabControl.Resources>
                         <TabItem>
                             <ScrollViewer services:MotionAssist.SmoothScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <Grid Margin="24,20" MaxWidth="980">
+                                <Grid Margin="28,24,28,32" MaxWidth="980">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -619,7 +685,7 @@
                                             <!-- Center Details -->
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding PhoneCompanionCardTitle}" FontSize="14.5" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding PhoneCompanionCardTitle}" FontSize="15" FontWeight="SemiBold"/>
                                                     <!-- Live green pill badge if paired -->
                                                     <Border Margin="10,0,0,0" CornerRadius="8" Padding="7,2" Background="#222EB886" VerticalAlignment="Center"
                                                             Visibility="{Binding IsPhonePaired, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -716,7 +782,7 @@
                         </TabItem>
                         <TabItem>
                             <ScrollViewer services:MotionAssist.SmoothScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <Grid Margin="24,20" MaxWidth="980">
+                                <Grid Margin="28,24,28,32" MaxWidth="980">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -741,7 +807,7 @@
                                                 </ItemsControl.Style>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Padding="4,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                                                        <Border Padding="12,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
                                                             <Grid>
                                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                                 <TextBlock Text="{Binding DayName}" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -825,7 +891,7 @@
                                             <ItemsControl Grid.Row="1" ItemsSource="{Binding TemporaryAllowances}" Margin="0,12,0,0">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,10">
+                                                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,12">
                                                             <controls:ResponsiveColumns MinimumColumnWidth="220" MaximumColumns="2">
                                                                 <TextBlock Text="{Binding DateText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                                                 <TextBlock Text="{Binding TimeText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
@@ -844,7 +910,7 @@
                         </TabItem>
                         <TabItem>
                             <ScrollViewer services:MotionAssist.SmoothScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <StackPanel Margin="24,20" MaxWidth="980">
+                                <StackPanel Margin="28,24,28,32" MaxWidth="980">
                                     <controls:ResponsiveColumns MinimumColumnWidth="245" MaximumColumns="2" Margin="0,0,0,10">
                                         <StackPanel>
                                             <TextBlock Text="{DynamicResource Applications}" Style="{StaticResource PageTitleStyle}"/>
@@ -852,10 +918,10 @@
                                         </StackPanel>
                                         <Button Content="{DynamicResource AddApplication}" Style="{StaticResource PrimaryButtonStyle}" Click="AddApplication_Click" VerticalAlignment="Center" Margin="16,0,0,0" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Right"/>
                                     </controls:ResponsiveColumns>
-                                    <StackPanel x:Name="AppsUsageCard" Margin="-6,18,-6,0">
-                                        <Expander x:Name="ApplicationInsights" Header="{DynamicResource UsageInsightsDetails}" IsExpanded="False" Margin="6,0" Visibility="{Binding HasApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel x:Name="AppsUsageCard" Margin="0,18,0,0">
+                                        <Expander x:Name="ApplicationInsights" Header="{DynamicResource UsageInsightsDetails}" IsExpanded="False" Margin="0,0,0,10" Visibility="{Binding HasApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <controls:ResponsiveColumns MinimumColumnWidth="220" MaximumColumns="3">
-                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="20" Margin="6" MinHeight="150">
+                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="16" Padding="20" Margin="4" MinHeight="140">
                                                 <Grid>
                                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                                     <DockPanel>
@@ -864,11 +930,11 @@
                                                         </Border>
                                                         <TextBlock Text="{DynamicResource TopUsageCategory}" Style="{StaticResource CaptionStyle}" Margin="11,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                                     </DockPanel>
-                                                    <TextBlock Grid.Row="1" Text="{Binding ApplicationTopCategoryName}" FontSize="22" FontWeight="SemiBold" Margin="0,18,0,8" TextWrapping="Wrap" VerticalAlignment="Bottom"/>
+                                                    <TextBlock Grid.Row="1" Text="{Binding ApplicationTopCategoryName}" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" TextWrapping="Wrap" VerticalAlignment="Bottom"/>
                                                     <TextBlock Grid.Row="2" Text="{Binding ApplicationTopCategoryUsageText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold"/>
                                                 </Grid>
                                             </Border>
-                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="20" Margin="6" MinHeight="150">
+                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="16" Padding="20" Margin="4" MinHeight="140">
                                                 <Grid>
                                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                                     <DockPanel>
@@ -877,20 +943,20 @@
                                                         </Border>
                                                         <TextBlock Text="{DynamicResource MostUsedApplication}" Style="{StaticResource CaptionStyle}" Margin="11,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                                     </DockPanel>
-                                                    <TextBlock Grid.Row="1" Text="{Binding ApplicationMostUsedName}" FontSize="22" FontWeight="SemiBold" Margin="0,18,0,8" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom"/>
+                                                    <TextBlock Grid.Row="1" Text="{Binding ApplicationMostUsedName}" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom"/>
                                                     <TextBlock Grid.Row="2" Text="{Binding ApplicationMostUsedUsageText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold"/>
                                                 </Grid>
                                             </Border>
-                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="20" Margin="6" MinHeight="150">
+                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="16" Padding="20" Margin="4" MinHeight="140">
                                                 <Grid>
                                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                                     <DockPanel>
                                                         <Border Width="34" Height="34" CornerRadius="10" Background="{DynamicResource PrimarySoftBrush}" DockPanel.Dock="Left">
-                                                            <TextBlock Text="↗" Foreground="{DynamicResource PrimaryBrush}" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="↗" Foreground="{DynamicResource PrimaryBrush}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <TextBlock Text="{DynamicResource FastestRisingApplication}" Style="{StaticResource CaptionStyle}" Margin="11,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                                     </DockPanel>
-                                                    <TextBlock Grid.Row="1" Text="{Binding ApplicationRisingName}" FontSize="22" FontWeight="SemiBold" Margin="0,18,0,8" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom"/>
+                                                    <TextBlock Grid.Row="1" Text="{Binding ApplicationRisingName}" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom"/>
                                                     <TextBlock Grid.Row="2" Text="{Binding ApplicationRisingChangeText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                                 </Grid>
                                             </Border>
@@ -934,7 +1000,7 @@
                                                             <TextBlock Text="{DynamicResource LastSevenDays}" Style="{StaticResource CaptionStyle}" Margin="0,4,0,0"/>
                                                         </StackPanel>
                                                         <Border HorizontalAlignment="Right" Background="{DynamicResource PrimarySoftBrush}" CornerRadius="8" Padding="10,5" VerticalAlignment="Center">
-                                                            <TextBlock Text="{DynamicResource HistoryShowAll}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                                            <TextBlock Text="{DynamicResource HistoryShowAll}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
                                                         </Border>
                                                     </Grid>
                                                     <ItemsControl x:Name="MostUsedApplicationsList" ItemsSource="{Binding HistoryApplications}" IsHitTestVisible="False">
@@ -962,7 +1028,7 @@
                                             </Button>
                                         </controls:ResponsiveColumns>
 
-                                        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="20" Padding="28" Margin="6" Visibility="{Binding HasNoApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="16" Padding="32,28" Margin="0,8" Visibility="{Binding HasNoApplicationUsage, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <StackPanel HorizontalAlignment="Center">
                                                 <Border Width="42" Height="42" CornerRadius="12" Background="{DynamicResource PrimarySoftBrush}" HorizontalAlignment="Center">
                                                     <Path Data="{StaticResource AppsIconGeometry}" Width="19" Height="19" Stretch="Uniform" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -972,7 +1038,7 @@
                                         </Border>
                                     </StackPanel>
                                     <TextBlock Text="{DynamicResource ApplicationRulesHeading}" FontSize="24" FontWeight="SemiBold" Margin="0,30,0,0" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                    <Border Margin="-6,12,-6,0" ClipToBounds="True" x:Name="AppRulesCard" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Border Margin="0,14,0,0" ClipToBounds="True" x:Name="AppRulesCard" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="MinHeight" Value="104"/>
@@ -1003,7 +1069,7 @@
                                                                 <StackPanel VerticalAlignment="Center" Margin="0">
                                                                     <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"/>
                                                                     <TextBlock Text="{Binding ExecutablePath}" Style="{StaticResource CaptionStyle}" TextTrimming="CharacterEllipsis" Margin="0,3,16,0"/>
-                                                                    <TextBlock Text="{Binding PreviewText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="9.5" TextTrimming="CharacterEllipsis" Margin="0,3,16,0" ToolTip="{Binding PreviewText}" AutomationProperties.Name="{Binding PreviewText}"/>
+                                                                    <TextBlock Text="{Binding PreviewText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,3,16,0" ToolTip="{Binding PreviewText}" AutomationProperties.Name="{Binding PreviewText}"/>
                                                                 </StackPanel>
                                                             </DockPanel>
                                                             <Expander Header="{DynamicResource EditApplicationRule}" IsExpanded="False">
@@ -1045,14 +1111,14 @@
                                                     </ItemsPanelTemplate>
                                                 </ListBox.ItemsPanel>
                                             </ListBox>
-                                            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="22" Padding="32" Margin="6" Visibility="{Binding HasNoAppRules, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="16" Padding="36,32" Margin="0,8" Visibility="{Binding HasNoAppRules, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <Border Width="42" Height="42" CornerRadius="12" Background="{DynamicResource PrimarySoftBrush}" HorizontalAlignment="Center">
-                                                        <Path Data="{StaticResource AppsIconGeometry}" Width="19" Height="19" Stretch="Uniform" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <Border Width="46" Height="46" CornerRadius="14" Background="{DynamicResource PrimarySoftBrush}" HorizontalAlignment="Center">
+                                                        <Path Data="{StaticResource AppsIconGeometry}" Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
-                                                    <TextBlock Text="{DynamicResource NoAppRules}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-                                                    <TextBlock Text="{DynamicResource NoAppRulesDescription}" Style="{StaticResource CaptionStyle}" Margin="0,5,0,10" TextAlignment="Center"/>
-                                                    <Button Content="{DynamicResource AddApplication}" Style="{StaticResource SecondaryButtonStyle}" Click="AddApplication_Click" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource NoAppRules}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                                                    <TextBlock Text="{DynamicResource NoAppRulesDescription}" Style="{StaticResource CaptionStyle}" Margin="0,6,0,16" TextAlignment="Center" MaxWidth="360" LineHeight="18"/>
+                                                    <Button Content="{DynamicResource AddApplication}" Style="{StaticResource PrimaryButtonStyle}" Click="AddApplication_Click" HorizontalAlignment="Center" Padding="18,8"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -1074,13 +1140,21 @@
 
                                                 <DockPanel Margin="0,0,0,16">
                                                     <StackPanel DockPanel.Dock="Left" MaxWidth="540">
-                                                        <TextBlock Text="{DynamicResource SafeSearchTitle}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource SafeSearchTitle}" FontSize="13" FontWeight="SemiBold"/>
                                                         <TextBlock Text="{DynamicResource SafeSearchDescription}" Style="{StaticResource CaptionStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
-                                                    <CheckBox IsChecked="{Binding SafeSearchEnforced}" IsEnabled="{Binding WebGuardEnabled}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{DynamicResource SafeSearchSwitch}"/>
+                                                    <CheckBox IsChecked="{Binding SafeSearchEnforced}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{DynamicResource SafeSearchSwitch}"/>
                                                 </DockPanel>
 
-                                                <TextBlock Text="{DynamicResource BlockedDomainsTitle}" FontSize="12.5" FontWeight="SemiBold" Margin="0,4,0,6"/>
+                                                <DockPanel Margin="0,0,0,16">
+                                                    <StackPanel DockPanel.Dock="Left" MaxWidth="540">
+                                                        <TextBlock Text="{DynamicResource ShortFormVideoTitle}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource ShortFormVideoDescription}" Style="{StaticResource CaptionStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <CheckBox IsChecked="{Binding BlockShortFormVideo}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="{DynamicResource ShortFormVideoSwitch}"/>
+                                                </DockPanel>
+
+                                                <TextBlock Text="{DynamicResource BlockedDomainsTitle}" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,6"/>
                                                 <DockPanel Margin="0,0,0,10">
                                                     <Button Content="{DynamicResource AddDomainButton}" DockPanel.Dock="Right" Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0" Click="AddBlockedDomain_Click" IsEnabled="{Binding WebGuardEnabled}"/>
                                                     <TextBox x:Name="NewDomainTextBox" Text="{Binding NewBlockedDomain, UpdateSourceTrigger=PropertyChanged}" Padding="10,6" MaxLength="100" IsEnabled="{Binding WebGuardEnabled}"/>
@@ -1106,7 +1180,7 @@
                         </TabItem>
                         <TabItem>
                             <ScrollViewer services:MotionAssist.SmoothScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <Grid Margin="24,20" MaxWidth="980">
+                                <Grid Margin="28,24,28,32" MaxWidth="980">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -1337,235 +1411,462 @@
                         </TabItem>
                         <TabItem>
                             <ScrollViewer x:Name="SettingsScrollViewer" services:MotionAssist.SmoothScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <StackPanel Margin="24,20" MaxWidth="980">
-                                    <StackPanel Margin="0,0,0,10">
+                                <StackPanel Margin="28,24,28,36" MaxWidth="880">
+                                    <!-- Page Header -->
+                                    <StackPanel Margin="0,0,0,20">
                                         <TextBlock Text="{DynamicResource Settings}" Style="{StaticResource PageTitleStyle}"/>
-                                        <TextBlock Text="{DynamicResource SettingsDescription}" Style="{StaticResource PageDescriptionStyle}"/>
+                                        <TextBlock Text="{DynamicResource SettingsDescription}" Style="{StaticResource PageDescriptionStyle}" Margin="0,4,0,0"/>
                                     </StackPanel>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource AppearanceAndLanguage}" x:Name="AppearanceSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
-                                        <controls:ResponsiveColumns Margin="18,8,18,16" MinimumColumnWidth="300" MaximumColumns="2">
-                                            <StackPanel Margin="0,8,0,10">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource Language}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource LanguageDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+
+                                    <!-- Section 1: Appearance & General -->
+                                    <Expander Style="{StaticResource SettingsExpanderStyle}" x:Name="AppearanceSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
+                                        <Expander.Header>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource PrimarySoftBrush}" Margin="0,0,14,0" VerticalAlignment="Center">
+                                                    <Path Data="{StaticResource PaletteIconGeometry}" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" Width="17" Height="17" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{DynamicResource AppearanceAndLanguage}" FontSize="14" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource AppearanceDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
                                                 </StackPanel>
-                                                <controls:SlidingSegmentedControl Style="{StaticResource SegmentListStyle}" ItemContainerStyle="{StaticResource SegmentItemStyle}" ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding LanguageMode}" SelectionChanged="Language_SelectionChanged" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,10"/>
-                                                <WrapPanel VerticalAlignment="Bottom" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource InterfaceSize}" VerticalAlignment="Center" Margin="0,0,12,0" TextWrapping="Wrap"/>
-                                                    <ComboBox x:Name="ZoomSelector" Width="105" SelectedIndex="0" SelectionChanged="Zoom_SelectionChanged">
+                                            </Grid>
+                                        </Expander.Header>
+                                        <StackPanel>
+                                            <!-- Theme -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource Appearance}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource AppearanceDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <controls:SlidingSegmentedControl Grid.Column="1" Style="{StaticResource SegmentListStyle}" ItemContainerStyle="{StaticResource SegmentItemStyle}" ItemsSource="{Binding ThemeModes}" SelectedItem="{Binding ThemeMode}" SelectionChanged="Theme_SelectionChanged" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Language -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource Language}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource LanguageDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <controls:SlidingSegmentedControl Grid.Column="1" Style="{StaticResource SegmentListStyle}" ItemContainerStyle="{StaticResource SegmentItemStyle}" ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding LanguageMode}" SelectionChanged="Language_SelectionChanged" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Interface Scale -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource InterfaceSize}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Arayüz ve metin ölçeklendirmesini ekranınıza göre ayarlayın" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <ComboBox Grid.Column="1" x:Name="ZoomSelector" Width="110" Height="32" SelectedIndex="0" SelectionChanged="Zoom_SelectionChanged" VerticalAlignment="Center">
                                                         <ComboBoxItem Content="100%" Tag="100"/>
                                                         <ComboBoxItem Content="110%" Tag="110"/>
                                                         <ComboBoxItem Content="125%" Tag="125"/>
                                                         <ComboBoxItem Content="150%" Tag="150"/>
                                                     </ComboBox>
-                                                </WrapPanel>
-                                            </StackPanel>
-                                            <StackPanel Margin="0,8,0,10">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource Appearance}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource AppearanceDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,0,0" TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                                <WrapPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <controls:SlidingSegmentedControl Style="{StaticResource SegmentListStyle}" ItemContainerStyle="{StaticResource SegmentItemStyle}" ItemsSource="{Binding ThemeModes}" SelectedItem="{Binding ThemeMode}" SelectionChanged="Theme_SelectionChanged" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                    <CheckBox IsChecked="{Binding AnimationsEnabled}" Checked="Animations_Changed" Unchecked="Animations_Changed" Content="{DynamicResource AnimationsEnabled}" ToolTip="{DynamicResource AnimationsDescription}" Margin="18,0,0,0" VerticalAlignment="Center"/>
-                                                </WrapPanel>
-                                            </StackPanel>
-                                            <StackPanel Margin="0,8,0,10">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource DeviceName}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource DeviceNameDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,0,0" TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                                <TextBox Style="{StaticResource PlanInputStyle}" Text="{Binding DeviceName, UpdateSourceTrigger=PropertyChanged}" MaxLength="32" Height="38" MinHeight="38" HorizontalAlignment="Stretch" VerticalAlignment="Center" Padding="12,3" TextAlignment="Left" Margin="0,0,0,10" MaxWidth="300"/>
-                                            </StackPanel>
-                                            <StackPanel Margin="0,8,0,10">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource StartWithWindows}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource StartWithWindowsDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,14,0" TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                                <CheckBox IsChecked="{Binding StartWithWindows}" VerticalAlignment="Center" Content="{DynamicResource Enabled}" Margin="0,0,0,10"/>
-                                            </StackPanel>
-                                        </controls:ResponsiveColumns>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Animations -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource AnimationsEnabled}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource AnimationsDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <CheckBox Grid.Column="1" IsChecked="{Binding AnimationsEnabled}" Checked="Animations_Changed" Unchecked="Animations_Changed" Content="{DynamicResource Enabled}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Start With Windows -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource StartWithWindows}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource StartWithWindowsDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <CheckBox Grid.Column="1" IsChecked="{Binding StartWithWindows}" Content="{DynamicResource Enabled}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Device Name -->
+                                            <Border BorderThickness="0" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource DeviceName}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource DeviceNameDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <TextBox Grid.Column="1" Style="{StaticResource PlanInputStyle}" Text="{Binding DeviceName, UpdateSourceTrigger=PropertyChanged}" MaxLength="32" Width="220" Height="34" MinHeight="34" Padding="12,0" VerticalContentAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </StackPanel>
                                     </Expander>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource ProtectionSettings}" x:Name="ProtectionSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
-                                        <StackPanel Margin="18,8,18,16">
-                                            <StackPanel Margin="0,8,0,10">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource UsageMode}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource UsageModeDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+
+                                    <!-- Section 2: Protection Settings -->
+                                    <Expander Style="{StaticResource SettingsExpanderStyle}" x:Name="ProtectionSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
+                                        <Expander.Header>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource PrimarySoftBrush}" Margin="0,0,14,0" VerticalAlignment="Center">
+                                                    <Path Data="{StaticResource ShieldIconGeometry}" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{DynamicResource ProtectionSettings}" FontSize="14" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource UsageModeDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
                                                 </StackPanel>
-                                                <Button Style="{StaticResource ModeSelectorButtonStyle}" Click="ChangeMode_Click" ToolTip="{DynamicResource ChangeMode}" Margin="0,0,0,10">
-                                                    <Grid>
+                                            </Grid>
+                                        </Expander.Header>
+                                        <StackPanel>
+                                            <!-- Usage Mode -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource UsageMode}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource UsageModeDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Style="{StaticResource ModeSelectorButtonStyle}" Click="ChangeMode_Click" ToolTip="{DynamicResource ChangeMode}" VerticalAlignment="Center">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Width="3" Height="18" CornerRadius="2" Background="{DynamicResource PrimaryBrush}" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="1" Text="{Binding UsageModeText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0" TextTrimming="CharacterEllipsis"/>
+                                                            <Border Grid.Column="2" Width="24" Height="24" CornerRadius="12" Background="{DynamicResource PrimarySoftBrush}" VerticalAlignment="Center">
+                                                                <TextBlock Text="›" Foreground="{DynamicResource PrimaryBrush}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,-2,0,0"/>
+                                                            </Border>
+                                                        </Grid>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                            <!-- When Time Runs Out -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource WhenTimeEnds}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource WhenTimeEndsDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <controls:SlidingSegmentedControl Grid.Column="1" Style="{StaticResource SegmentListStyle}" ItemContainerStyle="{StaticResource SegmentItemStyle}" ItemsSource="{Binding LimitActions}" SelectedItem="{Binding LimitAction}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Admin Pin -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14" Visibility="{Binding IsFamilyMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource AdminPin}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource AdminPinDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Border Background="{DynamicResource SuccessSoftBrush}" CornerRadius="12" Padding="8,4" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding HasAdminPin, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Ellipse Width="6" Height="6" Fill="{DynamicResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                                <TextBlock Text="{DynamicResource AdminPinActive}" Foreground="{DynamicResource SuccessBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Button Content="{Binding AdminPinActionText}" Style="{StaticResource SecondaryButtonStyle}" Click="AdminPin_Click" Padding="12,6"/>
+                                                        <Button Content="{DynamicResource RecoveryCodes}" Style="{StaticResource SecondaryButtonStyle}" Click="RecoveryCodes_Click" Margin="8,0,0,0" Padding="12,6"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Relaxation Delay -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14" Visibility="{Binding HasPersonalChangeDelay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource RelaxationDelay}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource RelaxationDelayDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <ComboBox Grid.Column="1" ItemsSource="{Binding ChangeDelayOptions}" SelectedItem="{Binding ChangeDelay}" Width="150" Height="32" VerticalAlignment="Center"/>
+                                                    <!-- Pending Change -->
+                                                    <Border Grid.Row="1" Grid.ColumnSpan="2" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,12,0,0" Visibility="{Binding HasPendingChange, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding PendingChangeText}" Foreground="{DynamicResource WarningBrush}" FontSize="12" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="{Binding PendingChangeDetails}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,3,0,0" LineHeight="16"/>
+                                                            </StackPanel>
+                                                            <Button Grid.Column="1" Content="{DynamicResource CancelPending}" Style="{StaticResource SecondaryButtonStyle}" Click="CancelPending_Click" Padding="12,5" VerticalAlignment="Center" Margin="14,0,0,0"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Device Protection Guardian -->
+                                            <Border BorderThickness="0" Padding="18,14" Visibility="{Binding IsGuardianRequired, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource DeviceProtection}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource DeviceProtectionDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Border Width="8" Height="8" CornerRadius="4" Background="{DynamicResource FaintTextBrush}" Margin="0,0,8,0" x:Name="ProtectionStatusDot" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="ProtectionStatusText" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                                        <Button x:Name="ProtectionActionButton" Style="{StaticResource SecondaryButtonStyle}" Click="ProtectionAction_Click" Padding="14,6"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </StackPanel>
+                                    </Expander>
+
+                                    <!-- Section 3: Privacy Center -->
+                                    <Expander Style="{StaticResource SettingsExpanderStyle}" x:Name="PrivacySection" IsExpanded="False" Expanded="SettingsSection_Expanded">
+                                        <Expander.Header>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource PrimarySoftBrush}" Margin="0,0,14,0" VerticalAlignment="Center">
+                                                    <Path Data="{StaticResource LockIconGeometry}" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{DynamicResource PrivacyCenter}" FontSize="14" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource PrivacyCenterDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Expander.Header>
+                                        <StackPanel>
+                                            <!-- Mobile Companion -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource AndroidDashboard}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Telefonunuzu eşleştirerek sürenizi uzaktan yönetin ve anlık bildirimleri alın" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Style="{StaticResource SecondaryButtonStyle}" Click="AndroidDashboard_Click" Padding="14,7" VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource PhoneIconGeometry}" Width="13" Height="13" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.6" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBlock Text="{DynamicResource AndroidDashboard}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Awareness Tracking -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource AwarenessTracking}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource AwarenessTrackingDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <CheckBox Grid.Column="1" IsChecked="{Binding AwarenessTrackingEnabled}" IsEnabled="{Binding HasRestrictions}" VerticalAlignment="Center" Content="{DynamicResource AwarenessTrackingConsent}" Checked="AwarenessTracking_Changed" Unchecked="AwarenessTracking_Changed"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Retention Period -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource RetentionPeriod}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Cihazınızda yerel olarak saklanan kullanım kayıtlarının süresi" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <ComboBox Grid.Column="1" ItemsSource="{Binding RetentionOptions}" SelectedItem="{Binding RetentionPeriod}" Width="150" Height="32" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Data and Rhythm -->
+                                            <Border BorderThickness="0" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource PrivacyCenter}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource PrivacyCenterDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Content="{DynamicResource RestoreRhythmSuggestions}" Style="{StaticResource SecondaryButtonStyle}" Click="RestoreRhythmSuggestions_Click" Padding="12,6" Margin="0,0,8,0"/>
+                                                        <Button Content="{DynamicResource MyData}" Style="{StaticResource ModeSelectorButtonStyle}" Click="MyData_Click" Padding="14,6"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </StackPanel>
+                                    </Expander>
+
+                                    <!-- Section 4: Maintenance & Health -->
+                                    <Expander Style="{StaticResource SettingsExpanderStyle}" x:Name="MaintenanceSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
+                                        <Expander.Header>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource PrimarySoftBrush}" Margin="0,0,14,0" VerticalAlignment="Center">
+                                                    <Path Data="{StaticResource WrenchIconGeometry}" Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.5" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{DynamicResource RecoveryAndRepair}" FontSize="14" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource RecoveryAndRepairDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Expander.Header>
+                                        <StackPanel>
+                                            <!-- Health Checks -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,16">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource WorkHealth}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource WorkHealthDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Content="{DynamicResource RetryHealthChecks}" Style="{StaticResource SecondaryButtonStyle}" Click="RetryHealth_Click" Padding="13,6" VerticalAlignment="Center"/>
+                                                    <!-- Health Cards -->
+                                                    <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,14,0,0">
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="12"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="12"/>
+                                                            <ColumnDefinition Width="*"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <Border Width="3" Height="18" CornerRadius="2" Background="{DynamicResource PrimaryBrush}" VerticalAlignment="Center"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding UsageModeText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0" TextTrimming="CharacterEllipsis" TextWrapping="Wrap"/>
-                                                        <Border Grid.Column="2" Width="24" Height="24" CornerRadius="12" Background="{DynamicResource PrimarySoftBrush}" VerticalAlignment="Center">
-                                                            <TextBlock Text="›" Foreground="{DynamicResource PrimaryBrush}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,-2,0,0" TextWrapping="Wrap"/>
+                                                        <Border Grid.Column="0" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="10" Padding="14,10">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{DynamicResource MeasurementHealth}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
+                                                                <TextBlock Text="{Binding MeasurementHealthText}" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                                                                <TextBlock Text="{Binding MeasurementHealthDetailText}" FontSize="10" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,3,0,0" LineHeight="15"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="2" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="10" Padding="14,10">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{DynamicResource GuardianHealth}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
+                                                                <TextBlock x:Name="HealthGuardianText" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                                                                <TextBlock x:Name="HealthGuardianDetailText" FontSize="10" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,3,0,0" LineHeight="15"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="4" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="10" Padding="14,10">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{DynamicResource LocalSaveHealth}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
+                                                                <TextBlock Text="{Binding LocalSaveHealthText}" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                                                                <TextBlock Text="{Binding LocalSaveHealthDetailText}" FontSize="10" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,3,0,0" LineHeight="15"/>
+                                                            </StackPanel>
                                                         </Border>
                                                     </Grid>
-                                                </Button>
-                                            </StackPanel>
-                                            <StackPanel Margin="0,8,0,10" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource WhenTimeEnds}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource WhenTimeEndsDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,14,0" TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                                <controls:SlidingSegmentedControl Style="{StaticResource SegmentListStyle}" ItemContainerStyle="{StaticResource SegmentItemStyle}" ItemsSource="{Binding LimitActions}" SelectedItem="{Binding LimitAction}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,10"/>
-                                            </StackPanel>
-                                            <StackPanel Margin="0,8,0,10" Visibility="{Binding IsFamilyMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource AdminPin}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource AdminPinDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,14,0" TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                                <WrapPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <Button Content="{Binding AdminPinActionText}" Style="{StaticResource SecondaryButtonStyle}" Click="AdminPin_Click"/>
-                                                    <TextBlock Text="{DynamicResource AdminPinActive}" Foreground="{DynamicResource SuccessBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" Visibility="{Binding HasAdminPin, Converter={StaticResource BooleanToVisibilityConverter}}" TextWrapping="Wrap"/>
-                                                    <Button Content="{DynamicResource RecoveryCodes}" Style="{StaticResource SecondaryButtonStyle}" Click="RecoveryCodes_Click" Margin="14,0,0,0"/>
-                                                </WrapPanel>
-                                            </StackPanel>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16" Visibility="{Binding HasPersonalChangeDelay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <StackPanel>
-                                                    <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">
-                                                        <StackPanel VerticalAlignment="Center">
-                                                            <TextBlock Text="{DynamicResource PersonalStrictness}" FontSize="12" FontWeight="SemiBold"/>
-                                                            <TextBlock Text="{DynamicResource PersonalStrictnessDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,12,0" TextWrapping="Wrap"/>
-                                                        </StackPanel>
-                                                        <TextBlock Text="{Binding UsageModeText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    </controls:ResponsiveColumns>
-                                                    <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,12"/>
-                                                    <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">
-                                                        <StackPanel VerticalAlignment="Center">
-                                                            <TextBlock Text="{DynamicResource RelaxationDelay}" FontSize="12" FontWeight="SemiBold"/>
-                                                            <TextBlock Text="{DynamicResource RelaxationDelayDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,12,0" TextWrapping="Wrap"/>
-                                                        </StackPanel>
-                                                        <ComboBox ItemsSource="{Binding ChangeDelayOptions}" SelectedItem="{Binding ChangeDelay}" Height="32" VerticalAlignment="Center"/>
-                                                        <StackPanel Margin="16,0,0,0" VerticalAlignment="Center" Visibility="{Binding HasPendingChange, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                            <TextBlock Text="{Binding PendingChangeText}" Foreground="{DynamicResource WarningBrush}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                            <TextBlock Text="{Binding PendingChangeDetails}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,5,0,0" LineHeight="16"/>
-                                                            <Button Content="{DynamicResource CancelPending}" Style="{StaticResource SecondaryButtonStyle}" Click="CancelPending_Click" HorizontalAlignment="Left" Padding="10,4" Margin="0,7,0,0"/>
-                                                        </StackPanel>
-                                                    </controls:ResponsiveColumns>
-                                                </StackPanel>
+                                                </Grid>
                                             </Border>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16" Visibility="{Binding IsGuardianRequired, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">
-                                                    <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="{DynamicResource DeviceProtection}" FontSize="12" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{DynamicResource DeviceProtectionDescription}" Style="{StaticResource CaptionStyle}" Margin="0,4,18,0" TextWrapping="Wrap"/>
+                                            <!-- Diagnostics Tools -->
+                                            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource RecoveryAndRepair}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource RecoveryAndRepairDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
-                                                    <WrapPanel VerticalAlignment="Center">
-                                                        <Border Width="7" Height="7" CornerRadius="4" Background="{DynamicResource FaintTextBrush}" Margin="0,0,7,0" x:Name="ProtectionStatusDot"/>
-                                                        <TextBlock x:Name="ProtectionStatusText" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                                                        <Button x:Name="ProtectionActionButton" Style="{StaticResource SecondaryButtonStyle}" Click="ProtectionAction_Click" Padding="13,6"/>
-                                                    </WrapPanel>
-                                                </controls:ResponsiveColumns>
-                                            </Border>
-                                        </StackPanel>
-                                    </Expander>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource PrivacyCenter}" x:Name="PrivacySection" IsExpanded="False" Expanded="SettingsSection_Expanded">
-                                        <StackPanel Margin="18,8,18,16">
-                                            <Button Style="{StaticResource SecondaryButtonStyle}" Click="AndroidDashboard_Click" HorizontalAlignment="Left" Margin="0,10" Padding="14,8">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <Path Data="{StaticResource PhoneIconGeometry}" Width="13" Height="13" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.6" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                    <TextBlock Text="{DynamicResource AndroidDashboard}" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                                </StackPanel>
-                                            </Button>
-                                            <StackPanel Margin="0,8,0,10" Visibility="{Binding HasRestrictions, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,0,10">
-                                                    <TextBlock Text="{DynamicResource AwarenessTracking}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{DynamicResource AwarenessTrackingDescription}" Style="{StaticResource CaptionStyle}" Margin="0,3,14,0" TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                                <CheckBox IsChecked="{Binding AwarenessTrackingEnabled}" IsEnabled="{Binding HasRestrictions}" VerticalAlignment="Center" Content="{DynamicResource AwarenessTrackingConsent}" Checked="AwarenessTracking_Changed" Unchecked="AwarenessTracking_Changed" Margin="0,0,0,10"/>
-                                            </StackPanel>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16">
-                                                <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">
-                                                    <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="{DynamicResource PrivacyCenter}" FontSize="12" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{DynamicResource PrivacyCenterDescription}" Style="{StaticResource CaptionStyle}" Margin="0,4,18,0" TextWrapping="Wrap"/>
-                                                    </StackPanel>
-                                                    <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="{DynamicResource RetentionPeriod}" Style="{StaticResource CaptionStyle}" FontSize="9" Margin="0,0,0,5"/>
-                                                        <ComboBox ItemsSource="{Binding RetentionOptions}" SelectedItem="{Binding RetentionPeriod}" Width="145" Height="32" HorizontalAlignment="Left"/>
-                                                    </StackPanel>
-                                                    <WrapPanel HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                        <Button Content="{DynamicResource RestoreRhythmSuggestions}" Style="{StaticResource SecondaryButtonStyle}" Click="RestoreRhythmSuggestions_Click" Padding="12,6" Margin="0,0,6,0"/>
-                                                        <Button Content="{DynamicResource MyData}" Style="{StaticResource ModeSelectorButtonStyle}" Click="MyData_Click" Padding="14,7"/>
-                                                    </WrapPanel>
-                                                </controls:ResponsiveColumns>
-                                            </Border>
-                                        </StackPanel>
-                                    </Expander>
-                                    <Expander Style="{StaticResource SectionExpanderStyle}" Margin="0,12,0,0" Header="{DynamicResource RecoveryAndRepair}" x:Name="MaintenanceSection" IsExpanded="False" Expanded="SettingsSection_Expanded">
-                                        <StackPanel Margin="18,8,18,16">
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16">
-                                                <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">
-                                                    <StackPanel>
-                                                        <TextBlock Text="{DynamicResource RecoveryAndRepair}" FontSize="12" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{DynamicResource RecoveryAndRepairDescription}" Style="{StaticResource CaptionStyle}" Margin="0,4,18,0" TextWrapping="Wrap"/>
-                                                    </StackPanel>
-                                                    <WrapPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <Button Content="{DynamicResource OpenSessionPreview}" Style="{StaticResource SecondaryButtonStyle}" Click="SessionPreview_Click" Padding="12,6" Margin="0,0,8,0"/>
                                                         <Button Content="{DynamicResource ExportDiagnostics}" Style="{StaticResource SecondaryButtonStyle}" Click="ExportDiagnostics_Click" Padding="12,6" Margin="0,0,8,0"/>
-                                                        <Button Content="{DynamicResource OpenRecoveryCenter}" Style="{StaticResource ModeSelectorButtonStyle}" Click="RecoveryCenter_Click"/>
-                                                    </WrapPanel>
-                                                </controls:ResponsiveColumns>
-                                            </Border>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16">
-                                                <StackPanel>
-                                                    <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">
-                                                        <StackPanel>
-                                                            <TextBlock Text="{DynamicResource WorkHealth}" FontSize="12" FontWeight="SemiBold"/>
-                                                            <TextBlock Text="{DynamicResource WorkHealthDescription}" Style="{StaticResource CaptionStyle}" Margin="0,4,18,0"/>
-                                                        </StackPanel>
-                                                        <Button Content="{DynamicResource RetryHealthChecks}" Style="{StaticResource SecondaryButtonStyle}" Click="RetryHealth_Click" Padding="12,6"/>
-                                                    </controls:ResponsiveColumns>
-                                                    <controls:ResponsiveColumns Margin="0,14,0,0" MinimumColumnWidth="240" MaximumColumns="2">
-                                                        <StackPanel Margin="0,0,16,0">
-                                                            <TextBlock Text="{DynamicResource MeasurementHealth}" Style="{StaticResource CaptionStyle}"/>
-                                                            <TextBlock Text="{Binding MeasurementHealthText}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,0"/>
-                                                            <TextBlock Text="{Binding MeasurementHealthDetailText}" Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                                        </StackPanel>
-                                                        <StackPanel Margin="16,0">
-                                                            <TextBlock Text="{DynamicResource GuardianHealth}" Style="{StaticResource CaptionStyle}"/>
-                                                            <TextBlock x:Name="HealthGuardianText" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,0"/>
-                                                            <TextBlock x:Name="HealthGuardianDetailText" Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                                        </StackPanel>
-                                                        <StackPanel Margin="16,0,0,0">
-                                                            <TextBlock Text="{DynamicResource LocalSaveHealth}" Style="{StaticResource CaptionStyle}"/>
-                                                            <TextBlock Text="{Binding LocalSaveHealthText}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,0"/>
-                                                            <TextBlock Text="{Binding LocalSaveHealthDetailText}" Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                                        </StackPanel>
-                                                    </controls:ResponsiveColumns>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="18" Margin="0,12,0,0" Padding="20,16">
-                                                <controls:ResponsiveColumns MinimumColumnWidth="240" MaximumColumns="2">
-                                                    <StackPanel>
-                                                        <TextBlock Text="{DynamicResource UninstallTitle}" FontSize="12" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{DynamicResource UninstallSettingsDescription}" Style="{StaticResource CaptionStyle}" Margin="0,4,18,0" TextWrapping="Wrap"/>
+                                                        <Button Content="{DynamicResource OpenRecoveryCenter}" Style="{StaticResource ModeSelectorButtonStyle}" Click="RecoveryCenter_Click" Padding="14,6"/>
                                                     </StackPanel>
-                                                    <Button Content="{DynamicResource UninstallAction}" Style="{StaticResource SecondaryButtonStyle}" Foreground="{DynamicResource WarningBrush}" Click="UninstallKvieta_Click" Padding="13,7" VerticalAlignment="Center"/>
-                                                </controls:ResponsiveColumns>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Uninstall -->
+                                            <Border BorderThickness="0" Padding="18,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                                        <TextBlock Text="{DynamicResource UninstallTitle}" FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{DynamicResource UninstallSettingsDescription}" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Content="{DynamicResource UninstallAction}" Style="{StaticResource SecondaryButtonStyle}" Foreground="{DynamicResource DangerBrush}" Click="UninstallKvieta_Click" Padding="14,6" VerticalAlignment="Center"/>
+                                                </Grid>
                                             </Border>
                                         </StackPanel>
                                     </Expander>
-                                    <Grid Margin="0,0,0,10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button x:Name="CheckUpdatesButton" Content="{Binding UpdateStatusText}" Style="{StaticResource SecondaryButtonStyle}" FontSize="10" Padding="10,4" Click="CheckUpdates_Click"/>
-                                            <Button x:Name="DownloadUpdateButton" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" Content="{Binding UpdateBadgeText}" Style="{StaticResource PrimaryButtonStyle}" FontSize="10" Margin="8,0,0,0" Padding="10,4" Click="DownloadUpdate_Click"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Margin="18,0,0,0">
-                                            <TextBlock Text="{Binding BuildInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" TextAlignment="Right"/>
-                                            <TextBlock Text="{Binding InstallationInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" TextAlignment="Right" Margin="0,3,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
+
+                                    <!-- Footer Bar -->
+                                    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18,14" Margin="0,8,0,0">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button x:Name="CheckUpdatesButton" Content="{Binding UpdateStatusText}" Style="{StaticResource SecondaryButtonStyle}" FontSize="11" Padding="12,6" Click="CheckUpdates_Click"/>
+                                                <Button x:Name="DownloadUpdateButton" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" Content="{Binding UpdateBadgeText}" Style="{StaticResource PrimaryButtonStyle}" FontSize="11" Margin="10,0,0,0" Padding="12,6" Click="DownloadUpdate_Click"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding BuildInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" TextAlignment="Right"/>
+                                                <TextBlock Text="{Binding InstallationInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" TextAlignment="Right" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabItem>

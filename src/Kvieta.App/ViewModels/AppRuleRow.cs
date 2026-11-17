@@ -35,12 +35,36 @@ public sealed class AppRuleRow : ObservableObject
         ];
         _mode = _modes.Single(option => option.Value == rule.Mode);
         _dailyLimitMinutes = rule.DailyLimitMinutes;
-        Icon = ApplicationIconProvider.GetIcon(rule.ExecutablePath);
+        ImageSource? cached = ApplicationIconProvider.GetCachedIcon(rule.ExecutablePath);
+        _icon = cached;
+        if (cached is null)
+        {
+            _ = Task.Run(async () =>
+            {
+                ImageSource? icon = await ApplicationIconProvider.GetIconAsync(rule.ExecutablePath).ConfigureAwait(false);
+                if (icon is not null && System.Windows.Application.Current?.Dispatcher is { } dispatcher)
+                {
+                    await dispatcher.InvokeAsync(() => Icon = icon);
+                }
+            });
+        }
         FallbackBrush = ApplicationIconProvider.GetFallbackBrush(rule.Name);
     }
 
     public Guid Id { get; }
-    public ImageSource? Icon { get; }
+    private ImageSource? _icon;
+    public ImageSource? Icon
+    {
+        get => _icon;
+        private set
+        {
+            if (SetProperty(ref _icon, value))
+            {
+                OnPropertyChanged(nameof(HasIcon));
+                OnPropertyChanged(nameof(HasFallbackIcon));
+            }
+        }
+    }
     public WpfBrush FallbackBrush { get; }
     public bool HasIcon => Icon is not null;
     public bool HasFallbackIcon => Icon is null;

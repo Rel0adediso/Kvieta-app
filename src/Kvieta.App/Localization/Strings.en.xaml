@@ -277,6 +277,9 @@
     <sys:String x:Key="SafeSearchTitle">SafeSearch (Google, Bing &amp; YouTube)</sys:String>
     <sys:String x:Key="SafeSearchDescription">Enforces strict safe search mode on Google, Bing and YouTube.</sys:String>
     <sys:String x:Key="SafeSearchSwitch">Enforce</sys:String>
+    <sys:String x:Key="ShortFormVideoTitle">Dopamine Trap Shield (Shorts &amp; Reels)</sys:String>
+    <sys:String x:Key="ShortFormVideoDescription">Blocks YouTube Shorts, Instagram Reels, Facebook Reels, and TikTok in browsers (restart open browsers to apply).</sys:String>
+    <sys:String x:Key="ShortFormVideoSwitch">Block</sys:String>
     <sys:String x:Key="BlockedDomainsTitle">Blocked Websites</sys:String>
     <sys:String x:Key="AddDomainButton">Add Site</sys:String>
 </ResourceDictionary>

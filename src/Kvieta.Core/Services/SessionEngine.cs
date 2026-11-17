@@ -11,10 +11,18 @@ public sealed class SessionEngine
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         Ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
+
+        // When starting in Personal mode or on PC startup, remote locks shouldn't lock out the new session
+        if (_settings.Mode == UsageMode.Personal)
+        {
+            Ledger.RemoteLockActive = false;
+        }
+
         Refresh(now);
 
-        // A prototype restart never resumes an active desktop silently.
-        if (Ledger.State == SessionState.Active)
+        // A restart never resumes an active desktop silently; starts in Ready mode ("Hazırsan başlayalım.")
+        if ((Ledger.State is SessionState.Active or SessionState.TimeExpired) &&
+            Ledger.UsedSeconds < GetLimitSeconds(now))
         {
             Ledger.State = SessionState.Ready;
         }
@@ -25,6 +33,14 @@ public sealed class SessionEngine
     public ClockChangeKind ObserveClock(DateTimeOffset now, TimeSpan systemUptime, string? bootId = null)
     {
         ClockChangeKind change = ClockIntegrityMonitor.Observe(Ledger, now, systemUptime, bootId);
+        if (change == ClockChangeKind.Reboot)
+        {
+            Ledger.RemoteLockActive = false;
+            if (Ledger.UsedSeconds < GetLimitSeconds(now))
+            {
+                Ledger.State = SessionState.Ready;
+            }
+        }
         Refresh(now);
         return change;
     }
@@ -241,6 +257,7 @@ public sealed class SessionEngine
         {
             ArchiveCurrentDay(today);
             Ledger.LocalDay = today;
+            Ledger.RemoteLockActive = false;
             Ledger.UsedSeconds = 0;
             Ledger.BonusMinutes = 0;
             Ledger.AppUsedSeconds.Clear();

@@ -277,6 +277,9 @@
     <sys:String x:Key="SafeSearchTitle">Güvenli Arama (SafeSearch &amp; YouTube)</sys:String>
     <sys:String x:Key="SafeSearchDescription">Google, Bing ve YouTube üzerinde kısıtlı ve güvenli arama modunu zorunlu kılar.</sys:String>
     <sys:String x:Key="SafeSearchSwitch">Zorla</sys:String>
+    <sys:String x:Key="ShortFormVideoTitle">Dopamin Tuzağı Koruması (Shorts &amp; Reels)</sys:String>
+    <sys:String x:Key="ShortFormVideoDescription">YouTube Shorts, Instagram Reels, Facebook Reels ve TikTok'u tarayıcılarda engeller (etkinleştirdikten sonra açık tarayıcıyı yeniden başlatın).</sys:String>
+    <sys:String x:Key="ShortFormVideoSwitch">Engelle</sys:String>
     <sys:String x:Key="BlockedDomainsTitle">Engellenen Web Siteleri</sys:String>
     <sys:String x:Key="AddDomainButton">Site Ekle</sys:String>
 </ResourceDictionary>

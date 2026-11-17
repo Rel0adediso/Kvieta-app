@@ -35,7 +35,7 @@ public sealed partial class MainViewModel
     public bool HasTodayOtherUsage { get; private set; }
     public bool HasTodayHourlyUsage => TodayHours.Any(hour => hour.UsedSeconds > 0);
     public bool HasNoTodayHourlyUsage => !HasTodayHourlyUsage;
-    public bool ShowTodayScheduledLimit => HasScheduledPlan;
+    public bool ShowTodayScheduledLimit => HasScheduledPlan && !IsFlexiblePersonalMode && !IsInsightsMode;
     public bool ShowTodayUsageRing => !IsFamilyMode;
     public bool ShowTodayHistoryShortcut => !IsInsightsMode;
     public string TodayMainMetricLabel => IsFamilyMode ? LocalizationService.Get("RemainingTime") : LocalizationService.Get("TodayMeasuredApps");

@@ -32,13 +32,28 @@
                 <Border x:Name="GentleWarningPanel" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1" CornerRadius="10" Padding="16,13" Margin="0,16,0,0" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite">
                     <StackPanel><TextBlock x:Name="GentleWarningTitle" FontSize="15" FontWeight="SemiBold" TextAlignment="Center"/><TextBlock x:Name="GentleWarningDescription" Foreground="{DynamicResource MutedTextBrush}" FontSize="11.5" TextAlignment="Center" Margin="0,4,0,10"/><WrapPanel HorizontalAlignment="Center"><Button Content="{DynamicResource WorkSaved}" Style="{StaticResource SecondaryButtonStyle}" Click="WorkSaved_Click" Margin="3"/><Button Content="{DynamicResource TakeControlledBreak}" Style="{StaticResource SecondaryButtonStyle}" Click="WarningBreak_Click" Margin="3"/><Button Content="{DynamicResource RequestTime}" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanRequestExtraTime, Converter={StaticResource BooleanToVisibilityConverter}}" Click="WarningExtraTime_Click" Margin="3"/><Button Content="{DynamicResource EditTomorrowPlan}" Style="{StaticResource PrimaryButtonStyle}" Visibility="{Binding CanPlanTomorrow, Converter={StaticResource BooleanToVisibilityConverter}}" Click="WarningTomorrowPlan_Click" Margin="3"/></WrapPanel></StackPanel>
                 </Border>
-                <Border Background="{DynamicResource WarningSoftBrush}" CornerRadius="6" Padding="12,7" HorizontalAlignment="Center" Margin="0,12,0,0" Visibility="{Binding IsBlocked, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock Text="{Binding BlockedReasonText}" Foreground="{DynamicResource WarningBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" /></Border>
                 <TextBlock Text="{DynamicResource OutsideScheduleHint}" Foreground="{DynamicResource WarningBrush}" FontSize="11" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="{Binding IsRegularOutsideSchedule, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <Button Content="{DynamicResource TrustCurrentClockAction}" Style="{StaticResource SecondaryButtonStyle}"
                         HorizontalAlignment="Center" Margin="0,12,0,0" Padding="14,7"
                         Visibility="{Binding IsClockRollbackDetected, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Click="TrustCurrentClock_Click" />
-                <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="22" Padding="26,22" Margin="0,30,0,0">
+                <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1" CornerRadius="22" Padding="32,28" Margin="0,30,0,0"
+                        Visibility="{Binding IsRemotelyLocked, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource PrimarySoftBrush}" HorizontalAlignment="Center" Margin="0,0,0,16">
+                            <TextBlock Text="🔒" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Zihnini Dinlendir" FontSize="20" FontWeight="SemiBold" TextAlignment="Center"/>
+                        <TextBlock Text="Telefonundan uzaktan mola verildi. Hazır olduğunda kilidi açıp dilediğin gibi devam edebilirsin."
+                                   Foreground="{DynamicResource MutedTextBrush}" FontSize="12.5" TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,20" MaxWidth="420"/>
+                        <Button Content="🔓 Kilidi Aç ve Devam Et" Style="{StaticResource PrimaryButtonStyle}"
+                                FontSize="14" FontWeight="SemiBold" Padding="24,12" HorizontalAlignment="Center"
+                                Visibility="{Binding CanUnlockLocally, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Click="UnlockLocally_Click"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="22" Padding="26,22" Margin="0,30,0,0"
+                        Visibility="{Binding ShowTimerCard, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel>
                         <TextBlock Text="{Binding TimeMetricLabel}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
                         <TextBlock Text="{Binding RemainingText}" services:MotionAssist.AnimateTextChanges="True" Foreground="{DynamicResource PrimaryBrush}" FontSize="68" FontWeight="Light" HorizontalAlignment="Center" Margin="0,7,0,0" />

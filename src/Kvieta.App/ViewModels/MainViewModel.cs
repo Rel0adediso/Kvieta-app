@@ -636,7 +636,7 @@ public sealed partial class MainViewModel : ObservableObject
         IsPersonalMode && PersonalProtectionLevel == PersonalProtectionLevel.Protected;
     public bool HasRestrictions => SelectedUsageMode != UsageMode.Insights;
     public bool HasPersonalChangeDelay => IsPersonalMode && !IsFlexiblePersonalMode;
-    public bool HasScheduledPlan => HasRestrictions && !IsFlexiblePersonalMode;
+    public bool HasScheduledPlan => HasRestrictions;
     public string TodayDescriptionText => IsInsightsMode
         ? L("Bugünkü gerçek uygulama kullanımını tek bakışta gör.", "See today's actual application usage at a glance.")
         : IsFlexiblePersonalMode
@@ -714,7 +714,34 @@ public sealed partial class MainViewModel : ObservableObject
     public bool SafeSearchEnforced
     {
         get => _safeSearchEnforced;
-        set => SetProperty(ref _safeSearchEnforced, value);
+        set
+        {
+            if (SetProperty(ref _safeSearchEnforced, value))
+            {
+                if (value && !WebGuardEnabled)
+                {
+                    WebGuardEnabled = true;
+                }
+                OnPropertyChanged(nameof(HasWebRestrictions));
+            }
+        }
+    }
+
+    private bool _blockShortFormVideo;
+    public bool BlockShortFormVideo
+    {
+        get => _blockShortFormVideo;
+        set
+        {
+            if (SetProperty(ref _blockShortFormVideo, value))
+            {
+                if (value && !WebGuardEnabled)
+                {
+                    WebGuardEnabled = true;
+                }
+                OnPropertyChanged(nameof(HasWebRestrictions));
+            }
+        }
     }
 
     private string _newBlockedDomain = string.Empty;
@@ -725,7 +752,7 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public int BlockedWebDomainCount => BlockedWebDomains.Count;
-    public bool HasWebRestrictions => WebGuardEnabled && (BlockedWebDomains.Count > 0 || SafeSearchEnforced);
+    public bool HasWebRestrictions => WebGuardEnabled && (BlockedWebDomains.Count > 0 || SafeSearchEnforced || BlockShortFormVideo);
 
     public void AddBlockedWebDomain(string domain)
     {
@@ -849,6 +876,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             LoadPolicyRows(_settings);
             Services.WebGuardService.Apply(_settings);
+            Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
 
             await ReloadUsageAsync();
             bool usageRecovered = _usageStore.LastLoadRecoveredFromBackup;
@@ -1065,7 +1093,11 @@ public sealed partial class MainViewModel : ObservableObject
                 WarningMinutes = [15, 5, 1],
                 Schedule = schedule,
                 TemporaryAllowances = TemporaryAllowances.Select(row => row.ToModel()).ToList(),
-                AppRules = AppRules.Select(row => row.ToModel()).ToList()
+                AppRules = AppRules.Select(row => row.ToModel()).ToList(),
+                WebGuardEnabled = WebGuardEnabled,
+                BlockedWebDomains = BlockedWebDomains.ToList(),
+                SafeSearchEnforced = SafeSearchEnforced,
+                BlockShortFormVideo = BlockShortFormVideo
             };
             if (_settings.Mode != UsageMode.Family && desired.Mode == UsageMode.Family &&
                 (!desired.AdminPin.IsConfigured || !desired.RecoveryCodes.Any(code => code.UsedAtUtc is null)))
@@ -1100,7 +1132,7 @@ public sealed partial class MainViewModel : ObservableObject
                 };
                 _settings = immediate;
                 await SaveUserSettingsAsync(_settings);
-                Services.WebGuardService.Apply(_settings);
+                bool webGuardAppliedDelay = Services.WebGuardService.Apply(_settings);
                 _stagedAdminCredential = null;
                 _stagedRecoveryCodes = null;
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
@@ -1141,6 +1173,8 @@ public sealed partial class MainViewModel : ObservableObject
             _settings = desired;
 
             await SaveUserSettingsAsync(_settings);
+            bool webGuardApplied = Services.WebGuardService.Apply(_settings);
+            Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
             _stagedAdminCredential = null;
             _stagedRecoveryCodes = null;
             await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
@@ -1154,7 +1188,16 @@ public sealed partial class MainViewModel : ObservableObject
             _localWriteFailed = false;
             _localWriteFailureMessage = null;
             NotifyRuntimeHealth();
-            StatusMessage = $"{L("Kaydedildi", "Saved")} · {DateTime.Now:HH:mm:ss}";
+            if (_settings.BlockShortFormVideo || _settings.WebGuardEnabled)
+            {
+                StatusMessage = webGuardApplied
+                    ? L("Kaydedildi · Kısa video engelinin geçerli olması için tarayıcını yeniden başlat.", "Saved · Restart your browser for short video blocking to take effect.")
+                    : L("Kaydedildi, ancak web koruması için yönetici onayı verilmedi.", "Saved, but administrator approval was not granted for web protection.");
+            }
+            else
+            {
+                StatusMessage = $"{L("Kaydedildi", "Saved")} · {DateTime.Now:HH:mm:ss}";
+            }
             return true;
         }
         catch (Exception exception)
@@ -1702,6 +1745,8 @@ public sealed partial class MainViewModel : ObservableObject
         SessionState previewState = previewLedger.State;
         CurrentStatusExplanation = IsInsightsMode
             ? L("Yerel ölçüm açık; kısıtlama veya uzaktan izin uygulanmıyor.", "Local tracking is active; no restrictions or remote approval are applied.")
+            : IsFlexiblePersonalMode && !previewLedger.RemoteLockActive
+                ? L("Esnek moddasın; dilediğin an odak oturumu başlatabilir veya mola verebilirsin.", "You're in flexible mode; start a focus session or take a break whenever you want.")
             : SessionStatusExplainer.Explain(
                 previewSettings,
                 previewLedger,
@@ -1787,7 +1832,9 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         Dictionary<string, DoubleCollection> trends = records
-            .SelectMany(record => record.ForegroundApplications.Select(application => new
+            .SelectMany(record => record.ForegroundApplications
+                .Where(app => !ForegroundApplicationTracker.IsIgnoredProcessName(app.ApplicationId) && !ForegroundApplicationTracker.IsIgnoredProcessName(app.Name))
+                .Select(application => new
             {
                 record.LocalDay,
                 application.Name,
@@ -1805,7 +1852,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         List<AppUsageHistoryRow> applications = records
-            .SelectMany(item => item.ForegroundApplications)
+            .SelectMany(item => item.ForegroundApplications.Where(app => !ForegroundApplicationTracker.IsIgnoredProcessName(app.ApplicationId) && !ForegroundApplicationTracker.IsIgnoredProcessName(app.Name)))
             .GroupBy(
                 item => string.IsNullOrWhiteSpace(item.ApplicationId) ? item.Name : item.ApplicationId,
                 StringComparer.OrdinalIgnoreCase)
@@ -1943,9 +1990,10 @@ public sealed partial class MainViewModel : ObservableObject
                 : L("Bugünün ilk kullanım verisi oluşuyor", "Today's first usage data is taking shape")
             : $"{(currentSeconds <= previousSeconds ? "↓" : "↑")} %{Math.Abs(currentSeconds - previousSeconds) * 100d / previousSeconds:0} · {L("düne göre", "vs yesterday")}";
 
-        IEnumerable<(string ApplicationId, string Name, long UsedSeconds)> currentApplications = current.ForegroundApplications.Count > 0
+        IEnumerable<(string ApplicationId, string Name, long UsedSeconds)> currentApplications = (current.ForegroundApplications.Count > 0
             ? current.ForegroundApplications.Select(item => (item.ApplicationId, item.Name, item.UsedSeconds))
-            : current.Applications.Select(item => (string.Empty, item.Name, item.UsedSeconds));
+            : current.Applications.Select(item => (ApplicationId: string.Empty, item.Name, item.UsedSeconds)))
+            .Where(item => !ForegroundApplicationTracker.IsIgnoredProcessName(item.ApplicationId) && !ForegroundApplicationTracker.IsIgnoredProcessName(item.Name));
         List<(string ApplicationId, string Name, long UsedSeconds)> ranked = currentApplications
             .GroupBy(item => (item.ApplicationId, item.Name))
             .Select(group => (group.Key.ApplicationId, group.Key.Name, UsedSeconds: group.Sum(item => item.UsedSeconds)))
@@ -2359,18 +2407,35 @@ public sealed partial class MainViewModel : ObservableObject
         long usedSeconds,
         double relativePercent,
         DoubleCollection? trendValues = null,
-        string applicationId = "") =>
-        new()
+        string applicationId = "")
+    {
+        ImageSource? cachedIcon = ApplicationIconProvider.GetCachedIcon(name);
+        AppUsageHistoryRow row = new()
         {
             Rank = rank,
             ApplicationId = applicationId,
             Name = name,
             UsedSeconds = usedSeconds,
             RelativePercent = relativePercent,
-            Icon = ApplicationIconProvider.GetIcon(name),
+            Icon = cachedIcon,
             FallbackBrush = ApplicationIconProvider.GetFallbackBrush(name),
             TrendValues = trendValues ?? []
         };
+
+        if (cachedIcon is null)
+        {
+            _ = Task.Run(async () =>
+            {
+                ImageSource? icon = await ApplicationIconProvider.GetIconAsync(name).ConfigureAwait(false);
+                if (icon is not null && System.Windows.Application.Current?.Dispatcher is { } dispatcher)
+                {
+                    await dispatcher.InvokeAsync(() => row.Icon = icon);
+                }
+            });
+        }
+
+        return row;
+    }
 
     private static bool SettingsEquivalent(ControlSettings left, ControlSettings right)
     {
@@ -2402,6 +2467,11 @@ public sealed partial class MainViewModel : ObservableObject
         if (current.WeeklyReductionGoalPercent != desired.WeeklyReductionGoalPercent) target.WeeklyReductionGoalPercent = desired.WeeklyReductionGoalPercent;
         if (!JsonEquivalent(current.AdminPin, desired.AdminPin)) target.AdminPin = desired.AdminPin;
         if (!JsonEquivalent(current.WarningMinutes, desired.WarningMinutes)) target.WarningMinutes = [.. desired.WarningMinutes];
+        if (current.WebGuardEnabled != desired.WebGuardEnabled) target.WebGuardEnabled = desired.WebGuardEnabled;
+        if (current.SafeSearchEnforced != desired.SafeSearchEnforced) target.SafeSearchEnforced = desired.SafeSearchEnforced;
+        if (current.BlockShortFormVideo != desired.BlockShortFormVideo) target.BlockShortFormVideo = desired.BlockShortFormVideo;
+        if (!(current.BlockedWebDomains ?? []).SequenceEqual(desired.BlockedWebDomains ?? [], StringComparer.OrdinalIgnoreCase))
+            target.BlockedWebDomains = [.. (desired.BlockedWebDomains ?? [])];
 
         MergeChangedItems(
             current.Schedule,
@@ -2802,6 +2872,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         WebGuardEnabled = settings.WebGuardEnabled;
         SafeSearchEnforced = settings.SafeSearchEnforced;
+        BlockShortFormVideo = settings.BlockShortFormVideo;
         BlockedWebDomains.Clear();
         foreach (string domain in settings.BlockedWebDomains ?? [])
         {
@@ -2962,6 +3033,7 @@ public sealed partial class MainViewModel : ObservableObject
         WebGuardEnabled = settings.WebGuardEnabled,
         BlockedWebDomains = [.. (settings.BlockedWebDomains ?? [])],
         SafeSearchEnforced = settings.SafeSearchEnforced,
+        BlockShortFormVideo = settings.BlockShortFormVideo,
         PendingChange = settings.PendingChange is null
             ? null
             : new PendingPolicyChange
@@ -3004,7 +3076,8 @@ public sealed partial class MainViewModel : ObservableObject
             AppRules = AppRules.Select(row => row.ToModel()).ToList(),
             WebGuardEnabled = WebGuardEnabled,
             BlockedWebDomains = BlockedWebDomains.ToList(),
-            SafeSearchEnforced = SafeSearchEnforced
+            SafeSearchEnforced = SafeSearchEnforced,
+            BlockShortFormVideo = BlockShortFormVideo
         };
     }
 

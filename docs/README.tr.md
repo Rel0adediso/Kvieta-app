@@ -14,25 +14,25 @@ Windows'ta ekran süresini anlamanın ve yönetmenin sakin, yerel yolu.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/gizlilik-yerel--öncelikli-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/durum-Alpha_6.5-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/durum-v1.0.0-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/lisans-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilinçli hale getirir. Planlar, kurallar, kullanım geçmişi, kimlik bilgileri ve kurtarma verileri Windows cihazında kalır. Kvieta hesabı gerekmez.
 
-## Kvieta Alpha 6.5'i indir
+## Kvieta v1.0.0'ı indir
 
-[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-6.5/Kvieta-Setup-alpha-6.5.exe)
+[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/v1.0.0/Kvieta-Setup-v1.0.0.exe)
 
 Self-contained kurucu Türkçe ve English destekler; .NET SDK gerektirmez. Bu
-community preview bilerek imzasızdır, bu nedenle Windows SmartScreen
+sürüm bilerek imzasızdır, bu nedenle Windows SmartScreen
 **Bilinmeyen yayıncı** uyarısı gösterebilir.
 
 Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
-sınırlar [Kvieta Alpha 6.5 yayın sayfasında](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-6.5) bulunur. Çalıştırmadan önce Setup EXE'yi ekli `.sha256` dosyasıyla doğrulayın.
+sınırlar [Kvieta v1.0.0 yayın sayfasında](https://github.com/Rel0adediso/kvieta-app/releases/tag/v1.0.0) bulunur. Çalıştırmadan önce Setup EXE'yi ekli `.sha256` dosyasıyla doğrulayın.
 
-> **Önemli:** Alpha 6.5, önceki Alpha paketlerinin yerini alır. Mevcut Kvieta kurulumunun üzerine doğrudan kurulabilir; ayarlar, kullanım geçmişi, kurtarma verileri ve korunan policy korunur.
+> **Önemli:** v1.0.0, önceki Alpha paketlerinin yerini alır. Mevcut Kvieta kurulumunun üzerine doğrudan kurulabilir; ayarlar, kullanım geçmişi, kurtarma verileri ve korunan policy korunur.
 
 ## Zamanla nasıl bir ilişki kuracağını seç
 
@@ -53,14 +53,13 @@ sınırlar [Kvieta Alpha 6.5 yayın sayfasında](https://github.com/Rel0adediso/
 | **Kuralları korur** | Guardian gözetimi, korumalı policy alanı, sağlık kontrolleri, onarım yolları ve doğrulanmış yönetici çıkışı. |
 | **Gerçek hayata dayanır** | Atomik kayıt, son sağlam yedek, bozulma kurtarması, saat geri alma algısı ve eşzamanlı yazma koruması. |
 
-## Kvieta Alpha 6.5 ile gelenler
+## Kvieta v1.0.0 ile gelenler
 
-- Uygulama içi otomatik güncelleme motoru: arka planda indirme, Authenticode imza doğrulama ve tek tıkla yeniden başlatma.
-- Windows Kernel DACL süreç zırhı: Görev Yöneticisi ve terminalden process sonlandırma / durdurma engeli.
-- Kilit ekranında Görev Yöneticisi bastırma (`DisableTaskMgr = 1`) ile Ctrl+Shift+Esc bypass koruması.
-- Windows Güvenli Modda (Safe Mode) KvietaGuardian servis kaydı ve zorunlu kilit ekranı koruması.
-- Chrome ve Edge politikaları ile DNS-over-HTTPS (DoH) bypass engeli ve Web Guard CRLF sanitizasyonu.
-- Android eşlikçi güncelleme bildirim döngüsü ve uzaktan kilit açma flicker sorunlarının çözümü; ekosistem genelinde güvenlik yamaları.
+- Zen arayüz yenilemesi: Mica arka plan efekti, sakin adaçayı renk paleti ve dairesel Bugün kontrol paneli.
+- Mindful Dopamin Bariyeri: Shorts, Reels ve TikTok gibi kısa video döngülerinde araya giren sakinleştirici mola penceresi ve ana sayfaya yönlendirme.
+- Sıkıştırılmış tek dosya (single-file) mimarisi: %64 boyut optimizasyonu (215 MB'tan 78 MB'a düşürüldü).
+- Kusursuz sistem kurtarma: beklenmeyen kilitlenmelerde dahi başlangıç ve çıkışta Görev Yöneticisi'ni otomatik geri yükleme ve temiz uninstaller Web Guard sıfırlaması.
+- Güçlendirilmiş kernel zırhı ve kesintisiz yerel mobil eşlikçi senkronizasyonu.
 
 ## Gizlilik tasarımın parçası
 
@@ -68,13 +67,12 @@ Kvieta zorunlu bulut hesabı kullanmaz ve ekran süresi geçmişini bir Kvieta s
 
 ## Projenin durumu
 
-**Kvieta Alpha 6.5 güncel community preview'dur.**
+**Kvieta v1.0.0 resmi sürümdür.**
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.
 - Community kurucular bilerek imzasızdır; Windows SmartScreen **Bilinmeyen yayıncı** uyarısı gösterebilir.
-- Alpha 6.5 Setup EXE, MSI, checksum ve manifest tam kaynak commit'ini belirtir.
-- Geniş kurucu, DPI, Guardian, kaçış yolu ve Windows yaşam döngüsü matrisi final `v1.0.0` öncesinde açıktır.
+- v1.0.0 Setup EXE, MSI, checksum ve manifest tam kaynak commit'ini belirtir.
 
 Kalan doğrulamalar için [yol haritasına](ROADMAP.md), ayrıntılı geçmiş için [sürüm notlarına](RELEASE_NOTES.md) bakın.
 

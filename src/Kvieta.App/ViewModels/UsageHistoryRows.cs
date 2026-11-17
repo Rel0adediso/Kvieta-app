@@ -12,6 +12,12 @@ public sealed class UsageHistoryDayRow : ObservableObject
     public required DateOnly Day { get; init; }
     public long UsedSeconds { get; init; }
     public double RelativePercent { get; init; }
+    private bool _isHighlighted;
+    public bool IsHighlighted
+    {
+        get => _isHighlighted;
+        set => SetProperty(ref _isHighlighted, value);
+    }
     public int BreakCount { get; init; }
     public int LimitReachedCount { get; init; }
     public int ExtraTimeGrantCount { get; init; }
@@ -73,14 +79,32 @@ public sealed class RhythmDayRow : ObservableObject
     private static string L(string tr, string en) => LocalizationService.CurrentLanguage == LanguagePreference.English ? en : tr;
 }
 
-public sealed class AppUsageHistoryRow
+public sealed class AppUsageHistoryRow : ObservableObject
 {
     public int Rank { get; init; }
     public string ApplicationId { get; init; } = string.Empty;
     public required string Name { get; init; }
     public long UsedSeconds { get; init; }
     public double RelativePercent { get; init; }
-    public ImageSource? Icon { get; init; }
+    private bool _isHighlighted;
+    public bool IsHighlighted
+    {
+        get => _isHighlighted;
+        set => SetProperty(ref _isHighlighted, value);
+    }
+    private ImageSource? _icon;
+    public ImageSource? Icon
+    {
+        get => _icon;
+        set
+        {
+            if (SetProperty(ref _icon, value))
+            {
+                OnPropertyChanged(nameof(HasIcon));
+                OnPropertyChanged(nameof(HasFallbackIcon));
+            }
+        }
+    }
     public required System.Windows.Media.Brush FallbackBrush { get; init; }
     public DoubleCollection TrendValues { get; init; } = [];
     public string UsedText => UsageHistoryFormatting.FormatDuration(UsedSeconds);
@@ -115,13 +139,19 @@ public sealed class AppUsageHistoryRow
     }
 }
 
-public sealed class AppCategoryUsageRow
+public sealed class AppCategoryUsageRow : ObservableObject
 {
     public required string Key { get; init; }
     public required string Name { get; init; }
     public long UsedSeconds { get; init; }
     public int ApplicationCount { get; init; }
     public double RelativePercent { get; init; }
+    private bool _isHighlighted;
+    public bool IsHighlighted
+    {
+        get => _isHighlighted;
+        set => SetProperty(ref _isHighlighted, value);
+    }
     public required System.Windows.Media.Brush AccentBrush { get; init; }
     public string UsedText => UsageHistoryFormatting.FormatDuration(UsedSeconds);
     public string ApplicationCountText => ApplicationCount == 1

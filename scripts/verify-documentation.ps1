@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
@@ -26,18 +26,18 @@ foreach ($relativePath in $requiredFiles) {
     }
 }
 
-$englishReadme = Get-Content -LiteralPath (Join-Path $repositoryRoot 'README.md') -Raw
-$turkishReadme = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/README.tr.md') -Raw
-$englishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/USAGE.md') -Raw
-$turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLANIM.tr.md') -Raw
+$englishReadme = Get-Content -LiteralPath (Join-Path $repositoryRoot 'README.md') -Encoding UTF8 -Raw
+$turkishReadme = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/README.tr.md') -Encoding UTF8 -Raw
+$englishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/USAGE.md') -Encoding UTF8 -Raw
+$turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLANIM.tr.md') -Encoding UTF8 -Raw
 
 $requiredText = @(
-    @{ Name = 'English README Alpha status'; Text = $englishReadme; Pattern = 'Kvieta Alpha \d+(\.\d+)*' }
-    @{ Name = 'Turkish README Alpha status'; Text = $turkishReadme; Pattern = 'Kvieta Alpha \d+(\.\d+)*' }
-    @{ Name = 'English Alpha download'; Text = $englishReadme; Pattern = 'releases/download/kvieta-alpha-[^/]+/Kvieta-Setup-[^/\)]+\.exe' }
-    @{ Name = 'Turkish Alpha download'; Text = $turkishReadme; Pattern = 'releases/download/kvieta-alpha-[^/]+/Kvieta-Setup-[^/\)]+\.exe' }
-    @{ Name = 'English Alpha checksum guidance'; Text = $englishReadme; Pattern = 'attached `\.sha256` file' }
-    @{ Name = 'Turkish Alpha checksum guidance'; Text = $turkishReadme; Pattern = 'ekli `\.sha256` dosyasıyla' }
+    @{ Name = 'English README release status'; Text = $englishReadme; Pattern = 'Kvieta (?:v|Alpha )?\d+(\.\d+)*' }
+    @{ Name = 'Turkish README release status'; Text = $turkishReadme; Pattern = 'Kvieta (?:v|Alpha )?\d+(\.\d+)*' }
+    @{ Name = 'English release download'; Text = $englishReadme; Pattern = 'releases/download/(?:v|kvieta-)[^/]+/Kvieta-Setup-[^/\)]+\.exe' }
+    @{ Name = 'Turkish release download'; Text = $turkishReadme; Pattern = 'releases/download/(?:v|kvieta-)[^/]+/Kvieta-Setup-[^/\)]+\.exe' }
+    @{ Name = 'English checksum guidance'; Text = $englishReadme; Pattern = 'attached `\.sha256` file' }
+    @{ Name = 'Turkish checksum guidance'; Text = $turkishReadme; Pattern = 'ekli `\.sha256` dosyasıyla' }
     @{ Name = 'English insights mode'; Text = $englishReadme; Pattern = 'Insights' }
     @{ Name = 'Turkish insights mode'; Text = $turkishReadme; Pattern = 'Farkındalık' }
     @{ Name = 'English family mode'; Text = $englishReadme; Pattern = 'Family' }
@@ -56,10 +56,10 @@ foreach ($check in $requiredText) {
     }
 }
 
-if ($englishReadme -match 'Kvieta Alpha (\d+(\.\d+)*)') {
+if ($englishReadme -match 'Kvieta (?:v|Alpha )?(\d+(\.\d+)*)') {
     $enVersion = $matches[1]
-    if ($turkishReadme -notmatch "Kvieta Alpha $enVersion") {
-        throw "Documentation check failed: Turkish README does not match English README version (expected Alpha $enVersion)"
+    if ($turkishReadme -notmatch "Kvieta (?:v|Alpha )?$enVersion") {
+        throw "Documentation check failed: Turkish README does not match English README version (expected $enVersion)"
     }
 }
 
@@ -89,7 +89,7 @@ $currentProductSurfacePaths = @(
     '.github/ISSUE_TEMPLATE/bug_report.yml'
 )
 $currentProductSurfaces = ($currentProductSurfacePaths | ForEach-Object {
-    Get-Content -LiteralPath (Join-Path $repositoryRoot $_) -Raw
+    Get-Content -LiteralPath (Join-Path $repositoryRoot $_) -Encoding UTF8 -Raw
 }) -join "`n"
 $retiredProductTerms = @(
     'Tracking only'

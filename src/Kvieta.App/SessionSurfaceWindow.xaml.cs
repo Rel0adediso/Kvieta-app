@@ -168,6 +168,12 @@ public partial class SessionSurfaceWindow : Window
         }
     }
 
+    private async void UnlockLocally_Click(object sender, RoutedEventArgs e)
+    {
+        await _viewModel.UnlockLocallyAsync();
+        EnsureCorrectSurface();
+    }
+
     private async void StartOrResume_Click(object sender, RoutedEventArgs e)
     {
         if (_surfaceTransitionInProgress)
@@ -541,6 +547,7 @@ public partial class SessionSurfaceWindow : Window
 
     public void ApplyRemoteLock()
     {
+        _controlCenterOpen = false;
         _viewModel.ApplyRemoteLock();
         _forceSurfaceVisible = true;
         _widget?.Hide();
@@ -995,6 +1002,11 @@ public partial class SessionSurfaceWindow : Window
 
             if (_returnToControlCenter)
             {
+                if (_viewModel.CanUnlockLocally)
+                {
+                    await _viewModel.UnlockLocallyAsync();
+                }
+
                 if (_controlCenterOpen)
                 {
                     ControlCenterRequested?.Invoke(

@@ -1,5 +1,17 @@
 # Kvieta release notes
 
+## Kvieta v1.0.0 — Official Production Release
+
+- **Zen Interface & Visual System**: Complete overhaul of the desktop experience with subtle Mica backdrop styling, calm sage palette, and an intuitive circular daily usage breakdown.
+- **Mindful Dopamine Barrier**: Proactive browser interception on short-form feeds (YouTube Shorts, Instagram Reels, TikTok), offering a gentle pause barrier and calm one-click redirection to YouTube Home.
+- **Optimized Distribution Footprint**: Single-file self-contained bundle compressed from 215 MB to ~78 MB (64% payload reduction) without sacrificing startup responsiveness.
+- **Robust System Safety & Resilience**:
+  - Auto-restores Task Manager availability (`DisableTaskMgr = 0`) on clean shutdown and startup to ensure no lockouts survive unexpected crashes.
+  - Complete uninstaller hygiene reverting Web Guard hosts entries, DNS overrides, and group policies cleanly.
+  - Hardened multi-process synchronization and anti-tamper resilience under standard and administrative Windows environments.
+- **Unified Companion & Multi-Device Sync**: Stable peer-to-peer mobile companion discovery, remote supervisor approval, and instant session synchronization.
+- **Production Readiness**: Validated against complete smoke suites, WiX installer workflows, zero-warning release builds, and bilingual (English/Turkish) localized surfaces.
+
 ## Kvieta Alpha 6.5 — In-App Updater and Anti-Tamper Hardening
 
 - In-app automatic update engine: direct background download, Authenticode signature verification, and one-click restart.

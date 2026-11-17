@@ -22,8 +22,10 @@ public sealed record MobileRemoteAction(
 
 public static class MobileRemoteActionStore
 {
-    private static readonly string FilePath = Path.Combine(
+    private static readonly string DefaultFilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Kvieta", "mobile-remote-action.bin");
+    public static string? OverrideFilePath { get; set; }
+    private static string EffectiveFilePath => OverrideFilePath ?? DefaultFilePath;
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -51,8 +53,8 @@ public static class MobileRemoteActionStore
                 var action = new MobileRemoteAction(Guid.NewGuid().ToString("N"), command, DateTimeOffset.UtcNow, Applied: false);
                 byte[] plain = JsonSerializer.SerializeToUtf8Bytes(action, Json);
                 byte[] protectedBytes = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
-                Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-                await File.WriteAllBytesAsync(FilePath, protectedBytes, cancellation);
+                Directory.CreateDirectory(Path.GetDirectoryName(EffectiveFilePath)!);
+                await File.WriteAllBytesAsync(EffectiveFilePath, protectedBytes, cancellation);
             }
             catch { }
             finally { Gate.Release(); }
@@ -149,11 +151,11 @@ public static class MobileRemoteActionStore
 
     public static MobileRemoteAction? TryClaimPending()
     {
-        if (!File.Exists(FilePath)) return null;
-        if (!Gate.Wait(0)) return null;
+        if (!File.Exists(EffectiveFilePath)) return null;
+        if (!Gate.Wait(500)) return null;
         try
         {
-            byte[] protectedBytes = File.ReadAllBytes(FilePath);
+            byte[] protectedBytes = File.ReadAllBytes(EffectiveFilePath);
             byte[] plain = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
             var action = JsonSerializer.Deserialize<MobileRemoteAction>(plain, Json);
             if (action is null || action.Applied || DateTimeOffset.UtcNow - action.CreatedAtUtc > TimeSpan.FromMinutes(5))
@@ -164,7 +166,7 @@ public static class MobileRemoteActionStore
             var appliedAction = action with { Applied = true };
             byte[] updatedPlain = JsonSerializer.SerializeToUtf8Bytes(appliedAction, Json);
             byte[] updatedProtected = ProtectedData.Protect(updatedPlain, null, DataProtectionScope.CurrentUser);
-            File.WriteAllBytes(FilePath, updatedProtected);
+            File.WriteAllBytes(EffectiveFilePath, updatedProtected);
             return action;
         }
         catch { return null; }

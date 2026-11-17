@@ -7,6 +7,26 @@ namespace Kvieta.App.Services;
 
 public sealed class ForegroundApplicationTracker
 {
+    private static readonly HashSet<string> IgnoredProcessNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "LockApp",
+        "LogonUI",
+        "SearchHost",
+        "ShellExperienceHost",
+        "StartMenuExperienceHost",
+        "ScreenClippingHost",
+        "SnippingTool",
+        "dwm",
+        "SystemSettingsAdminFlows"
+    };
+
+    public static bool IsIgnoredProcessName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return false;
+        string clean = System.IO.Path.GetFileNameWithoutExtension(name).Trim();
+        return IgnoredProcessNames.Contains(clean);
+    }
+
     private double _uncommittedSeconds;
 
     public bool Sample(UsageLedger ledger, TimeSpan elapsed)
@@ -42,6 +62,10 @@ public sealed class ForegroundApplicationTracker
         try
         {
             using Process process = Process.GetProcessById((int)processId);
+            if (IsIgnoredProcessName(process.ProcessName))
+            {
+                return null;
+            }
             return $"{process.ProcessName}.exe";
         }
         catch

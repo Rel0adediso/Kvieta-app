@@ -157,6 +157,7 @@ public partial class MainWindow
             focusRemainingSeconds,
             webGuardEnabled = settings.WebGuardEnabled,
             safeSearchEnforced = settings.SafeSearchEnforced,
+            blockShortFormVideo = settings.BlockShortFormVideo,
             blockedWebDomains = settings.BlockedWebDomains.ToArray(),
             remoteDecisionToken = decisionToken,
             hasAdminPin,

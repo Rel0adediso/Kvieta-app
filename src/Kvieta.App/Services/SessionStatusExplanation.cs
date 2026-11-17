@@ -15,7 +15,8 @@ public enum SessionStatusReason
     PermanentBlock,
     PendingPolicy,
     ClockUntrusted,
-    GuardianUnavailable
+    GuardianUnavailable,
+    RemoteLock
 }
 
 public sealed record SessionStatusExplanation(
@@ -26,12 +27,24 @@ public sealed record SessionStatusExplanation(
     string AvailableAction,
     bool ActionAvailable)
 {
-    public string AccessibleText =>
-        $"{WhatHappened} · {RuleSource} · " +
-        (ChangesAt is { } at
-            ? $"{L("Değişim", "Changes")}: {at.ToLocalTime():dd.MM HH:mm}"
-            : L("Bitiş zamanı bilinmiyor", "End time is unknown")) +
-        $" · {AvailableAction}";
+    public string AccessibleText
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(WhatHappened)) parts.Add(WhatHappened);
+            if (!string.IsNullOrWhiteSpace(RuleSource)) parts.Add(RuleSource);
+            if (ChangesAt is { } at)
+            {
+                parts.Add($"{L("Değişim", "Changes")}: {at.ToLocalTime():dd.MM HH:mm}");
+            }
+            if (!string.IsNullOrWhiteSpace(AvailableAction))
+            {
+                parts.Add(AvailableAction);
+            }
+            return string.Join(" · ", parts);
+        }
+    }
 
     private static string L(string tr, string en) =>
         LocalizationService.CurrentLanguage == LanguagePreference.English ? en : tr;
@@ -58,6 +71,17 @@ public static class SessionStatusExplainer
                 ledger.ClockRollbackUntilUtc,
                 L("Yönetici mevcut saati doğrulayabilir.", "An administrator can verify the current clock."), false);
         }
+        if (ledger.RemoteLockActive)
+        {
+            return new(SessionStatusReason.RemoteLock,
+                L("Bu bilgisayar bağlı olan telefondan uzaktan kilitlendi.", "This computer was locked remotely from the connected companion phone."),
+                L("Uzaktan Yönetim", "Remote Management"),
+                null,
+                settings.Mode == UsageMode.Family
+                    ? L("Kilidi açmak için telefondan devam ettirin veya PIN girin.", "Resume from companion phone or enter PIN to unlock.")
+                    : L("Kilidi açmak için telefondan devam ettirin veya Kontrol Merkezi'nden çıkın.", "Resume from companion phone or exit to Control Center."),
+                true);
+        }
         if (guardianUnavailable && settings.RequiresGuardian)
         {
             return new(SessionStatusReason.GuardianUnavailable,
@@ -82,7 +106,7 @@ public static class SessionStatusExplainer
                 schedule.AllowedUntil,
                 settings.Mode == UsageMode.Family
                     ? L("Ek süre yalnız bu cihazda PIN ile onaylanabilir.", "Extra time can only be approved with the PIN on this device.")
-                    : L("Kullanılabilir bir ek süre eylemi yok.", "No extra-time action is available."),
+                    : string.Empty,
                 settings.Mode == UsageMode.Family);
         }
         if (settings.PendingChange is { } pending)

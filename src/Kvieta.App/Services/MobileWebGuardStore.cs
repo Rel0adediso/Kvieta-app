@@ -8,6 +8,7 @@ namespace Kvieta.App.Services;
 public sealed record MobileWebGuardCommand(
     bool? WebGuardEnabled,
     bool? SafeSearchEnforced,
+    bool? BlockShortFormVideo,
     List<string>? BlockedWebDomains,
     string? Action,
     string? Domain);
@@ -45,6 +46,12 @@ public static class MobileWebGuardStore
             if (command.SafeSearchEnforced.HasValue && settings.SafeSearchEnforced != command.SafeSearchEnforced.Value)
             {
                 settings.SafeSearchEnforced = command.SafeSearchEnforced.Value;
+                changed = true;
+            }
+
+            if (command.BlockShortFormVideo.HasValue && settings.BlockShortFormVideo != command.BlockShortFormVideo.Value)
+            {
+                settings.BlockShortFormVideo = command.BlockShortFormVideo.Value;
                 changed = true;
             }
 
@@ -106,6 +113,12 @@ public static class MobileWebGuardStore
                     toastMessage = settings.SafeSearchEnforced
                         ? "Güvenli Arama telefondan etkinleştirildi."
                         : "Güvenli Arama telefondan devre dışı bırakıldı.";
+                }
+                else if (command.BlockShortFormVideo.HasValue)
+                {
+                    toastMessage = settings.BlockShortFormVideo
+                        ? "Kısa video engelleme telefondan açıldı."
+                        : "Kısa video engelleme telefondan kapatıldı.";
                 }
 
                 DesktopToastWindow.ShowToast("Web Koruması", toastMessage, "🌐");

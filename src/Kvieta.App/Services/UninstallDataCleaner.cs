@@ -15,6 +15,18 @@ public static class UninstallDataCleaner
         List<string> failedPaths = [];
         TryRemoveStartupRegistration(userSid, failedPaths);
 
+        try
+        {
+            SessionTaskManagerControl.SetTaskManagerDisabled(false);
+        }
+        catch { }
+
+        try
+        {
+            WebGuardService.ApplyDirect(new WebGuardPayload(false, false, false, []));
+        }
+        catch { }
+
         if (removeLocalData)
         {
             TryDeleteKvietaDirectory(

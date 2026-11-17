@@ -119,6 +119,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     public bool CanRequestExtraTime => _settings is not null &&
         ShouldAllowExtraTimeRequest(_settings, State);
     public bool IsFamilyMode => _settings?.Mode == UsageMode.Family;
+    public bool IsPersonalMode => _settings?.Mode == UsageMode.Personal;
     public bool CanPlanTomorrow => _settings is not null &&
         (_settings.Mode == UsageMode.Family ||
          _settings.Mode == UsageMode.Personal &&
@@ -134,12 +135,15 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     public string BlockedReasonText => IsBlocked
         ? CurrentStatusExplanation?.WhatHappened ?? string.Empty
         : string.Empty;
+    public bool HasBlockedReason => IsBlocked && !string.IsNullOrWhiteSpace(BlockedReasonText);
 
     public string StateLabel => _focusGoal?.IsCompleted == true
         ? _sessionOutcome?.HasAccessBoundary == true
             ? LocalizationService.Get("FocusCompletedAccessEndedState")
             : LocalizationService.Get("FocusCompletedState")
-        : State switch
+        : IsRemotelyLocked
+            ? (LocalizationService.CurrentLanguage == LanguagePreference.English ? "REMOTELY LOCKED" : "UZAKTAN KİLİTLENDİ")
+            : State switch
         {
             SessionState.Active => LocalizationService.Get("StateActive"),
             SessionState.Paused => LocalizationService.Get("StatePaused"),
@@ -150,6 +154,27 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         };
 
     public bool IsRemotelyLocked => _engine?.Ledger.RemoteLockActive == true;
+    public bool CanUnlockLocally => IsPersonalMode && IsRemotelyLocked;
+    public bool ShowTimerCard => !IsRemotelyLocked;
+
+    public async Task UnlockLocallyAsync()
+    {
+        if (_engine is null) return;
+        _engine.Ledger.RemoteLockActive = false;
+        if (_engine.Ledger.State == SessionState.TimeExpired)
+        {
+            _engine.Ledger.State = SessionState.Ready;
+        }
+        await _usageStore.SaveAsync(_engine.Ledger);
+        RefreshSnapshot(notifyStateChange: true);
+        OnPropertyChanged(nameof(IsRemotelyLocked));
+        OnPropertyChanged(nameof(CanUnlockLocally));
+        OnPropertyChanged(nameof(ShowTimerCard));
+        OnPropertyChanged(nameof(CanStartOrResume));
+        OnPropertyChanged(nameof(Headline));
+        OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(StatusExplanationText));
+    }
 
     public string Headline => _focusGoal?.IsCompleted == true
         ? FocusClosureTitle
@@ -226,6 +251,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
             _persistenceWarning = LocalizationService.Get("SettingsRecoveryRequired");
         }
         _settings = settings;
+        Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
         OnPropertyChanged(nameof(IsProtectedPersonalMode));
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
@@ -700,6 +726,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
             _persistenceWarning = LocalizationService.Get("SettingsRecoveryRequired");
         }
         _settings = settings;
+        Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
         OnPropertyChanged(nameof(IsProtectedPersonalMode));
         OnPropertyChanged(nameof(IsFlexiblePersonalMode));
@@ -850,6 +877,9 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(RotatingThought));
         OnPropertyChanged(nameof(State));
         OnPropertyChanged(nameof(IsActive));
+        OnPropertyChanged(nameof(IsRemotelyLocked));
+        OnPropertyChanged(nameof(CanUnlockLocally));
+        OnPropertyChanged(nameof(ShowTimerCard));
         OnPropertyChanged(nameof(CanStartOrResume));
         OnPropertyChanged(nameof(CanEndSession));
         OnPropertyChanged(nameof(HasFocusSession));
@@ -865,6 +895,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(TimeMetricLabel));
         OnPropertyChanged(nameof(TimeMetricLabelShort));
         OnPropertyChanged(nameof(BlockedReasonText));
+        OnPropertyChanged(nameof(HasBlockedReason));
         OnPropertyChanged(nameof(StateLabel));
         OnPropertyChanged(nameof(Headline));
         OnPropertyChanged(nameof(Description));

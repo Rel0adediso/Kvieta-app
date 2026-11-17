@@ -2259,11 +2259,11 @@ JsonSettingsStore flexibleSettingsStore = new(flexibleSettingsPath);
 await flexibleSettingsStore.SaveAsync(flexibleSettings);
 MainViewModel flexibleViewModel = new(flexibleSettingsStore, new JsonUsageStore(flexibleUsagePath));
 await flexibleViewModel.InitializeAsync();
-Assert(flexibleViewModel.IsFlexiblePersonalMode && !flexibleViewModel.HasScheduledPlan &&
+Assert(flexibleViewModel.IsFlexiblePersonalMode && flexibleViewModel.HasScheduledPlan &&
        flexibleViewModel.TodayLimitText is "Manuel" or "Manual",
     "Esnek kişisel modun manuel arayüz durumu oluşturulmadı.");
 flexibleViewModel.SelectedPageIndex = 1;
-Assert(flexibleViewModel.SelectedPageIndex == 0, "Esnek kişisel modda Plan sayfası açılabildi.");
+Assert(flexibleViewModel.SelectedPageIndex == 1, "Esnek kişisel modda Plan sayfası açılamadı.");
 Assert(!SessionViewModel.ShouldAllowExtraTimeRequest(flexibleSettings, SessionState.TimeExpired),
     "Esnek kişisel modda ek süre isteği gösterildi.");
 Assert(!SessionViewModel.ShouldAllowExtraTimeRequest(new ControlSettings { Mode = UsageMode.Insights }, SessionState.TimeExpired),
@@ -2833,10 +2833,18 @@ Assert(historicalExportJson.Contains("Archive App", StringComparison.Ordinal) &&
        historicalExportCsv.Contains("Archive App", StringComparison.Ordinal),
     "Geçmiş kural kaydının uygulama adı JSON/CSV dışa aktarımında boş kaldı.");
 
-Assert(await MobileRemoteActionStore.RecordActionAsync("{\"command\":\"lock\"}"), "MobileRemoteActionStore lock kaydı başarısız.");
-var claimedAction = MobileRemoteActionStore.TryClaimPending();
-Assert(claimedAction is not null && claimedAction.Command == RemoteSessionCommand.Lock, "MobileRemoteActionStore lock talebi okunamadı.");
-Assert(MobileRemoteActionStore.TryClaimPending() is null, "MobileRemoteActionStore talep edilmiş eylemi tekrar verdi.");
+MobileRemoteActionStore.OverrideFilePath = Path.Combine(testDirectory, "mobile-remote-action.bin");
+try
+{
+    Assert(await MobileRemoteActionStore.RecordActionAsync("{\"command\":\"lock\"}"), "MobileRemoteActionStore lock kaydı başarısız.");
+    var claimedAction = MobileRemoteActionStore.TryClaimPending();
+    Assert(claimedAction is not null && claimedAction.Command == RemoteSessionCommand.Lock, "MobileRemoteActionStore lock talebi okunamadı.");
+    Assert(MobileRemoteActionStore.TryClaimPending() is null, "MobileRemoteActionStore talep edilmiş eylemi tekrar verdi.");
+}
+finally
+{
+    MobileRemoteActionStore.OverrideFilePath = null;
+}
 
 Directory.Delete(testDirectory, true);
 Console.WriteLine("Kvieta çekirdek kontrolleri başarılı.");

@@ -155,6 +155,13 @@ public partial class DashboardSharingWindow : Window
         catch (Exception) { RecoveryStatus.Text = T("Kurtarma ayarları açılamadı", "Could not open recovery settings"); }
         finally { RecoveryButton.IsEnabled = true; }
     }
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void Window_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed) DragMove();
+    }
+
     private void Window_Closed(object? sender, EventArgs e)
     {
         if (_endpoint is not null) _endpoint.Changed -= EndpointChanged;

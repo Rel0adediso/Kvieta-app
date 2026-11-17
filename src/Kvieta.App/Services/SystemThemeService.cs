@@ -74,23 +74,53 @@ public sealed class SystemThemeService : IDisposable
             return;
         }
 
-        ResourceDictionary dictionary = new()
+        try
         {
-            Source = new Uri(isLight ? "Themes/LightTheme.xaml" : "Themes/DarkTheme.xaml", UriKind.Relative)
-        };
+            Uri packUri = new(isLight
+                ? "pack://application:,,,/Kvieta;component/Themes/LightTheme.xaml"
+                : "pack://application:,,,/Kvieta;component/Themes/DarkTheme.xaml", UriKind.RelativeOrAbsolute);
 
-        if (_activeDictionary is not null)
-        {
-            _application.Resources.MergedDictionaries.Remove(_activeDictionary);
-        }
-        else if (_application.Resources.MergedDictionaries.Count > 0)
-        {
-            _application.Resources.MergedDictionaries.RemoveAt(0);
-        }
+            ResourceDictionary dictionary = new() { Source = packUri };
 
-        _application.Resources.MergedDictionaries.Insert(0, dictionary);
-        _activeDictionary = dictionary;
-        _isLight = isLight;
+            if (_activeDictionary is not null)
+            {
+                _application.Resources.MergedDictionaries.Remove(_activeDictionary);
+            }
+            else if (_application.Resources.MergedDictionaries.Count > 0)
+            {
+                _application.Resources.MergedDictionaries.RemoveAt(0);
+            }
+
+            _application.Resources.MergedDictionaries.Insert(0, dictionary);
+            _activeDictionary = dictionary;
+            _isLight = isLight;
+        }
+        catch
+        {
+            try
+            {
+                ResourceDictionary dictionary = new()
+                {
+                    Source = new Uri(isLight ? "Themes/LightTheme.xaml" : "Themes/DarkTheme.xaml", UriKind.Relative)
+                };
+
+                if (_activeDictionary is not null)
+                {
+                    _application.Resources.MergedDictionaries.Remove(_activeDictionary);
+                }
+                else if (_application.Resources.MergedDictionaries.Count > 0)
+                {
+                    _application.Resources.MergedDictionaries.RemoveAt(0);
+                }
+
+                _application.Resources.MergedDictionaries.Insert(0, dictionary);
+                _activeDictionary = dictionary;
+                _isLight = isLight;
+            }
+            catch
+            {
+            }
+        }
     }
 
     private static bool ReadWindowsLightTheme()

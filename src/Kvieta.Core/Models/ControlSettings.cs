@@ -79,6 +79,7 @@ public sealed class ControlSettings
     public bool WebGuardEnabled { get; set; }
     public List<string> BlockedWebDomains { get; set; } = [];
     public bool SafeSearchEnforced { get; set; }
+    public bool BlockShortFormVideo { get; set; }
 
     [JsonIgnore]
     public bool RequiresGuardian =>

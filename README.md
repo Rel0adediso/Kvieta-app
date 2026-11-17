@@ -14,25 +14,25 @@ A calm, local-first way to understand and manage screen time on Windows.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/privacy-local--first-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/status-Alpha_6.5-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/status-v1.0.0-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/license-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
-## Download Kvieta Alpha 6.5
+## Download Kvieta v1.0.0
 
-[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-6.5/Kvieta-Setup-alpha-6.5.exe)
+[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/v1.0.0/Kvieta-Setup-v1.0.0.exe)
 
 The self-contained setup supports English and Turkish and does not require the
-.NET SDK. This community preview is intentionally unsigned, so Windows
+.NET SDK. This release is intentionally unsigned, so Windows
 SmartScreen may show an **Unknown publisher** warning.
 
 The standalone MSI, checksum files, release manifest, detailed notes, and known
-limitations are on the [Kvieta Alpha 6.5 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-6.5). Verify the Setup EXE with the attached `.sha256` file before running it.
+limitations are on the [Kvieta v1.0.0 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/v1.0.0). Verify the Setup EXE with the attached `.sha256` file before running it.
 
-> **Important:** Alpha 6.5 replaces earlier Alpha packages. It can be installed directly over an existing Kvieta installation while preserving settings, usage history, recovery material, and protected policy.
+> **Important:** v1.0.0 replaces earlier Alpha packages. It can be installed directly over an existing Kvieta installation while preserving settings, usage history, recovery material, and protected policy.
 
 ## Choose the relationship you want with time
 
@@ -53,14 +53,13 @@ limitations are on the [Kvieta Alpha 6.5 release page](https://github.com/Rel0ad
 | **Protect policy** | Guardian-backed supervision, protected policy storage, health checks, repair paths, and verified administrator exit. |
 | **Survive real life** | Atomic saves, last-known-good backups, corruption recovery, clock-rollback detection, and concurrent-write protection. |
 
-## New in Kvieta Alpha 6.5
+## What's new in Kvieta v1.0.0
 
-- In-app automatic update engine: direct background download, Authenticode signature verification, and one-click restart.
-- Windows Kernel DACL process hardening: denies external process termination and suspension from Task Manager and CLI tools.
-- Lock screen Task Manager suppression (`DisableTaskMgr = 1`) preventing Ctrl+Shift+Esc bypass.
-- Windows Safe Mode persistence: KvietaGuardian service registration in SafeBoot minimal/network registries and enforced lock surface.
-- DNS-over-HTTPS (DoH) bypass prevention via Chrome/Edge policies and Web Guard CRLF sanitization.
-- Resolved Android companion update checker loop, remote action resume flicker, and updated security dependencies across the stack.
+- Zen UI overhaul with Mica glass backdrop, calming sage aesthetic, and intuitive Today donut dashboard.
+- Mindful Dopamine Barrier: browser interception for short-form video loops (Shorts/Reels/TikTok) with peaceful home redirect.
+- Single-file bundle compression: 64% smaller package footprint (78 MB vs 215 MB).
+- Bulletproof system recovery: automatic Task Manager restoration on exit/reboot and complete Web Guard uninstaller rollback.
+- Hardened kernel anti-tamper and seamless local companion sync.
 
 ## Private by design
 
@@ -68,7 +67,7 @@ Kvieta has no required cloud account and does not send screen-time history to a 
 
 ## Project status
 
-**Kvieta Alpha 6.5 is the current community preview.**
+**Kvieta v1.0.0 is the official release.**
 
 - The source is usable today and the Windows package pipeline is in place.
 - Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
