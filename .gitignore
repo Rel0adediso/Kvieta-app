@@ -10,3 +10,4 @@ txt.env
 *.user
 *.suo
 release-bin/
+/AGENTS.md

@@ -24,7 +24,7 @@ Build unsigned community artifacts with:
 
 Output: `artifacts/installer-community/7.0.0`. Rebuild after every accepted source
 change; never attach the previous 1.0.0 artifacts. Verify the exact candidate commit
-and hash, then complete [V1 acceptance](V1-TEST-MATRIX.md). Community updates use
+and hash, then complete Windows installation, upgrade, recovery and uninstall acceptance tests. Community updates use
 the official manual download page; signed automatic updates require the pinned publisher.
 Editing source does not publish a release or validate physical device behavior.
 

@@ -23,6 +23,6 @@ Use the **Feature request** template and explain the problem before proposing a 
 
 Do not publish exploit details or secrets in a public issue. Until a private security channel is configured, open a minimal issue that states a security-sensitive problem exists without including reproduction details. The project owner can then arrange a safer follow-up path.
 
-## Alpha expectations
+## Release expectations
 
-The current **Kvieta Alpha 4** packages are for development and validation. Multi-monitor, sleep/hibernate, complete installer lifecycle, and public distribution trust are still open V1 work. See the [roadmap](../docs/ROADMAP.md) and [test matrix](../docs/V1-TEST-MATRIX.md) for current evidence.
+Kvieta v1.0.0 is in release preparation. See the [roadmap](../docs/ROADMAP.md) for current priorities and the [release notes](../docs/RELEASE_NOTES.md) for known limitations.
