@@ -4,6 +4,8 @@ using System.Windows.Automation;
 using Kvieta.App.Services;
 using Kvieta.Core.Services;
 using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Threading;
 
 namespace Kvieta.App;
 
@@ -11,10 +13,14 @@ public partial class DopamineBarrierWindow : Window
 {
     private static DopamineBarrierWindow? _activeInstance;
     private static readonly object SyncLock = new();
+    private const uint NoActivate = 0x0010;
+    private const uint NoZOrder = 0x0004;
 
     private readonly nint _browserHwnd;
     private readonly string _currentUrl;
     private readonly bool _isShorts;
+    private readonly DispatcherTimer _positionTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
+    private readonly CancellationTokenSource _pauseCancellation = new();
 
     public DopamineBarrierWindow(nint browserHwnd, string url, bool isShorts)
     {
@@ -23,7 +29,7 @@ public partial class DopamineBarrierWindow : Window
         _currentUrl = url ?? string.Empty;
         _isShorts = isShorts;
 
-        TitleText.Text = T("Kısa Video Akışı Durduruldu", "Short video feed paused");
+        TitleText.Text = T("Kısa Video Molası", "Short video break");
         DescriptionText.Text = T("Odaklanmak için bir ara ver. Önceki sayfaya veya boş bir sayfaya geçebilirsin.", "Take a moment to refocus. Return to the previous page or open a blank page.");
         ProtectionBadge.Text = T("KISA VİDEO KORUMASI", "SHORT VIDEO PROTECTION");
         BackLabel.Text = T("Önceki Sayfaya Dön", "Go back");
@@ -56,31 +62,75 @@ public partial class DopamineBarrierWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        UpdateLayout();
-        PositionOverBrowser();
+        if (!PositionOverBrowser())
+        {
+            Close();
+            return;
+        }
+        Opacity = 1;
+        _positionTimer.Tick += PositionTimer_Tick;
+        _positionTimer.Start();
+        if (_isShorts) _ = RequestBrowserPauseAsync(_pauseCancellation.Token);
         GoHomeButton.Focus();
     }
 
-    private void PositionOverBrowser()
+    private bool PositionOverBrowser()
     {
-        double currentW = ActualWidth > 0 ? ActualWidth : Width;
-        double currentH = ActualHeight > 0 ? ActualHeight : 380;
+        if (!IsWindow(_browserHwnd) || IsIconic(_browserHwnd) ||
+            !GetWindowRect(_browserHwnd, out RECT rect)) return false;
 
-        if (_browserHwnd != 0 && GetWindowRect(_browserHwnd, out RECT rect))
+        int width = rect.Right - rect.Left;
+        int height = rect.Bottom - rect.Top;
+        if (width <= 0 || height <= 0) return false;
+
+        // Keep both Win32 calls in the same coordinate space. WPF Left/Top are in DIPs.
+        nint overlay = new WindowInteropHelper(this).Handle;
+        if (GetWindowRect(overlay, out RECT positioned) && positioned.Equals(rect)) return true;
+        if (!SetWindowPos(overlay, 0, rect.Left, rect.Top, width, height, NoActivate | NoZOrder)) return false;
+        return true;
+    }
+
+    private void PositionTimer_Tick(object? sender, EventArgs e)
+    {
+        nint foreground = GetForegroundWindow();
+        nint overlay = new WindowInteropHelper(this).Handle;
+        if ((foreground != _browserHwnd && foreground != overlay) || !PositionOverBrowser()) Close();
+    }
+
+    private Task RequestBrowserPauseAsync(CancellationToken cancellation)
+    {
+        // Use an explicit, visible Pause control exposed by the browser. Some sites
+        // do not provide one through accessibility; do not toggle global media playback.
+        return Task.Run(() =>
         {
-            int width = rect.Right - rect.Left;
-            int height = rect.Bottom - rect.Top;
-            if (width > 200 && height > 200)
+            try
             {
-                Left = rect.Left + (width - currentW) / 2;
-                Top = rect.Top + (height - currentH) / 2;
-                return;
+                if (cancellation.IsCancellationRequested || !IsWindow(_browserHwnd)) return;
+                AutomationElement browser = AutomationElement.FromHandle(_browserHwnd);
+                AutomationElement? document = browser.FindFirst(TreeScope.Descendants,
+                    new AndCondition(new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Document),
+                        new PropertyCondition(AutomationElement.IsOffscreenProperty, false)));
+                if (document is null) return;
+                var pauseNames = new OrCondition(
+                    new PropertyCondition(AutomationElement.NameProperty, "Pause"),
+                    new PropertyCondition(AutomationElement.NameProperty, "Pause (k)"),
+                    new PropertyCondition(AutomationElement.NameProperty, "Pause video"),
+                    new PropertyCondition(AutomationElement.NameProperty, "Duraklat"),
+                    new PropertyCondition(AutomationElement.NameProperty, "Duraklat (k)"),
+                    new PropertyCondition(AutomationElement.NameProperty, "Videoyu duraklat"));
+                var buttons = document.FindAll(TreeScope.Descendants, new AndCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                    new PropertyCondition(AutomationElement.IsOffscreenProperty, false),
+                    new PropertyCondition(AutomationElement.IsEnabledProperty, true), pauseNames));
+                if (buttons.Count == 1 && !cancellation.IsCancellationRequested &&
+                    buttons[0].TryGetCurrentPattern(InvokePattern.Pattern, out object? value) && value is InvokePattern pause)
+                    pause.Invoke();
             }
-        }
-
-        Rect workArea = SystemParameters.WorkArea;
-        Left = workArea.Left + (workArea.Width - currentW) / 2;
-        Top = workArea.Top + (workArea.Height - currentH) / 2;
+            catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or COMException or UnauthorizedAccessException)
+            {
+                // A missing or changing media control is not evidence that playback paused.
+            }
+        }, cancellation);
     }
 
     private void GoHome_Click(object sender, RoutedEventArgs e) => PerformAction(ActionKind.GoHome);
@@ -184,6 +234,10 @@ public partial class DopamineBarrierWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        _pauseCancellation.Cancel();
+        _pauseCancellation.Dispose();
+        _positionTimer.Stop();
+        _positionTimer.Tick -= PositionTimer_Tick;
         lock (SyncLock)
         {
             if (_activeInstance == this)
@@ -203,7 +257,6 @@ public partial class DopamineBarrierWindow : Window
                 {
                     if (_activeInstance._browserHwnd == browserHwnd && _activeInstance._currentUrl == url)
                     {
-                        _activeInstance.Activate();
                         return;
                     }
                     _activeInstance.Close();
@@ -211,6 +264,7 @@ public partial class DopamineBarrierWindow : Window
                 catch { }
             }
 
+            if (GetForegroundWindow() != browserHwnd) return;
             var barrier = new DopamineBarrierWindow(browserHwnd, url, isShorts);
             _activeInstance = barrier;
             barrier.Show();
@@ -246,6 +300,12 @@ public partial class DopamineBarrierWindow : Window
 
     [DllImport("user32.dll")]
     private static extern bool IsWindow(nint hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(nint hwnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")]
     private static extern nint GetForegroundWindow();
     [DllImport("user32.dll", SetLastError = true)]

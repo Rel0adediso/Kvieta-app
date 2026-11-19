@@ -51,6 +51,7 @@ public sealed class DopamineTrapWatcher : IDisposable
             {
                 _timer.Dispose();
                 _timer = null;
+                System.Windows.Application.Current?.Dispatcher?.InvokeAsync(DopamineBarrierWindow.CloseIfActive);
             }
         }
     }
