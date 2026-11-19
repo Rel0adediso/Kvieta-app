@@ -113,8 +113,8 @@ public sealed class DopamineTrapWatcher : IDisposable
             return;
         }
 
-        string? url = TryExtractUrl(hwnd, cleanName);
-        if (string.IsNullOrWhiteSpace(url))
+        string? url = TryExtractUrl(hwnd, pid, cleanName);
+        if (string.IsNullOrWhiteSpace(url) || !IsCurrentBrowserWindow(hwnd, pid))
         {
             return;
         }
@@ -139,7 +139,8 @@ public sealed class DopamineTrapWatcher : IDisposable
             {
                 System.Windows.Application.Current?.Dispatcher?.InvokeAsync(() =>
                 {
-                    DopamineBarrierWindow.ShowBarrier(hwnd, lowerUrl, isShorts);
+                    if (IsCurrentBrowserWindow(hwnd, pid))
+                        DopamineBarrierWindow.ShowBarrier(hwnd, lowerUrl, isShorts);
                 });
             }
             catch
@@ -166,21 +167,32 @@ public sealed class DopamineTrapWatcher : IDisposable
         return false;
     }
 
-    private static string? TryExtractUrl(nint hwnd, string browserProcess)
+    private static bool IsCurrentBrowserWindow(nint hwnd, uint expectedPid)
+    {
+        return GetForegroundWindow() == hwnd &&
+            GetWindowThreadProcessId(hwnd, out uint actualPid) != 0 &&
+            actualPid == expectedPid;
+    }
+
+    private static bool IsBrowserAddressElement(AutomationElement element, uint expectedPid)
+    {
+        return element.Current.ProcessId == (int)expectedPid &&
+            !element.Current.IsOffscreen &&
+            element.Current.ControlType == ControlType.Edit;
+    }
+
+    private static string? TryExtractUrl(nint hwnd, uint expectedPid, string browserProcess)
     {
         try
         {
             AutomationElement window = AutomationElement.FromHandle(hwnd);
-            if (window is null) return null;
+            if (window is null || window.Current.ProcessId != (int)expectedPid) return null;
 
             if (browserProcess.Equals("firefox", StringComparison.OrdinalIgnoreCase))
             {
-                System.Windows.Automation.Condition condition = new OrCondition(
-                    new PropertyCondition(AutomationElement.AutomationIdProperty, "urlbar-input"),
-                    new PropertyCondition(AutomationElement.ClassNameProperty, "Edit")
-                );
+                System.Windows.Automation.Condition condition = new PropertyCondition(AutomationElement.AutomationIdProperty, "urlbar-input");
                 AutomationElement? urlBar = window.FindFirst(TreeScope.Descendants, condition);
-                if (urlBar is not null && urlBar.TryGetCurrentPattern(ValuePattern.Pattern, out object? valObj) &&
+                if (urlBar is not null && IsBrowserAddressElement(urlBar, expectedPid) && urlBar.TryGetCurrentPattern(ValuePattern.Pattern, out object? valObj) &&
                     valObj is ValuePattern valPat)
                 {
                     return valPat.Current.Value;
@@ -192,7 +204,7 @@ public sealed class DopamineTrapWatcher : IDisposable
             System.Windows.Automation.Condition omniboxCondition = new PropertyCondition(AutomationElement.ClassNameProperty, "OmniboxViewViews");
             AutomationElement? omnibox = window.FindFirst(TreeScope.Descendants, omniboxCondition);
 
-            if (omnibox is not null)
+            if (omnibox is not null && IsBrowserAddressElement(omnibox, expectedPid))
             {
                 if (omnibox.TryGetCurrentPattern(ValuePattern.Pattern, out object? patObj) &&
                     patObj is ValuePattern pattern)
@@ -206,11 +218,6 @@ public sealed class DopamineTrapWatcher : IDisposable
                     return textPattern.DocumentRange.GetText(-1)?.Trim();
                 }
 
-                string name = omnibox.Current.Name;
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    return name;
-                }
             }
         }
         catch
