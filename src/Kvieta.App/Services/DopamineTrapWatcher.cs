@@ -34,6 +34,7 @@ public sealed class DopamineTrapWatcher : IDisposable
     private int _isChecking;
     private DateTimeOffset _lastActionTime = DateTimeOffset.MinValue;
     private nint _lastActionWindow;
+    private WebAddressPolicy.BrowserObservation? _previousObservation;
 
     public void UpdateSettings(ControlSettings? settings)
     {
@@ -81,20 +82,21 @@ public sealed class DopamineTrapWatcher : IDisposable
             settings = _settings;
         }
 
-        if (settings is null) return;
+        if (settings is null) { ClearObservation(); return; }
         bool checkShorts = settings.WebGuardEnabled && settings.BlockShortFormVideo;
         List<string>? blockedDomains = settings.WebGuardEnabled ? settings.BlockedWebDomains : null;
 
         if (!checkShorts && (blockedDomains is null || blockedDomains.Count == 0))
         {
+            ClearObservation();
             return;
         }
 
         nint hwnd = GetForegroundWindow();
-        if (hwnd == 0) return;
+        if (hwnd == 0) { ClearObservation(); return; }
 
         _ = GetWindowThreadProcessId(hwnd, out uint pid);
-        if (pid == 0 || pid == Environment.ProcessId) return;
+        if (pid == 0 || pid == Environment.ProcessId) { ClearObservation(); return; }
 
         string processName;
         try
@@ -104,22 +106,35 @@ public sealed class DopamineTrapWatcher : IDisposable
         }
         catch
         {
+            ClearObservation();
             return;
         }
 
         string cleanName = Path.GetFileNameWithoutExtension(processName).ToLowerInvariant();
         if (!BrowserProcessNames.Contains(cleanName))
         {
+            ClearObservation();
             return;
         }
 
         string? url = TryExtractUrl(hwnd, pid, cleanName);
         if (string.IsNullOrWhiteSpace(url) || !IsCurrentBrowserWindow(hwnd, pid))
         {
+            ClearObservation();
             return;
         }
 
-        string lowerUrl = url.ToLowerInvariant();
+        if (WebAddressPolicy.Parse(url) is not { } parsed)
+        {
+            ClearObservation();
+            return;
+        }
+        string lowerUrl = parsed.AbsoluteUri;
+        DateTimeOffset observedAt = DateTimeOffset.UtcNow;
+        var observation = new WebAddressPolicy.BrowserObservation(hwnd, pid, lowerUrl, observedAt);
+        bool stable = _previousObservation is { } previous && observation.Confirms(previous);
+        _previousObservation = observation;
+        if (!stable) return;
 
         bool isShorts = checkShorts && MatchesShortVideo(lowerUrl);
         bool isBlockedDomain = blockedDomains is not null && MatchesBlockedDomain(lowerUrl, blockedDomains);
@@ -139,7 +154,11 @@ public sealed class DopamineTrapWatcher : IDisposable
             {
                 System.Windows.Application.Current?.Dispatcher?.InvokeAsync(() =>
                 {
-                    if (IsCurrentBrowserWindow(hwnd, pid))
+                    lock (_gate)
+                    {
+                        if (_isDisposed || !ReferenceEquals(_settings, settings)) return;
+                    }
+                    if (DateTimeOffset.UtcNow - observedAt <= TimeSpan.FromMilliseconds(600) && IsCurrentBrowserWindow(hwnd, pid))
                         DopamineBarrierWindow.ShowBarrier(hwnd, lowerUrl, isShorts);
                 });
             }
@@ -147,6 +166,11 @@ public sealed class DopamineTrapWatcher : IDisposable
             {
             }
         }
+    }
+
+    private void ClearObservation()
+    {
+        _previousObservation = null;
     }
 
     private static bool MatchesShortVideo(string url)
@@ -178,6 +202,7 @@ public sealed class DopamineTrapWatcher : IDisposable
     {
         return element.Current.ProcessId == (int)expectedPid &&
             !element.Current.IsOffscreen &&
+            !element.Current.HasKeyboardFocus &&
             element.Current.ControlType == ControlType.Edit;
     }
 
@@ -195,7 +220,8 @@ public sealed class DopamineTrapWatcher : IDisposable
                 if (urlBar is not null && IsBrowserAddressElement(urlBar, expectedPid) && urlBar.TryGetCurrentPattern(ValuePattern.Pattern, out object? valObj) &&
                     valObj is ValuePattern valPat)
                 {
-                    return valPat.Current.Value;
+                    string address = valPat.Current.Value;
+                    return IsBrowserAddressElement(urlBar, expectedPid) ? address : null;
                 }
                 return null;
             }
@@ -209,13 +235,15 @@ public sealed class DopamineTrapWatcher : IDisposable
                 if (omnibox.TryGetCurrentPattern(ValuePattern.Pattern, out object? patObj) &&
                     patObj is ValuePattern pattern)
                 {
-                    return pattern.Current.Value;
+                    string address = pattern.Current.Value;
+                    return IsBrowserAddressElement(omnibox, expectedPid) ? address : null;
                 }
 
                 if (omnibox.TryGetCurrentPattern(TextPattern.Pattern, out object? txtObj) &&
                     txtObj is TextPattern textPattern)
                 {
-                    return textPattern.DocumentRange.GetText(-1)?.Trim();
+                    string? address = textPattern.DocumentRange.GetText(-1)?.Trim();
+                    return IsBrowserAddressElement(omnibox, expectedPid) ? address : null;
                 }
 
             }

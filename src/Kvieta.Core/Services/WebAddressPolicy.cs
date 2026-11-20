@@ -3,6 +3,22 @@ namespace Kvieta.Core.Services;
 /// <summary>Host/path matching shared by browser enforcement and regression checks.</summary>
 public static class WebAddressPolicy
 {
+    public readonly record struct BrowserObservation(nint Window, uint ProcessId, string Address, DateTimeOffset ObservedAt)
+    {
+        public bool Confirms(BrowserObservation previous) => Window != 0 && ProcessId != 0 &&
+            Window == previous.Window && ProcessId == previous.ProcessId &&
+            string.Equals(Address, previous.Address, StringComparison.Ordinal) &&
+            ObservedAt >= previous.ObservedAt && ObservedAt - previous.ObservedAt <= TimeSpan.FromSeconds(2);
+    }
+
+    public static string BrowserStartPage(string? browserProcess) => browserProcess?.ToLowerInvariant() switch
+    {
+        "chrome" => "chrome://newtab/",
+        "msedge" => "edge://newtab/",
+        "firefox" => "about:newtab",
+        _ => "about:blank"
+    };
+
     public static Uri? Parse(string? address)
     {
         if (string.IsNullOrWhiteSpace(address)) return null;

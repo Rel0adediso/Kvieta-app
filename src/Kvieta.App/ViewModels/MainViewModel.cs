@@ -1479,25 +1479,26 @@ public sealed partial class MainViewModel : ObservableObject
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
         ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
+        DateTimeOffset healthCheckedAtUtc = DateTimeOffset.UtcNow;
         ProtectionInstallationIdentity installation = ProtectionServiceManager.GetInstallationIdentity();
         List<SecurityAuditEntry> auditEntries = [];
-        try
+        async Task<string> ReadAuditSource(SecurityAuditLog source)
         {
-            auditEntries.AddRange(await new SecurityAuditLog().ReadRecentAsync());
-            string lifecycleAuditPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Kvieta",
-                "lifecycle-audit.jsonl");
-            auditEntries.AddRange(await new SecurityAuditLog(lifecycleAuditPath).ReadRecentAsync());
-            auditEntries = auditEntries
-                .OrderBy(entry => entry.OccurredAtUtc)
-                .TakeLast(100)
-                .ToList();
+            try
+            {
+                if (!File.Exists(source.FilePath)) return "MissingOrUnavailable";
+                auditEntries.AddRange(await source.ReadRecentAsync());
+                return "Read";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return "ReadFailed";
+            }
         }
-        catch
-        {
-            // An unavailable audit file is reported as an empty list, not an export failure.
-        }
+        string securityAudit = await ReadAuditSource(new SecurityAuditLog());
+        string lifecycleAudit = await ReadAuditSource(new SecurityAuditLog(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Kvieta", "lifecycle-audit.jsonl")));
 
         var report = new
         {
@@ -1538,6 +1539,7 @@ public sealed partial class MainViewModel : ObservableObject
             },
             Guardian = new
             {
+                CheckedAtUtc = healthCheckedAtUtc,
                 ServiceState = health.ServiceState.ToString(),
                 health.IsHealthy,
                 Issues = health.Issues.Select(issue => issue.ToString()).ToList(),
@@ -1547,7 +1549,8 @@ public sealed partial class MainViewModel : ObservableObject
                 RegisteredInstallerVersion = installation.RegisteredVersion?.ToString(),
                 InstalledBinaryVersion = installation.InstalledBinaryVersion?.ToString()
             },
-            RecentSecurityEvents = auditEntries
+            AuditSources = new { Security = securityAudit, Lifecycle = lifecycleAudit },
+            RecentSecurityEvents = auditEntries.OrderBy(entry => entry.OccurredAtUtc).TakeLast(100).ToList()
         };
         return JsonSerializer.Serialize(report, IndentedJsonOptions);
     }

@@ -58,6 +58,18 @@ internal static class V1RegressionChecks
         Check(WebAddressPolicy.IsShortVideo("https://m.instagram.com/reels/abc"), "Instagram short video missed.");
         Check(!WebAddressPolicy.IsShortVideo("https://example.org/search?q=tiktok.com"), "Query caused false short-video match.");
         Check(!WebAddressPolicy.IsShortVideo("https://youtube.com/shortstory"), "Path boundary ignored.");
+        Check(!WebAddressPolicy.IsShortVideo("y"), "Typed address prefix caused a short-video match.");
+        Check(!WebAddressPolicy.IsShortVideo("https://youtube.com/watch?v=123"), "Normal YouTube video treated as Shorts.");
+        Check(!WebAddressPolicy.IsShortVideo("https://youtube.com.example.org/shorts/123"), "Unrelated host treated as YouTube.");
+        Check(WebAddressPolicy.BrowserStartPage("chrome") == "chrome://newtab/", "Chrome start page is not native.");
+        Check(WebAddressPolicy.BrowserStartPage("msedge") == "edge://newtab/", "Edge start page is not native.");
+        var previousObservation = new WebAddressPolicy.BrowserObservation(1, 10, "https://youtube.com/shorts/123", now);
+        var nextObservation = previousObservation with { ObservedAt = now.AddMilliseconds(600) };
+        Check(nextObservation.Confirms(previousObservation), "Matching observations were not confirmed.");
+        Check(!(nextObservation with { Window = 2 }).Confirms(previousObservation), "Different browser window accepted.");
+        Check(!(nextObservation with { ProcessId = 11 }).Confirms(previousObservation), "Different browser process accepted.");
+        Check(!(nextObservation with { Address = "https://youtube.com/" }).Confirms(previousObservation), "Different active address accepted.");
+        Check(!(nextObservation with { ObservedAt = now.AddSeconds(3) }).Confirms(previousObservation), "Stale browser observation accepted.");
         Check(!WebAddressPolicy.MatchesDomain("https://notexample.com", "example.com"), "Host boundary ignored.");
         Check(WebAddressPolicy.MatchesDomain("https://sub.example.com/a", "example.com"), "Subdomain not matched.");
         Check(!WebAddressPolicy.MatchesDomain("https://example.com@safe.org", "example.com"), "Userinfo treated as host.");

@@ -1866,9 +1866,21 @@ public partial class MainWindow : Window
                 return;
             }
 
-            SessionSurfaceWindow sessionWindow = new();
+            SessionSurfaceWindow sessionWindow = new(
+                isDirectSession: true,
+                requirePinToExit: _viewModel.IsFamilyMode,
+                returnToControlCenter: true);
+            _backgroundSessionWindow = sessionWindow;
+            _ownsBackgroundSessionWindow = true;
+            AttachSessionEvents();
             sessionWindow.Closed += async (_, _) =>
             {
+                if (_backgroundSessionWindow == sessionWindow)
+                {
+                    _backgroundSessionWindow = null;
+                    _ownsBackgroundSessionWindow = false;
+                    _sessionEventsAttached = false;
+                }
                 ShowInTaskbar = true;
                 Show();
                 Activate();

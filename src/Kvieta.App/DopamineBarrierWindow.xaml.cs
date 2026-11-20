@@ -30,27 +30,27 @@ public partial class DopamineBarrierWindow : Window
         _isShorts = isShorts;
 
         TitleText.Text = T("Kısa Video Molası", "Short video break");
-        DescriptionText.Text = T("Odaklanmak için bir ara ver. Önceki sayfaya veya boş bir sayfaya geçebilirsin.", "Take a moment to refocus. Return to the previous page or open a blank page.");
+        DescriptionText.Text = T("Odaklanmak için bir ara ver. Önceki sayfaya dönebilir veya tarayıcının başlangıç sayfasına geçebilirsin.", "Take a moment to refocus. Return to the previous page or go to your browser's start page.");
         ProtectionBadge.Text = T("KISA VİDEO KORUMASI", "SHORT VIDEO PROTECTION");
         BackLabel.Text = T("Önceki Sayfaya Dön", "Go back");
-        BlankLabel.Text = T("Boş Sayfaya Geç", "Open blank page");
+        BlankLabel.Text = T("Başlangıç Sayfasına Geç", "Go to browser start page");
         HintLabel.Text = T("Ana sayfaya gitmek için Enter'a basabilirsin.", "Press Enter to return home.");
-        CloseAction.ToolTip = T("Ana sayfaya dön", "Return home");
-        string lower = _currentUrl.ToLowerInvariant();
-        if (lower.Contains("instagram.com"))
+        CloseAction.ToolTip = T("Uyarıyı kapat", "Dismiss reminder");
+        if (WebAddressPolicy.MatchesDomain(_currentUrl, "instagram.com"))
         {
             GoHomeButtonText.Text = T("Instagram Ana Sayfasına Git", "Go to Instagram home");
         }
-        else if (lower.Contains("tiktok.com"))
+        else if (WebAddressPolicy.MatchesDomain(_currentUrl, "tiktok.com"))
         {
             GoHomeButtonText.Text = T("Ana Sayfaya Git", "Go home");
         }
-        else if (lower.Contains("youtube.com") || lower.Contains("youtu.be"))
+        else if (WebAddressPolicy.MatchesDomain(_currentUrl, "youtube.com") || WebAddressPolicy.MatchesDomain(_currentUrl, "youtu.be"))
         {
             GoHomeButtonText.Text = T("YouTube Ana Sayfasına Git", "Go to YouTube home");
         }
-        else if (!_isShorts)
+        if (!_isShorts)
         {
+            ProtectionBadge.Text = T("WEB KORUMASI", "WEB GUARD");
             TitleText.Text = T("Web Sitesi Engellendi", "Website blocked");
             DescriptionText.Text = T("Bu web sitesi kuralların tarafından engellendi. Başka bir sayfaya geçebilirsin.", "Your rules block this website. You can navigate to another page.");
             GoHomeButtonText.Text = T("Başlangıç Sayfasına Git", "Go to a blank page");
@@ -136,16 +136,18 @@ public partial class DopamineBarrierWindow : Window
     private void GoHome_Click(object sender, RoutedEventArgs e) => PerformAction(ActionKind.GoHome);
     private void GoBack_Click(object sender, RoutedEventArgs e) => PerformAction(ActionKind.GoBack);
     private void NewTab_Click(object sender, RoutedEventArgs e) => PerformAction(ActionKind.NewTab);
-    private void CloseButton_Click(object sender, RoutedEventArgs e) => PerformAction(ActionKind.GoHome);
+    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == System.Windows.Input.Key.Escape)
         {
-            PerformAction(ActionKind.GoHome);
+            e.Handled = true;
+            Close();
         }
-        else if (e.Key == System.Windows.Input.Key.Enter)
+        else if (e.Key == System.Windows.Input.Key.Enter && GoHomeButton.IsKeyboardFocused)
         {
+            e.Handled = true;
             PerformAction(ActionKind.GoHome);
         }
     }
@@ -169,14 +171,16 @@ public partial class DopamineBarrierWindow : Window
                 switch (action)
                 {
                     case ActionKind.GoHome:
-                        string safeUrl = DetermineSafeHomeUrl(_currentUrl);
+                        string safeUrl = _isShorts ? DetermineSafeHomeUrl(_currentUrl) : "about:blank";
                         NavigateToUrl(_browserHwnd, safeUrl);
                         break;
                     case ActionKind.GoBack:
                         SendAltLeft(_browserHwnd);
                         break;
                     case ActionKind.NewTab:
-                        NavigateToUrl(_browserHwnd, "about:blank");
+                        AutomationElement browser = AutomationElement.FromHandle(_browserHwnd);
+                        using (var process = System.Diagnostics.Process.GetProcessById(browser.Current.ProcessId))
+                            NavigateToUrl(_browserHwnd, WebAddressPolicy.BrowserStartPage(process.ProcessName));
                         break;
                 }
             }
@@ -191,16 +195,15 @@ public partial class DopamineBarrierWindow : Window
 
     private static string DetermineSafeHomeUrl(string currentUrl)
     {
-        string lower = currentUrl.ToLowerInvariant();
-        if (lower.Contains("youtube.com") || lower.Contains("youtu.be"))
+        if (WebAddressPolicy.MatchesDomain(currentUrl, "youtube.com") || WebAddressPolicy.MatchesDomain(currentUrl, "youtu.be"))
         {
             return "https://www.youtube.com";
         }
-        if (lower.Contains("instagram.com"))
+        if (WebAddressPolicy.MatchesDomain(currentUrl, "instagram.com"))
         {
             return "https://www.instagram.com";
         }
-        if (lower.Contains("tiktok.com"))
+        if (WebAddressPolicy.MatchesDomain(currentUrl, "tiktok.com"))
         {
             return "https://www.google.com";
         }
@@ -251,6 +254,7 @@ public partial class DopamineBarrierWindow : Window
     {
         lock (SyncLock)
         {
+            if (GetForegroundWindow() != browserHwnd) return;
             if (_activeInstance is not null)
             {
                 try

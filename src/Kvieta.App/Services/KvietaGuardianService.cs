@@ -127,9 +127,7 @@ public sealed class KvietaGuardianService : ServiceBase
 
             try
             {
-                await Task.WhenAny(
-                    Task.Delay(TimeSpan.FromSeconds(5), cancellationToken),
-                    WatchWakeGate.WaitAsync(cancellationToken));
+                await WatchWakeGate.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
             }
             catch (OperationCanceledException)
             {
