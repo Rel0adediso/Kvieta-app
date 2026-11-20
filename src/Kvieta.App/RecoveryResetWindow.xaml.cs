@@ -139,5 +139,4 @@ public partial class RecoveryResetWindow : Window
         CancelButton.IsEnabled = !busy;
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
 }

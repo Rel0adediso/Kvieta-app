@@ -548,6 +548,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task StartOrApplyUpdateAsync()
     {
+        if (IsCheckingForUpdates || !IsUpdateAvailable) return;
         if (IsUpdateReadyToInstall && !string.IsNullOrWhiteSpace(DownloadedInstallerPath))
         {
             if (!UpdateCheckService.ApplyUpdate(DownloadedInstallerPath))
@@ -909,7 +910,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task CheckForUpdatesAsync(bool isManual = false)
     {
-        if (IsCheckingForUpdates) return;
+        if (IsCheckingForUpdates || IsDownloadingUpdate) return;
         IsCheckingForUpdates = true;
         UpdateStatusText = L("Denetleniyor...", "Checking...");
         try
@@ -917,6 +918,10 @@ public sealed partial class MainViewModel : ObservableObject
             UpdateCheckResult result = await UpdateCheckService.CheckForUpdatesAsync().ConfigureAwait(true);
             if (result.IsUpdateAvailable)
             {
+                if (!string.Equals(UpdateDownloadUrl, result.DownloadUrl, StringComparison.Ordinal))
+                {
+                    DownloadedInstallerPath = null;
+                }
                 IsUpdateAvailable = true;
                 LatestVersionLabel = result.ReleaseName ?? result.LatestVersion;
                 UpdateReleaseUrl = result.ReleaseUrl;
@@ -925,28 +930,33 @@ public sealed partial class MainViewModel : ObservableObject
             }
             else if (result.HasError)
             {
-                if (isManual)
-                {
-                    UpdateStatusText = L("Kontrol edilemedi", "Could not check");
-                }
+                ClearUpdateOffer();
+                UpdateStatusText = L("Güncelleme doğrulanamadı", "Could not verify update");
             }
             else
             {
-                IsUpdateAvailable = false;
+                ClearUpdateOffer();
                 UpdateStatusText = L("Kvieta güncel", "Kvieta is up to date");
             }
         }
         catch
         {
-            if (isManual)
-            {
-                UpdateStatusText = L("Kontrol edilemedi", "Could not check");
-            }
+            ClearUpdateOffer();
+            UpdateStatusText = L("Kontrol edilemedi", "Could not check");
         }
         finally
         {
             IsCheckingForUpdates = false;
         }
+    }
+
+    private void ClearUpdateOffer()
+    {
+        DownloadedInstallerPath = null;
+        IsUpdateAvailable = false;
+        LatestVersionLabel = null;
+        UpdateReleaseUrl = null;
+        UpdateDownloadUrl = null;
     }
 
     public async Task ReloadUsageAsync()

@@ -80,6 +80,13 @@ internal static class V1RegressionChecks
         Check(ReleaseVersion.IsNewer("1.0.0-rc.2", "1.0.0-rc.10"), "Prerelease numeric ordering wrong.");
         Check(!ReleaseVersion.IsNewer("1.0.0", "v1.0"), "Equal versions ordered differently.");
         Check(!ReleaseVersion.IsNewer("1.0.0", "garbage"), "Invalid release accepted.");
+        Check(UpdateCheckService.IsStableReleaseTag("v1.0.1"), "Stable patch tag rejected.");
+        Check(!UpdateCheckService.IsStableReleaseTag("v1.1.0-rc.1"), "Prerelease entered stable channel.");
+        Check(!UpdateCheckService.IsStableReleaseTag("main"), "A branch was accepted as a release tag.");
+        Check(UpdateCheckService.IsStableBranchComparison("identical", 0), "Stable tip rejected.");
+        Check(UpdateCheckService.IsStableBranchComparison("ahead", 0), "Earlier stable release rejected.");
+        Check(!UpdateCheckService.IsStableBranchComparison("diverged", 1), "Unmerged release entered stable channel.");
+        Check(!UpdateCheckService.IsStableBranchComparison("behind", 1), "Release ahead of stable entered stable channel.");
         Check(UpdateCheckService.IsOfficialDownloadUrl("https://github.com/Rel0adediso/Kvieta-app/releases/download/v1.0.1/Kvieta.exe"), "Official update rejected.");
         Check(!UpdateCheckService.IsOfficialDownloadUrl("https://github.com.evil.test/Rel0adediso/Kvieta-app/releases/download/v1/a.exe"), "Wrong update host accepted.");
         Check(!UpdateCheckService.IsOfficialDownloadUrl("http://github.com/Rel0adediso/Kvieta-app/releases/download/v1/a.exe"), "HTTP update accepted.");

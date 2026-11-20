@@ -1200,41 +1200,31 @@ public partial class SessionSurfaceWindow : Window
         }
     });
 
-    private bool IsOnCurrentVirtualDesktop()
+    private void EnsureOnCurrentVirtualDesktop()
     {
         try
         {
             IVirtualDesktopManager? manager = _virtualDesktopManager.Value;
-            if (manager is null)
-            {
-                return true;
-            }
+            if (manager is null || _modalDialogOpen) return;
 
             nint handle = new WindowInteropHelper(this).Handle;
-            if (handle != 0 && manager.IsWindowOnCurrentVirtualDesktop(handle, out bool onCurrent) == 0)
-            {
-                return onCurrent;
-            }
+            if (handle == 0 || manager.IsWindowOnCurrentVirtualDesktop(handle, out bool onCurrent) != 0 || onCurrent) return;
+
+            // Resolve the target from an actually active window. Shell surfaces and
+            // transitions may not expose a desktop ID; the next poll can retry.
+            nint foreground = GetForegroundWindow();
+            if (foreground == 0 || foreground == handle ||
+                manager.IsWindowOnCurrentVirtualDesktop(foreground, out bool foregroundIsCurrent) != 0 ||
+                !foregroundIsCurrent || manager.GetWindowDesktopId(foreground, out Guid desktopId) != 0 ||
+                desktopId == Guid.Empty) return;
+
+            if (manager.MoveWindowToDesktop(handle, ref desktopId) == 0 &&
+                manager.IsWindowOnCurrentVirtualDesktop(handle, out bool moved) == 0 && moved)
+                SetForegroundWindow(handle);
         }
         catch
         {
-        }
-
-        return true;
-    }
-
-    private void EnsureOnCurrentVirtualDesktop()
-    {
-        if (IsOnCurrentVirtualDesktop())
-        {
-            return;
-        }
-
-        nint handle = new WindowInteropHelper(this).Handle;
-        if (handle != 0)
-        {
-            SwitchToThisWindow(handle, true);
-            SetForegroundWindow(handle);
+            // Explorer or a desktop may be unavailable during a transition; retry on the next tick.
         }
     }
 
@@ -1247,7 +1237,7 @@ public partial class SessionSurfaceWindow : Window
     private static extern bool SetForegroundWindow(nint hWnd);
 
     [DllImport("user32.dll")]
-    private static extern void SwitchToThisWindow(nint hWnd, [MarshalAs(UnmanagedType.Bool)] bool fUnknown);
+    private static extern nint GetForegroundWindow();
 
     [ComImport]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

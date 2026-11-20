@@ -16,6 +16,16 @@ Numeric MSI/FileVersion: **7.0.0**; keep this separate from the product label.
 Previously distributed Alpha 4.x–6.x packages have higher numeric versions than
 1.0.0. Never lower the installer version or enable arbitrary downgrades.
 
+`main` is the development branch; `stable` is the approved release branch.
+Both run the same quality gates. CI reads the package and release versions
+from `Directory.Build.props`. For each approved update, increment both the
+release label and the numeric MSI version (for example `v1.0.1` and `7.0.1`),
+merge the tested change into `stable`, and complete the acceptance checks
+before publishing a matching release tag and verified package. Updates
+offered in the app must have a published release tag whose commit is in the
+history of `stable`. Unpublished branch changes are not installable updates.
+Never publish an unsigned package as a silent executable update.
+
 Build unsigned community artifacts with:
 
 ```powershell
