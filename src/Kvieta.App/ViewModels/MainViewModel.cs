@@ -881,7 +881,6 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(AdminPinActionText));
 
             LoadPolicyRows(_settings);
-            Services.WebGuardService.Apply(_settings);
             Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
 
             await ReloadUsageAsync();
