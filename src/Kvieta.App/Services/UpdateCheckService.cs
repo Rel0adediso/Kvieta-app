@@ -30,7 +30,8 @@ public static class UpdateCheckService
         Timeout = TimeSpan.FromSeconds(10)
     };
 
-    private const string GitHubReleasesApiUrl = "https://api.github.com/repos/Rel0adediso/Kvieta-app/releases/latest";
+    private const string GitHubRepositoryApiUrl = "https://api.github.com/repos/Rel0adediso/Kvieta-app";
+    private const string GitHubReleasesApiUrl = GitHubRepositoryApiUrl + "/releases/latest";
 
     static UpdateCheckService()
     {
@@ -78,6 +79,12 @@ public static class UpdateCheckService
 
             string remoteTag = release.TagName;
             bool isNewer = IsRemoteVersionNewer(currentVersion, remoteTag);
+            if (isNewer && (!IsStableReleaseTag(remoteTag) ||
+                !await IsReleaseOnStableAsync(remoteTag, cancellationToken).ConfigureAwait(false)))
+            {
+                return new UpdateCheckResult(false, currentVersion, null, null, null, null, null, null,
+                    HasError: true, ErrorMessage: "The published release could not be verified against the stable branch.");
+            }
 
             string? setupDownloadUrl = release.Assets?
                 .FirstOrDefault(a => a.Name is not null && (a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || a.Name.EndsWith(".msi", StringComparison.OrdinalIgnoreCase)))
@@ -112,6 +119,44 @@ public static class UpdateCheckService
                 HasError: true,
                 ErrorMessage: ex.Message);
         }
+    }
+
+    public static bool IsStableReleaseTag(string? tag) => tag is not null &&
+        Regex.IsMatch(tag, @"^v?[0-9]+\.[0-9]+\.[0-9]+\z", RegexOptions.CultureInvariant);
+
+    public static bool IsStableBranchComparison(string? status, int behindBy) =>
+        behindBy == 0 && status is "ahead" or "identical";
+
+    private static async Task<bool> IsReleaseOnStableAsync(string tag, CancellationToken cancellationToken)
+    {
+        // Resolve the actual tag and branch separately. The release's target_commitish
+        // is not necessarily the commit to which an existing tag points.
+        Task<string?> tagCommit = ReadCommitShaAsync("tags/" + Uri.EscapeDataString(tag), cancellationToken);
+        Task<string?> stableCommit = ReadCommitShaAsync("heads/stable", cancellationToken);
+        await Task.WhenAll(tagCommit, stableCommit).ConfigureAwait(false);
+        string? releaseSha = await tagCommit.ConfigureAwait(false);
+        string? stableSha = await stableCommit.ConfigureAwait(false);
+        if (releaseSha is null || stableSha is null) return false;
+        if (string.Equals(releaseSha, stableSha, StringComparison.OrdinalIgnoreCase)) return true;
+
+        using HttpResponseMessage response = await HttpClient.GetAsync(
+            $"{GitHubRepositoryApiUrl}/compare/{releaseSha}...{stableSha}?per_page=1", cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode) return false;
+        using JsonDocument comparison = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+        JsonElement root = comparison.RootElement;
+        return root.TryGetProperty("status", out JsonElement status) &&
+            root.TryGetProperty("behind_by", out JsonElement behind) && behind.TryGetInt32(out int behindBy) &&
+            IsStableBranchComparison(status.GetString(), behindBy);
+    }
+
+    private static async Task<string?> ReadCommitShaAsync(string reference, CancellationToken cancellationToken)
+    {
+        using HttpRequestMessage request = new(HttpMethod.Get, $"{GitHubRepositoryApiUrl}/commits/{reference}");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.sha"));
+        using HttpResponseMessage response = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode) return null;
+        string sha = (await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)).Trim();
+        return Regex.IsMatch(sha, "^[0-9a-fA-F]{40}$") ? sha : null;
     }
 
     public static async Task<string?> DownloadUpdateAsync(

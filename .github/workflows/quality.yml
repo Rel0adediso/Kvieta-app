@@ -18,10 +18,26 @@ jobs:
     name: Build and test
     runs-on: windows-latest
     timeout-minutes: 25
+    outputs:
+      installer_version: ${{ steps.metadata.outputs.installer_version }}
+      release_label: ${{ steps.metadata.outputs.release_label }}
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Read release metadata
+        id: metadata
+        shell: pwsh
+        run: |
+          [xml]$metadata = Get-Content -Raw Directory.Build.props
+          $version = [string]$metadata.Project.PropertyGroup.Version
+          $label = [string]$metadata.Project.PropertyGroup.KvietaReleaseLabel
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $label -notmatch '^v\d+\.\d+\.\d+$') {
+            throw 'Installer version and release label must be explicitly defined in Directory.Build.props.'
+          }
+          "installer_version=$version" >> $env:GITHUB_OUTPUT
+          "release_label=$label" >> $env:GITHUB_OUTPUT
 
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
@@ -71,19 +87,24 @@ jobs:
             -r win-x64 `
             --self-contained true `
             --no-restore `
-            -p:Version=7.0.0 `
             -p:PublishSingleFile=true `
             -p:PublishDir='${{ runner.temp }}\kvieta-public\'
 
       - name: Verify public publish output
         shell: pwsh
-        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\kvieta-public' -ExpectedVersion 7.0.0 -ExpectedReleaseLabel v1.0.0
+        env:
+          INSTALLER_VERSION: ${{ steps.metadata.outputs.installer_version }}
+          RELEASE_LABEL: ${{ steps.metadata.outputs.release_label }}
+        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\kvieta-public' -ExpectedVersion $env:INSTALLER_VERSION -ExpectedReleaseLabel $env:RELEASE_LABEL
 
   package:
     name: Package community installer
     runs-on: windows-latest
     needs: validate
     timeout-minutes: 25
+    env:
+      INSTALLER_VERSION: ${{ needs.validate.outputs.installer_version }}
+      RELEASE_LABEL: ${{ needs.validate.outputs.release_label }}
 
     steps:
       - name: Check out source
@@ -99,20 +120,20 @@ jobs:
 
       - name: Build community installer
         shell: pwsh
-        run: ./scripts/build-test-installer.ps1 -Version 7.0.0 -ReleaseLabel v1.0.0 -CommunityRelease
+        run: ./scripts/build-test-installer.ps1 -Version $env:INSTALLER_VERSION -ReleaseLabel $env:RELEASE_LABEL -CommunityRelease
 
       - name: Verify package manifest
         shell: pwsh
         run: |
           ./scripts/verify-release-manifest.ps1 `
-            -ManifestPath './artifacts/installer-community/7.0.0/release-manifest.json' `
+            -ManifestPath "./artifacts/installer-community/$env:INSTALLER_VERSION/release-manifest.json" `
             -ExpectedCommit '${{ github.sha }}' `
             -ExpectedPackageKind community
 
       - name: Upload test package
         uses: actions/upload-artifact@v4
         with:
-          name: Kvieta-v1.0.0-community
-          path: artifacts/installer-community/7.0.0/
+          name: Kvieta-${{ needs.validate.outputs.release_label }}-community
+          path: artifacts/installer-community/${{ needs.validate.outputs.installer_version }}/
           if-no-files-found: error
           retention-days: 7
