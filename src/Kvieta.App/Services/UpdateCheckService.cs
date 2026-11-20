@@ -185,7 +185,7 @@ public static class UpdateCheckService
                 if (!IsExpectedPublisher(targetPath))
                 {
                     try { File.Delete(targetPath); } catch { }
-                    throw new InvalidOperationException("Downloaded update failed Authenticode signature verification.");
+                    throw new InvalidOperationException("The update publisher could not be verified against the installed certificate. Check the official release notes for publisher or certificate changes before proceeding.");
                 }
             }
 

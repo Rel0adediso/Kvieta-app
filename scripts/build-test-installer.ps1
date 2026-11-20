@@ -12,6 +12,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ($Version -ne '7.0.0' -and (-not $PSBoundParameters.ContainsKey('ReleaseLabel') -or $ReleaseLabel -eq 'v1.0.0')) {
+    throw 'Specify the corresponding release label when changing the installer version.'
+}
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $packageKind = if ($CommunityRelease) { 'community' } else { 'test' }
 $buildConfiguration = if ($CommunityRelease) { 'Release' } else { 'Debug' }

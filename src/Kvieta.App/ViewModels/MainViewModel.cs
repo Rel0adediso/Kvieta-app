@@ -467,7 +467,10 @@ public sealed partial class MainViewModel : ObservableObject
     public string? UpdateDownloadUrl
     {
         get => _updateDownloadUrl;
-        private set => SetProperty(ref _updateDownloadUrl, value);
+        private set
+        {
+            if (SetProperty(ref _updateDownloadUrl, value)) OnPropertyChanged(nameof(UpdateBadgeText));
+        }
     }
 
     private string _updateStatusText = string.Empty;
@@ -535,7 +538,9 @@ public sealed partial class MainViewModel : ObservableObject
             }
             if (IsUpdateAvailable)
             {
-                return string.Format(L("Yeni sürüm: {0} · İndirme sayfasını aç", "New version: {0} · Open download page"), LatestVersionLabel ?? "Update");
+                return string.Format(UpdateCheckService.IsOfficialDownloadUrl(UpdateDownloadUrl)
+                    ? L("Yeni sürüm: {0} · İndir", "New version: {0} · Download")
+                    : L("Yeni sürüm: {0} · İndirme sayfasını aç", "New version: {0} · Open download page"), LatestVersionLabel ?? "Update");
             }
             return string.Empty;
         }
@@ -556,12 +561,12 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         // If not a direct binary, open web page
-        if (!UpdateDownloadUrl.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-            !UpdateDownloadUrl.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+        if (!UpdateCheckService.IsOfficialDownloadUrl(UpdateDownloadUrl))
         {
             try
             {
-                Process.Start(new ProcessStartInfo(UpdateReleaseUrl ?? UpdateDownloadUrl) { UseShellExecute = true });
+                if (UpdateCheckService.IsOfficialReleaseUrl(UpdateReleaseUrl))
+                    Process.Start(new ProcessStartInfo(UpdateReleaseUrl!) { UseShellExecute = true });
             }
             catch { }
             return;
