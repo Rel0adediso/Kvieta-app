@@ -45,10 +45,9 @@ internal static class StartupUpdateInstaller
                 }
             }
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
-            System.ComponentModel.Win32Exception or OperationCanceledException)
+        catch (Exception exception)
         {
-            // A Task Scheduler or cache failure leaves the guided update path available.
+            ElevatedPackageInstaller.WriteSetupDiagnostic("Startup update registration or cache preparation", exception);
         }
     }
 
@@ -64,20 +63,20 @@ internal static class StartupUpdateInstaller
             DateTimeOffset.UtcNow - attempt.StartedAt >= StartupUpdate.InstallationTimeout)
             return 5;
 
-        int result = 1603;
+        int result = ElevatedPackageInstaller.SetupFailedExitCode;
         try
         {
             result = await ElevatedPackageInstaller.RunAsync(null, null, forceReinstall: false);
             if (result == 0 && SetupWindow.ReadInstalledVersion() != version)
-                result = 1603;
+                result = ElevatedPackageInstaller.SetupFailedExitCode;
             if (result == 0)
                 await ConfigureAsync();
             return result;
         }
         catch (Exception exception)
         {
-            Trace.TraceError("Kvieta startup update failed: {0}", exception.Message);
-            return result = 1603;
+            ElevatedPackageInstaller.WriteSetupDiagnostic("Startup update installation", exception);
+            return result = ElevatedPackageInstaller.SetupFailedExitCode;
         }
         finally
         {

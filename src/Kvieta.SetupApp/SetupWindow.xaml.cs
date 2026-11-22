@@ -36,7 +36,8 @@ public partial class SetupWindow : Window
     private bool _pinVisible;
     private bool _pinRepeatVisible;
     private readonly bool _applyStableUpdate;
-    private bool CanApplyPreservingUpdate => _packageAction == SetupPackageAction.Update &&
+    private bool CanApplyPreservingUpdate => (_packageAction == SetupPackageAction.Update ||
+        (!_applyStableUpdate && _packageAction == SetupPackageAction.Repair)) &&
         ReadInstallerValue("PackageKind") as string == "community";
     private WizardPage _page = WizardPage.Language;
 
@@ -633,9 +634,7 @@ public partial class SetupWindow : Window
                     "Kvieta güncellendi ancak Guardian başlatılamadı. Windows'u yeniden başlatıp koruma durumunu kontrol et.",
                     "Kvieta was updated, but Guardian could not start. Restart Windows and check the protection status."));
             if (exitCode is not (0 or 1641 or 3010))
-                throw new InvalidOperationException(T(
-                    $"Güncelleme {exitCode} koduyla durdu. Günlükler ProgramData\\Kvieta\\SetupLogs klasöründe.",
-                    $"The update stopped with code {exitCode}. Logs are in ProgramData\\Kvieta\\SetupLogs."));
+                throw new InvalidOperationException(DescribeInstallerFailure(exitCode));
 
             await RememberPreviousReleaseAsync();
             if (exitCode == 0)
@@ -723,9 +722,7 @@ public partial class SetupWindow : Window
             }
             if (exitCode is not (0 or 1641 or 3010))
             {
-                throw new InvalidOperationException(
-                    T($"Windows Installer {exitCode} koduyla durdu. Tanılama günlükleri ProgramData\\Kvieta\\SetupLogs klasöründe.",
-                      $"Windows Installer stopped with code {exitCode}. Diagnostics are in ProgramData\\Kvieta\\SetupLogs."));
+                throw new InvalidOperationException(DescribeInstallerFailure(exitCode));
             }
 
             if (requiresGuardian && !await WaitForGuardianServiceAsync())
@@ -773,6 +770,12 @@ public partial class SetupWindow : Window
             CloseButton.IsEnabled = true;
         }
     }
+
+    private string DescribeInstallerFailure(int exitCode) => exitCode == ElevatedPackageInstaller.SetupFailedExitCode
+        ? T("Kvieta kurulumunda beklenmeyen bir hata oluştu. Ayrıntılar ProgramData\\Kvieta\\SetupLogs klasöründe.",
+            "Kvieta Setup encountered an unexpected error. Details are in ProgramData\\Kvieta\\SetupLogs.")
+        : T($"Kurulum {exitCode} koduyla durdu. Ayrıntılar ProgramData\\Kvieta\\SetupLogs klasöründe.",
+            $"Setup stopped with code {exitCode}. Details are in ProgramData\\Kvieta\\SetupLogs.");
 
     private async Task RememberPreviousReleaseAsync()
     {
@@ -846,7 +849,7 @@ public partial class SetupWindow : Window
         }
         if (preserveInstallation)
             startInfo.ArgumentList.Add("--preserve-installation");
-        else if (_packageAction == SetupPackageAction.Repair)
+        if (_packageAction == SetupPackageAction.Repair)
         {
             startInfo.ArgumentList.Add("--force-reinstall");
         }

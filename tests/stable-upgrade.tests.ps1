@@ -56,6 +56,21 @@ $protectedDirectory = Join-Path $env:ProgramData 'Kvieta'
 $data = @($settingsPath, (Join-Path $protectedDirectory 'protected-settings.json'),
     (Join-Path $protectedDirectory 'guardian-enrollment.json'))
 $before = @(Get-FileHash -LiteralPath $data)
+if ((Invoke-Setup $PreviousSetup @('--elevated-install', '--preserve-installation')) -ne 1638) {
+    throw 'The update entry point accepted an equal-version package without an explicit repair.'
+}
+$repair = Invoke-Setup $PreviousSetup @('--elevated-install', '--preserve-installation', '--force-reinstall')
+if ($repair -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
+    throw "The same-version Family repair failed or did not restart Guardian (exit $repair)."
+}
+$afterRepair = @(Get-FileHash -LiteralPath $data)
+if (Compare-Object $before $afterRepair -Property Path, Hash) { throw 'The repair changed protected installation data.' }
+$repairLog = Get-ChildItem (Join-Path $protectedDirectory 'SetupLogs') -Filter 'Kvieta-setup-*.log' |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $repairLog -or -not (Select-String -LiteralPath $repairLog.FullName -Pattern 'REINSTALLMODE=amus' -Quiet)) {
+    throw 'The same-product repair did not request replacement of the installed binaries.'
+}
+
 $cache = Join-Path $env:ProgramFiles 'Kvieta.UpdateCache'
 if (-not (Test-Path -LiteralPath (Join-Path $cache 'enabled'))) {
     throw 'Setup did not register startup updates.'

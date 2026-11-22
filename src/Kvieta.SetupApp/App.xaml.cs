@@ -11,13 +11,17 @@ public partial class App : System.Windows.Application
         if (e.Args is [StartupUpdate.WaitArgument])
         {
             try { await StartupUpdateInstaller.ResumeAfterUpdateAsync(); Shutdown(); }
-            catch { Shutdown(1603); }
+            catch { Shutdown(ElevatedPackageInstaller.SetupFailedExitCode); }
             return;
         }
         if (e.Args is [StartupUpdate.InstallArgument])
         {
             try { Shutdown(await StartupUpdateInstaller.InstallAsSystemAsync()); }
-            catch { Shutdown(1603); }
+            catch (Exception exception)
+            {
+                ElevatedPackageInstaller.WriteSetupDiagnostic("Startup update", exception);
+                Shutdown(ElevatedPackageInstaller.SetupFailedExitCode);
+            }
             return;
         }
         if (e.Args.Any(argument => string.Equals(argument, "--verify-package", StringComparison.OrdinalIgnoreCase)))
@@ -45,13 +49,17 @@ public partial class App : System.Windows.Application
             string? legacyUserSid = legacyUserIndex >= 0 && legacyUserIndex + 1 < e.Args.Length ? e.Args[legacyUserIndex + 1] : null;
             try
             {
-                if (preserveInstallation && (SetupWindow.ReadInstalledVersion() is not { } installed ||
-                    installed >= SetupWindow.GetPackageVersion() ||
-                    SetupWindow.ReadInstallerValue("PackageKind") as string != "community" ||
-                    forceReinstall || guardianPayload != null))
+                if (preserveInstallation)
                 {
-                    Shutdown(1638);
-                    return;
+                    var installed = SetupWindow.ReadInstalledVersion();
+                    var package = SetupWindow.GetPackageVersion();
+                    bool validVersion = forceReinstall ? installed == package : installed < package;
+                    if (installed is null || !validVersion || guardianPayload != null ||
+                        SetupWindow.ReadInstallerValue("PackageKind") as string != "community")
+                    {
+                        Shutdown(1638);
+                        return;
+                    }
                 }
 
                 int result = await ElevatedPackageInstaller.RunAsync(
@@ -59,9 +67,10 @@ public partial class App : System.Windows.Application
                 if (result == 0) await StartupUpdateInstaller.ConfigureAsync();
                 Shutdown(result);
             }
-            catch
+            catch (Exception exception)
             {
-                Shutdown(1603);
+                ElevatedPackageInstaller.WriteSetupDiagnostic("Elevated installation", exception);
+                Shutdown(ElevatedPackageInstaller.SetupFailedExitCode);
             }
             return;
         }

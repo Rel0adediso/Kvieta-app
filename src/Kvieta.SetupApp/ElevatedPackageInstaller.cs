@@ -17,6 +17,24 @@ internal static class ElevatedPackageInstaller
     internal const int GuardianStartFailedExitCode = 5102;
     internal const int OrphanedGuardianCleanupFailedExitCode = 5103;
     internal const int GuardianCredentialUnavailableExitCode = 5104;
+    internal const int SetupFailedExitCode = 5105;
+
+    private static string LogDirectory => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Kvieta", "SetupLogs");
+
+    internal static void WriteSetupDiagnostic(string stage, Exception exception)
+    {
+        try
+        {
+            Directory.CreateDirectory(LogDirectory);
+            string logPath = Path.Combine(LogDirectory, $"Kvieta-bootstrap-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Environment.ProcessId}.log");
+            AppendRecoveryLog(logPath, $"{stage}: {exception}");
+        }
+        catch
+        {
+            // Losing diagnostics must not change the installation result.
+        }
+    }
 
     public static int ResetBrokenProtection()
     {
@@ -89,12 +107,8 @@ internal static class ElevatedPackageInstaller
             string msiPath = Path.Combine(stagingDirectory, "Kvieta.msi");
             await ExtractAndVerifyPayloadAsync(msiPath);
 
-            string logDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Kvieta",
-                "SetupLogs");
-            Directory.CreateDirectory(logDirectory);
-            string logPath = Path.Combine(logDirectory, $"Kvieta-setup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
+            Directory.CreateDirectory(LogDirectory);
+            string logPath = Path.Combine(LogDirectory, $"Kvieta-setup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
 
             // Early alpha builds exposed uninstall only through Kvieta.exe. If that
             // file was removed manually, Windows Installer could remain registered
@@ -223,14 +237,18 @@ internal static class ElevatedPackageInstaller
             {
                 provisioningExitCode = await ProvisionGuardianAsync(guardianPayload);
             }
-            catch
+            catch (Exception exception)
             {
-                guardianSnapshot?.Restore();
-                if (restartGuardianOnFailure)
+                AppendRecoveryLog(logPath, $"Guardian provisioning could not run: {exception}");
+                try
                 {
-                    TryStartGuardian();
+                    guardianSnapshot?.Restore();
                 }
-                throw;
+                finally
+                {
+                    if (restartGuardianOnFailure) TryStartGuardian();
+                }
+                return GuardianProvisioningFailedExitCode;
             }
             if (provisioningExitCode != 0)
             {
