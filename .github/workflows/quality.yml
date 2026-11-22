@@ -167,12 +167,15 @@ jobs:
             $env:KvietaStablePublicKey = [Convert]::ToBase64String($key.ExportSubjectPublicKeyInfo())
             $env:KVIETA_STABLE_PRIVATE_KEY = [Convert]::ToBase64String($key.ExportPkcs8PrivateKey())
             ./scripts/build-test-installer.ps1 -Version 7.0.41 -ReleaseLabel v1.0.41 -CommunityRelease -StableBuild
+            $baseline = Join-Path $env:RUNNER_TEMP 'Kvieta-baseline.exe'
+            Copy-Item 'artifacts/installer-community/7.0.41/Kvieta-Setup-v1.0.41.exe' $baseline
+            ./scripts/build-test-installer.ps1 -Version 7.0.41 -ReleaseLabel v1.0.41 -CommunityRelease -BuildRoot (Join-Path $env:RUNNER_TEMP 'rebuilt-package')
             ./scripts/build-test-installer.ps1 -Version 7.0.42 -ReleaseLabel v1.0.42 -CommunityRelease -StableBuild
             $next = 'artifacts/installer-community/7.0.42/Kvieta-Setup-v1.0.42.exe'
             $feed = Join-Path $env:RUNNER_TEMP 'kvieta-signed-fixture.json'
             ./scripts/write-stable-feed.ps1 -Setup $next -Version 7.0.42 -Label v1.0.42 -OutputPath $feed
             ./tests/stable-upgrade.tests.ps1 `
-              -PreviousSetup artifacts/installer-community/7.0.41/Kvieta-Setup-v1.0.41.exe `
+              -PreviousSetup $baseline -RebuiltSetup artifacts/installer-community/7.0.41/Kvieta-Setup-v1.0.41.exe `
               -NextSetup $next -NextFeed $feed -ExpectedVersion 7.0.42
           } finally {
             $key.Dispose()

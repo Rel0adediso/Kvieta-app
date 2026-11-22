@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$PreviousSetup,
+    [Parameter(Mandatory)][string]$RebuiltSetup,
     [Parameter(Mandatory)][string]$NextSetup,
     [Parameter(Mandatory)][string]$NextFeed,
     [Parameter(Mandatory)][version]$ExpectedVersion
@@ -69,6 +70,18 @@ $repairLog = Get-ChildItem (Join-Path $protectedDirectory 'SetupLogs') -Filter '
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $repairLog -or -not (Select-String -LiteralPath $repairLog.FullName -Pattern 'REINSTALLMODE=amus' -Quiet)) {
     throw 'The same-product repair did not request replacement of the installed binaries.'
+}
+
+$oldProduct = (Get-ItemProperty -LiteralPath 'HKLM:\Software\Kvieta').ProductCode
+$replacement = Invoke-Setup $RebuiltSetup @('--elevated-install', '--preserve-installation', '--force-reinstall')
+$newProduct = (Get-ItemProperty -LiteralPath 'HKLM:\Software\Kvieta').ProductCode
+if ($replacement -ne 0 -or $oldProduct -eq $newProduct -or
+    (Test-Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$oldProduct") -or
+    (Get-Service KvietaGuardian).Status -ne 'Running') {
+    throw "The rebuilt same-version package did not replace the previous MSI and restart Guardian (exit $replacement)."
+}
+if (Compare-Object $before @(Get-FileHash -LiteralPath $data) -Property Path, Hash) {
+    throw 'Replacing the same-version MSI changed protected installation data.'
 }
 
 $cache = Join-Path $env:ProgramFiles 'Kvieta.UpdateCache'
