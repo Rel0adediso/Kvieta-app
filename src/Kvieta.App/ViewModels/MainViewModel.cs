@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text;
@@ -38,6 +39,7 @@ public sealed partial class MainViewModel : ObservableObject
     private static readonly string DefaultSettingsPath = new JsonSettingsStore().FilePath;
     private readonly JsonSettingsStore _settingsStore;
     private readonly JsonUsageStore _usageStore;
+    private DispatcherTimer? _updateCheckTimer;
     private ControlSettings _settings = new();
     private int _selectedPageIndex;
     private string _deviceName = string.Empty;
@@ -437,6 +439,17 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     private bool _isUpdateAvailable;
+    private bool _isGuardianUpdateAvailable;
+    public bool IsGuardianUpdateAvailable
+    {
+        get => _isGuardianUpdateAvailable;
+        private set
+        {
+            if (SetProperty(ref _isGuardianUpdateAvailable, value))
+                OnPropertyChanged(nameof(UpdateBadgeText));
+        }
+    }
+
     public bool IsUpdateAvailable
     {
         get => _isUpdateAvailable;
@@ -467,7 +480,10 @@ public sealed partial class MainViewModel : ObservableObject
     public string? UpdateDownloadUrl
     {
         get => _updateDownloadUrl;
-        private set => SetProperty(ref _updateDownloadUrl, value);
+        private set
+        {
+            if (SetProperty(ref _updateDownloadUrl, value)) OnPropertyChanged(nameof(UpdateBadgeText));
+        }
     }
 
     private string _updateStatusText = string.Empty;
@@ -506,6 +522,7 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     private string? _downloadedInstallerPath;
+    private StableUpdatePackage? _stablePackage;
     public string? DownloadedInstallerPath
     {
         get => _downloadedInstallerPath;
@@ -525,17 +542,20 @@ public sealed partial class MainViewModel : ObservableObject
     {
         get
         {
+            if (IsGuardianUpdateAvailable) return L("İndirme sayfasını aç", "Open download page");
             if (IsDownloadingUpdate)
             {
                 return string.Format(L("İndiriliyor... %{0:F0}", "Downloading... {0:F0}%"), UpdateDownloadPercent);
             }
             if (IsUpdateReadyToInstall)
             {
-                return L("Şimdi Yükle ve Yeniden Başlat", "Install Now & Restart");
+                return L("Güncellemeyi yükle", "Install update");
             }
             if (IsUpdateAvailable)
             {
-                return string.Format(L("Yeni sürümü indir: {0}", "Download update: {0}"), LatestVersionLabel ?? "Update");
+                return string.Format(UpdateCheckService.IsOfficialDownloadUrl(UpdateDownloadUrl)
+                    ? L("Yeni sürüm: {0} · İndir", "New version: {0} · Download")
+                    : L("Yeni sürüm: {0} · İndirme sayfasını aç", "New version: {0} · Open download page"), LatestVersionLabel ?? "Update");
             }
             return string.Empty;
         }
@@ -543,35 +563,57 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task StartOrApplyUpdateAsync()
     {
+        if (IsGuardianUpdateAvailable && UpdateReleaseUrl is { } guardianRelease && UpdateCheckService.IsOfficialReleaseUrl(guardianRelease))
+        {
+            try { Process.Start(new ProcessStartInfo(guardianRelease) { UseShellExecute = true }); }
+            catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                StatusMessage = L("İndirme sayfası açılamadı.", "Could not open the download page.");
+            }
+            return;
+        }
+        if (IsCheckingForUpdates || IsDownloadingUpdate || !IsUpdateAvailable) return;
         if (IsUpdateReadyToInstall && !string.IsNullOrWhiteSpace(DownloadedInstallerPath))
         {
-            UpdateCheckService.ApplyUpdate(DownloadedInstallerPath);
+            if (!UpdateCheckService.ApplyUpdate(DownloadedInstallerPath, _stablePackage))
+                StatusMessage = L("Güncelleme doğrulanamadı veya başlatılamadı.", "The update could not be verified or started.");
             return;
         }
 
-        if (IsDownloadingUpdate || string.IsNullOrWhiteSpace(UpdateDownloadUrl))
+        if (string.IsNullOrWhiteSpace(UpdateDownloadUrl))
         {
             return;
         }
 
         // If not a direct binary, open web page
-        if (!UpdateDownloadUrl.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-            !UpdateDownloadUrl.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+        if (!UpdateCheckService.IsOfficialDownloadUrl(UpdateDownloadUrl))
         {
             try
             {
-                Process.Start(new ProcessStartInfo(UpdateReleaseUrl ?? UpdateDownloadUrl) { UseShellExecute = true });
+                if (UpdateCheckService.IsOfficialReleaseUrl(UpdateReleaseUrl))
+                    Process.Start(new ProcessStartInfo(UpdateReleaseUrl!) { UseShellExecute = true });
             }
             catch { }
             return;
         }
+
+        await DownloadAvailableUpdateAsync();
+    }
+
+    private async Task DownloadAvailableUpdateAsync()
+    {
+        string? downloadUrl = UpdateDownloadUrl;
+        if (IsCheckingForUpdates || IsDownloadingUpdate || !IsUpdateAvailable ||
+            IsUpdateReadyToInstall || !UpdateCheckService.IsOfficialDownloadUrl(downloadUrl)) return;
 
         IsDownloadingUpdate = true;
         UpdateDownloadPercent = 0;
         try
         {
             var progress = new Progress<double>(percent => UpdateDownloadPercent = percent);
-            string? localFile = await UpdateCheckService.DownloadUpdateAsync(UpdateDownloadUrl, progress).ConfigureAwait(true);
+            string? localFile = _stablePackage is { } stablePackage
+                ? await UpdateCheckService.DownloadStableAsync(stablePackage, progress).ConfigureAwait(true)
+                : await UpdateCheckService.DownloadUpdateAsync(downloadUrl!, progress).ConfigureAwait(true);
             DownloadedInstallerPath = localFile;
         }
         catch (Exception ex)
@@ -875,7 +917,6 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(AdminPinActionText));
 
             LoadPolicyRows(_settings);
-            Services.WebGuardService.Apply(_settings);
             Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
 
             await ReloadUsageAsync();
@@ -887,14 +928,7 @@ public sealed partial class MainViewModel : ObservableObject
                     ? L("Veriler son sağlam yedekten kurtarıldı", "Data was recovered from the last known good backup")
                     : L("Ayarlar yüklendi", "Settings loaded");
 
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(4000).ConfigureAwait(false);
-                if (System.Windows.Application.Current?.Dispatcher is { } dispatcher)
-                {
-                    await dispatcher.InvokeAsync(() => CheckForUpdatesAsync(isManual: false));
-                }
-            });
+            StartUpdateCheckTimer();
         }
         catch (Exception exception)
         {
@@ -902,46 +936,118 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    private void StartUpdateCheckTimer()
+    {
+        if (_updateCheckTimer is not null ||
+            System.Windows.Application.Current?.Dispatcher is not { } dispatcher ||
+            dispatcher.HasShutdownStarted) return;
+
+        _updateCheckTimer = new DispatcherTimer(DispatcherPriority.Background, dispatcher)
+        {
+            Interval = TimeSpan.FromSeconds(4)
+        };
+        _updateCheckTimer.Tick += async (_, _) =>
+        {
+            _updateCheckTimer.Interval = TimeSpan.FromHours(6);
+            await CheckForUpdatesAsync();
+        };
+        _updateCheckTimer.Start();
+    }
+
     public async Task CheckForUpdatesAsync(bool isManual = false)
     {
-        if (IsCheckingForUpdates) return;
+        if (IsCheckingForUpdates || IsDownloadingUpdate) return;
+        bool downloadAfterCheck = false;
         IsCheckingForUpdates = true;
         UpdateStatusText = L("Denetleniyor...", "Checking...");
         try
         {
             UpdateCheckResult result = await UpdateCheckService.CheckForUpdatesAsync().ConfigureAwait(true);
+            if (result.IsUpdateAvailable && result.StablePackage is { } stable &&
+                stable.GuardianRevision != BuildInfo.GuardianRevision)
+            {
+                ClearUpdateOffer();
+                UpdateReleaseUrl = stable.ReleaseUrl;
+                IsGuardianUpdateAvailable = true;
+                IsUpdateAvailable = true;
+                UpdateStatusText = L("Guardian güncellemesi hazır", "Guardian update is available");
+                return;
+            }
+            if (result.HasError && !result.IsUpdateAvailable && IsGuardianUpdateAvailable)
+            {
+                UpdateStatusText = L("Guardian güncellemesi hazır", "Guardian update is available");
+                return;
+            }
+            IsGuardianUpdateAvailable = false;
+
+            if (AutomaticUpdateService.Enabled)
+            {
+                ClearUpdateOffer();
+                if (StartupUpdate.ReadyVersion(Version.Parse(BuildInfo.AssemblyVersion), DateTimeOffset.UtcNow) is not null)
+                {
+                    UpdateStatusText = L("Güncelleme sonraki açılışta kurulacak", "Update installs on next launch");
+                    return;
+                }
+                if (await StartupUpdate.RequestTaskAsync(StartupUpdate.PrepareTask))
+                {
+                    UpdateStatusText = L("Otomatik güncellemeler açık", "Automatic updates are on");
+                    return;
+                }
+            }
             if (result.IsUpdateAvailable)
             {
+                if (!string.Equals(UpdateDownloadUrl, result.DownloadUrl, StringComparison.Ordinal) ||
+                    _stablePackage?.Sha256 != result.StablePackage?.Sha256)
+                {
+                    DownloadedInstallerPath = null;
+                }
                 IsUpdateAvailable = true;
+                _stablePackage = result.StablePackage;
+                if (result.PreparedInstallerPath != null)
+                    DownloadedInstallerPath = result.PreparedInstallerPath;
                 LatestVersionLabel = result.ReleaseName ?? result.LatestVersion;
                 UpdateReleaseUrl = result.ReleaseUrl;
                 UpdateDownloadUrl = result.DownloadUrl;
-                UpdateStatusText = string.Format(L("Yeni sürüm mevcut ({0})", "New version available ({0})"), LatestVersionLabel);
+                UpdateStatusText = result.PreparedInstallerPath != null
+                    ? L("Güncelleme hazır (çevrimdışı)", "Update ready (offline)")
+                    : string.Format(L("Yeni sürüm mevcut ({0})", "New version available ({0})"), LatestVersionLabel);
+                downloadAfterCheck = !IsUpdateReadyToInstall && UpdateCheckService.IsOfficialDownloadUrl(UpdateDownloadUrl);
             }
             else if (result.HasError)
             {
-                if (isManual)
-                {
-                    UpdateStatusText = L("Kontrol edilemedi", "Could not check");
-                }
+                ClearUpdateOffer();
+                UpdateStatusText = L("Güncelleme doğrulanamadı", "Could not verify update");
             }
             else
             {
-                IsUpdateAvailable = false;
+                ClearUpdateOffer();
                 UpdateStatusText = L("Kvieta güncel", "Kvieta is up to date");
             }
         }
         catch
         {
-            if (isManual)
-            {
-                UpdateStatusText = L("Kontrol edilemedi", "Could not check");
-            }
+            ClearUpdateOffer();
+            UpdateStatusText = L("Kontrol edilemedi", "Could not check");
         }
         finally
         {
             IsCheckingForUpdates = false;
         }
+
+        if (downloadAfterCheck && IsUpdateAvailable && !IsUpdateReadyToInstall)
+        {
+            await DownloadAvailableUpdateAsync();
+        }
+    }
+
+    private void ClearUpdateOffer()
+    {
+        _stablePackage = null;
+        DownloadedInstallerPath = null;
+        IsUpdateAvailable = false;
+        LatestVersionLabel = null;
+        UpdateReleaseUrl = null;
+        UpdateDownloadUrl = null;
     }
 
     public async Task ReloadUsageAsync()
@@ -1020,6 +1126,8 @@ public sealed partial class MainViewModel : ObservableObject
         return true;
     }
 
+    private DateTimeOffset _nextLocalWebGuardRetry;
+
     public async Task<bool> ApplyPendingIfDueAsync()
     {
         if (_settings.PendingChange is null || _settings.PendingChange.ApplyAfterUtc > DateTimeOffset.UtcNow)
@@ -1027,7 +1135,29 @@ public sealed partial class MainViewModel : ObservableObject
             return false;
         }
 
-        _settings = await _settingsStore.LoadAsync();
+        bool guardianOwnsPolicy = _settings.RequiresGuardian && File.Exists(ProtectionServiceManager.ProtectedSettingsPath);
+        if (!guardianOwnsPolicy && _nextLocalWebGuardRetry > DateTimeOffset.UtcNow) return false;
+        ControlSettings updated;
+        try
+        {
+            updated = await _settingsStore.LoadAsync(reconcileWebGuard: guardianOwnsPolicy ? null : WebGuardService.Apply);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            StatusMessage = L("Bekleyen değişiklik kaydedilemedi.", "The pending change could not be saved.");
+            return false;
+        }
+        if (updated.PendingChange is not null)
+        {
+            if (!guardianOwnsPolicy)
+            {
+                _nextLocalWebGuardRetry = DateTimeOffset.UtcNow.AddMinutes(15);
+                StatusMessage = L("Bekleyen değişiklik için web koruması uygulanamadı.", "Could not apply web protection for the pending change.");
+            }
+            return false;
+        }
+        _nextLocalWebGuardRetry = default;
+        _settings = updated;
         StartWithWindows = _settings.StartWithWindows;
         AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
         StrictPersonalMode = _settings.StrictPersonalMode;
@@ -1123,6 +1253,10 @@ public sealed partial class MainViewModel : ObservableObject
                 immediate.Schedule = CloneSchedule(_settings.Schedule);
                 immediate.TemporaryAllowances = CloneTemporaryAllowances(_settings.TemporaryAllowances);
                 immediate.AppRules = CloneAppRules(_settings.AppRules);
+                immediate.WebGuardEnabled = _settings.WebGuardEnabled;
+                immediate.SafeSearchEnforced = _settings.SafeSearchEnforced;
+                immediate.BlockShortFormVideo = _settings.BlockShortFormVideo;
+                immediate.BlockedWebDomains = [.. _settings.BlockedWebDomains];
                 desired.PendingChange = null;
                 immediate.PendingChange = new PendingPolicyChange
                 {
@@ -1133,6 +1267,7 @@ public sealed partial class MainViewModel : ObservableObject
                 _settings = immediate;
                 await SaveUserSettingsAsync(_settings);
                 bool webGuardAppliedDelay = Services.WebGuardService.Apply(_settings);
+                Services.DopamineTrapWatcher.Instance.UpdateSettings(_settings);
                 _stagedAdminCredential = null;
                 _stagedRecoveryCodes = null;
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
@@ -1150,7 +1285,8 @@ public sealed partial class MainViewModel : ObservableObject
                 _localWriteFailed = false;
                 _localWriteFailureMessage = null;
                 NotifyRuntimeHealth();
-                StatusMessage = BuildPendingStatusMessage();
+                StatusMessage = webGuardAppliedDelay ? BuildPendingStatusMessage() :
+                    L("Bekleyen değişiklik kaydedildi, ancak web koruması uygulanamadı. Yönetici onayını ve politikaları kontrol et.", "Pending change saved, but web protection could not be applied. Check administrator approval and policies.");
                 return true;
             }
 
@@ -1188,7 +1324,11 @@ public sealed partial class MainViewModel : ObservableObject
             _localWriteFailed = false;
             _localWriteFailureMessage = null;
             NotifyRuntimeHealth();
-            if (_settings.BlockShortFormVideo || _settings.WebGuardEnabled)
+            if (!webGuardApplied)
+            {
+                StatusMessage = L("Ayarlar kaydedildi, ancak web koruması uygulanamadı veya geri alınamadı. Yönetici onayını ve sistem politikalarını kontrol et.", "Settings saved, but web protection could not be applied or restored. Check administrator approval and system policies.");
+            }
+            else if (_settings.BlockShortFormVideo || _settings.WebGuardEnabled)
             {
                 StatusMessage = webGuardApplied
                     ? L("Kaydedildi · Kısa video engelinin geçerli olması için tarayıcını yeniden başlat.", "Saved · Restart your browser for short video blocking to take effect.")
@@ -1468,25 +1608,26 @@ public sealed partial class MainViewModel : ObservableObject
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
         ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
+        DateTimeOffset healthCheckedAtUtc = DateTimeOffset.UtcNow;
         ProtectionInstallationIdentity installation = ProtectionServiceManager.GetInstallationIdentity();
         List<SecurityAuditEntry> auditEntries = [];
-        try
+        async Task<string> ReadAuditSource(SecurityAuditLog source)
         {
-            auditEntries.AddRange(await new SecurityAuditLog().ReadRecentAsync());
-            string lifecycleAuditPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Kvieta",
-                "lifecycle-audit.jsonl");
-            auditEntries.AddRange(await new SecurityAuditLog(lifecycleAuditPath).ReadRecentAsync());
-            auditEntries = auditEntries
-                .OrderBy(entry => entry.OccurredAtUtc)
-                .TakeLast(100)
-                .ToList();
+            try
+            {
+                if (!File.Exists(source.FilePath)) return "MissingOrUnavailable";
+                auditEntries.AddRange(await source.ReadRecentAsync());
+                return "Read";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return "ReadFailed";
+            }
         }
-        catch
-        {
-            // An unavailable audit file is reported as an empty list, not an export failure.
-        }
+        string securityAudit = await ReadAuditSource(new SecurityAuditLog());
+        string lifecycleAudit = await ReadAuditSource(new SecurityAuditLog(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Kvieta", "lifecycle-audit.jsonl")));
 
         var report = new
         {
@@ -1527,6 +1668,7 @@ public sealed partial class MainViewModel : ObservableObject
             },
             Guardian = new
             {
+                CheckedAtUtc = healthCheckedAtUtc,
                 ServiceState = health.ServiceState.ToString(),
                 health.IsHealthy,
                 Issues = health.Issues.Select(issue => issue.ToString()).ToList(),
@@ -1536,7 +1678,8 @@ public sealed partial class MainViewModel : ObservableObject
                 RegisteredInstallerVersion = installation.RegisteredVersion?.ToString(),
                 InstalledBinaryVersion = installation.InstalledBinaryVersion?.ToString()
             },
-            RecentSecurityEvents = auditEntries
+            AuditSources = new { Security = securityAudit, Lifecycle = lifecycleAudit },
+            RecentSecurityEvents = auditEntries.OrderBy(entry => entry.OccurredAtUtc).TakeLast(100).ToList()
         };
         return JsonSerializer.Serialize(report, IndentedJsonOptions);
     }
@@ -2873,6 +3016,7 @@ public sealed partial class MainViewModel : ObservableObject
         WebGuardEnabled = settings.WebGuardEnabled;
         SafeSearchEnforced = settings.SafeSearchEnforced;
         BlockShortFormVideo = settings.BlockShortFormVideo;
+        WebGuardEnabled = settings.WebGuardEnabled; // Preserve the master switch after child setters.
         BlockedWebDomains.Clear();
         foreach (string domain in settings.BlockedWebDomains ?? [])
         {

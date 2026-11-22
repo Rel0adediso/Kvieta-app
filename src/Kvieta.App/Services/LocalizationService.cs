@@ -6,8 +6,8 @@ namespace Kvieta.App.Services;
 
 public static class LocalizationService
 {
-    private const string TurkishDictionary = "Localization/Strings.tr.xaml";
-    private const string EnglishDictionary = "Localization/Strings.en.xaml";
+    private const string TurkishDictionary = "/Kvieta.Presentation;component/Localization/Strings.tr.xaml";
+    private const string EnglishDictionary = "/Kvieta.Presentation;component/Localization/Strings.en.xaml";
 
     public static LanguagePreference CurrentLanguage { get; private set; } = LanguagePreference.Turkish;
 

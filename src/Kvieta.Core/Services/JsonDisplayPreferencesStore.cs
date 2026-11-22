@@ -7,7 +7,25 @@ public sealed class DisplayPreferences
     public int ZoomPercent { get; set; } = 100;
     public bool GuideShown { get; set; }
     public bool PairingPromptShown { get; set; }
+    public ReleaseIdentity? LastOpenedRelease { get; set; }
+    public ReleaseIdentity? LastUpdateFrom { get; set; }
+    public bool UpdateNoticeUnread { get; set; }
 }
+
+public sealed record ReleaseIdentity(string Label, string Build)
+{
+    public bool IsNewerThan(ReleaseIdentity previous)
+    {
+        if (Version.TryParse(Build, out var currentBuild) && Version.TryParse(previous.Build, out var previousBuild))
+        {
+            int comparison = currentBuild.CompareTo(previousBuild);
+            if (comparison != 0) return comparison > 0;
+        }
+        return ReleaseVersion.IsNewer(previous.Label, Label);
+    }
+}
+
+public sealed record ReleaseNotice(ReleaseIdentity Current, ReleaseIdentity? Previous, bool Unread);
 
 public sealed class JsonDisplayPreferencesStore
 {
@@ -52,5 +70,43 @@ public sealed class JsonDisplayPreferencesStore
             return value;
         });
         return claimed;
+    }
+
+    public async Task RememberPreviousReleaseAsync(ReleaseIdentity previous)
+    {
+        await _file.UpdateAsync(value =>
+        {
+            value.LastOpenedRelease ??= previous;
+            return value;
+        });
+    }
+
+    public async Task<ReleaseNotice> ObserveReleaseAsync(ReleaseIdentity current)
+    {
+        DisplayPreferences preferences = await _file.UpdateAsync(value =>
+        {
+            if (value.LastOpenedRelease is null)
+                value.LastOpenedRelease = current;
+            else if (current.IsNewerThan(value.LastOpenedRelease))
+            {
+                if (!value.UpdateNoticeUnread || value.LastUpdateFrom is null)
+                    value.LastUpdateFrom = value.LastOpenedRelease;
+                value.LastOpenedRelease = current;
+                value.UpdateNoticeUnread = true;
+            }
+            return value;
+        });
+        bool matches = preferences.LastOpenedRelease == current;
+        return new ReleaseNotice(current, matches ? preferences.LastUpdateFrom : null,
+            matches && preferences.UpdateNoticeUnread);
+    }
+
+    public async Task AcknowledgeReleaseAsync(ReleaseIdentity current)
+    {
+        await _file.UpdateAsync(value =>
+        {
+            if (value.LastOpenedRelease == current) value.UpdateNoticeUnread = false;
+            return value;
+        });
     }
 }

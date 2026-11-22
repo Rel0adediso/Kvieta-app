@@ -1,4 +1,5 @@
 using System.Reflection;
+using Kvieta.Core.Services;
 
 namespace Kvieta.SetupApp;
 
@@ -7,6 +8,18 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(System.Windows.StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args is [StartupUpdate.WaitArgument])
+        {
+            try { await StartupUpdateInstaller.ResumeAfterUpdateAsync(); Shutdown(); }
+            catch { Shutdown(1603); }
+            return;
+        }
+        if (e.Args is [StartupUpdate.InstallArgument])
+        {
+            try { Shutdown(await StartupUpdateInstaller.InstallAsSystemAsync()); }
+            catch { Shutdown(1603); }
+            return;
+        }
         if (e.Args.Any(argument => string.Equals(argument, "--verify-package", StringComparison.OrdinalIgnoreCase)))
         {
             bool payloadExists = Assembly.GetExecutingAssembly()
@@ -18,6 +31,7 @@ public partial class App : System.Windows.Application
 
         if (e.Args.Any(argument => string.Equals(argument, "--elevated-install", StringComparison.OrdinalIgnoreCase)))
         {
+            bool preserveInstallation = e.Args.Contains("--preserve-installation", StringComparer.Ordinal);
             bool desktopShortcut = e.Args.Any(argument =>
                 string.Equals(argument, "--desktop-shortcut", StringComparison.OrdinalIgnoreCase));
             bool forceReinstall = e.Args.Any(argument =>
@@ -27,12 +41,23 @@ public partial class App : System.Windows.Application
             string? guardianPayload = guardianPayloadIndex >= 0 && guardianPayloadIndex + 1 < e.Args.Length
                 ? e.Args[guardianPayloadIndex + 1]
                 : null;
+            int legacyUserIndex = Array.IndexOf(e.Args, "--legacy-user-sid");
+            string? legacyUserSid = legacyUserIndex >= 0 && legacyUserIndex + 1 < e.Args.Length ? e.Args[legacyUserIndex + 1] : null;
             try
             {
-                Shutdown(await ElevatedPackageInstaller.RunAsync(
-                    desktopShortcut,
-                    guardianPayload,
-                    forceReinstall));
+                if (preserveInstallation && (SetupWindow.ReadInstalledVersion() is not { } installed ||
+                    installed >= SetupWindow.GetPackageVersion() ||
+                    SetupWindow.ReadInstallerValue("PackageKind") as string != "community" ||
+                    forceReinstall || guardianPayload != null))
+                {
+                    Shutdown(1638);
+                    return;
+                }
+
+                int result = await ElevatedPackageInstaller.RunAsync(
+                    preserveInstallation ? null : desktopShortcut, guardianPayload, forceReinstall, legacyUserSid);
+                if (result == 0) await StartupUpdateInstaller.ConfigureAsync();
+                Shutdown(result);
             }
             catch
             {
@@ -47,7 +72,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        MainWindow = new SetupWindow();
+        MainWindow = new SetupWindow(e.Args is ["--apply-stable-update"]);
         MainWindow.Show();
     }
 }

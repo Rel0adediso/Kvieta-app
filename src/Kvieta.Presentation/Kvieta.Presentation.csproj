@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Kvieta.Core/Kvieta.Core.csproj" />
+    <Compile Include="../Kvieta.App/ViewModels/ObservableObject.cs" Link="ViewModels/ObservableObject.cs" />
+    <Compile Include="../Kvieta.App/ViewModels/UsageHistoryRows.cs" Link="ViewModels/UsageHistoryRows.cs" />
+    <Compile Include="../Kvieta.App/ViewModels/ApplicationUsageOverviewBuilder.cs" Link="ViewModels/ApplicationUsageOverviewBuilder.cs" />
+    <Compile Include="../Kvieta.App/Services/ApplicationIconProvider.cs" Link="Services/ApplicationIconProvider.cs" />
+    <Compile Include="../Kvieta.App/Services/LocalizationService.cs" Link="Services/LocalizationService.cs" />
+    <Compile Include="../Kvieta.App/Services/SystemThemeService.cs" Link="Services/SystemThemeService.cs" />
+    <Compile Include="../Kvieta.App/Services/ReleaseNotesCatalog.cs" Link="Services/ReleaseNotesCatalog.cs" />
+    <Compile Include="../Kvieta.App/WhatsNewWindow.xaml.cs" Link="WhatsNewWindow.xaml.cs" />
+    <Page Include="../Kvieta.App/WhatsNewWindow.xaml" Link="WhatsNewWindow.xaml" />
+    <EmbeddedResource Include="../../assets/release-notes.json" LogicalName="Kvieta.ReleaseNotes.json" />
+    <Page Include="../Kvieta.App/Localization/*.xaml" Link="Localization/%(Filename)%(Extension)" />
+    <Page Include="../Kvieta.App/Themes/*.xaml" Link="Themes/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

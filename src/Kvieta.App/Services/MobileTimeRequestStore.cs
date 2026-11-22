@@ -31,7 +31,7 @@ public sealed record MobileTimeRequest(
     int? TargetBonusMinutes = null,
     string? Room = null);
 
-public sealed record MobileTimeDecision(string DecisionId, string RequestId, string Action, int? GrantedMinutes, DateTimeOffset DecidedAtUtc, string? PayloadJson = null);
+public sealed record MobileTimeDecision(string DecisionId, string RequestId, string Action, int? GrantedMinutes, DateTimeOffset DecidedAtUtc, string? PayloadJson = null, long Sequence = 0, string? ParentProof = null);
 
 /// <summary>
 /// A single bounded request shared by Kvieta processes. The computer remains the

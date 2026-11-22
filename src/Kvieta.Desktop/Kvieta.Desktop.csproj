@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <StartupObject>Kvieta.Desktop.App</StartupObject>
+    <ApplicationIcon>../../assets/branding/kvieta.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <InformationalVersion>$(KvietaReleaseLabel)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+    <ProjectReference Include="../Kvieta.Presentation/Kvieta.Presentation.csproj" />
+    <ProjectReference Include="../Kvieta.App/Kvieta.App.csproj">
+      <AdditionalProperties Condition="'$(RuntimeIdentifier)' != ''">SelfContained=false;PublishSingleFile=false</AdditionalProperties>
+    </ProjectReference>
+    <PackageReference Include="Velopack" Version="1.2.161" />
+    <AssemblyMetadata Include="KvietaDesktopPublicKey" Value="$(KvietaDesktopPublicKey)" Condition="'$(KvietaDesktopPublicKey)' != ''" />
+  </ItemGroup>
+</Project>

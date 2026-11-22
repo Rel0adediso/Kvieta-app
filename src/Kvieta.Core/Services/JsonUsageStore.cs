@@ -22,6 +22,8 @@ public sealed class JsonUsageStore
     }
 
     public string FilePath { get; }
+    public Task<UsageLedger> UpdateAsync(Func<UsageLedger, UsageLedger> update, CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(update, cancellationToken);
     public string BackupPath => _file.BackupPath;
     public bool LastLoadRecoveredFromBackup => _file.LastLoadRecoveredFromBackup;
     public bool LastLoadMigrated => _file.LastLoadMigrated;
@@ -194,6 +196,7 @@ public sealed class JsonUsageStore
 
         UsageLedger newest = incoming.LastUpdatedUtc >= current.LastUpdatedUtc ? incoming : current;
         UsageLedger other = ReferenceEquals(newest, incoming) ? current : incoming;
+        newest.LastRemoteCommandId ??= other.LastRemoteCommandId;
         newest.SchemaVersion = 9;
         newest.RetainedFromDay = retainedFromDay;
         newest.UsedSeconds = Math.Max(newest.UsedSeconds, other.UsedSeconds);

@@ -1200,41 +1200,52 @@ public partial class SessionSurfaceWindow : Window
         }
     });
 
-    private bool IsOnCurrentVirtualDesktop()
+    private void EnsureOnCurrentVirtualDesktop()
     {
         try
         {
             IVirtualDesktopManager? manager = _virtualDesktopManager.Value;
-            if (manager is null)
-            {
-                return true;
-            }
+            if (manager is null) return;
 
             nint handle = new WindowInteropHelper(this).Handle;
-            if (handle != 0 && manager.IsWindowOnCurrentVirtualDesktop(handle, out bool onCurrent) == 0)
+            if (handle == 0 || manager.IsWindowOnCurrentVirtualDesktop(handle, out bool onCurrent) != 0 || onCurrent) return;
+
+            // Resolve the target from an actually active window. Shell surfaces and
+            // transitions may not expose a desktop ID; the next poll can retry.
+            nint foreground = GetForegroundWindow();
+            if (foreground == 0 || foreground == handle ||
+                manager.IsWindowOnCurrentVirtualDesktop(foreground, out bool foregroundIsCurrent) != 0 ||
+                !foregroundIsCurrent || manager.GetWindowDesktopId(foreground, out Guid desktopId) != 0 ||
+                desktopId == Guid.Empty) return;
+
+            if (manager.MoveWindowToDesktop(handle, ref desktopId) != 0 ||
+                manager.IsWindowOnCurrentVirtualDesktop(handle, out bool moved) != 0 || !moved) return;
+
+            if (_modalDialogOpen)
             {
-                return onCurrent;
+                MoveOwnedDialogs(manager, this, desktopId);
+            }
+            else
+            {
+                SetForegroundWindow(handle);
             }
         }
         catch
         {
+            // Explorer or a desktop may be unavailable during a transition; retry on the next tick.
         }
-
-        return true;
     }
 
-    private void EnsureOnCurrentVirtualDesktop()
+    private static void MoveOwnedDialogs(IVirtualDesktopManager manager, Window owner, Guid desktopId)
     {
-        if (IsOnCurrentVirtualDesktop())
+        foreach (Window dialog in owner.OwnedWindows)
         {
-            return;
-        }
-
-        nint handle = new WindowInteropHelper(this).Handle;
-        if (handle != 0)
-        {
-            SwitchToThisWindow(handle, true);
-            SetForegroundWindow(handle);
+            nint dialogHandle = new WindowInteropHelper(dialog).Handle;
+            if (dialogHandle != 0 && dialog.IsVisible)
+            {
+                manager.MoveWindowToDesktop(dialogHandle, ref desktopId);
+                MoveOwnedDialogs(manager, dialog, desktopId);
+            }
         }
     }
 
@@ -1247,7 +1258,7 @@ public partial class SessionSurfaceWindow : Window
     private static extern bool SetForegroundWindow(nint hWnd);
 
     [DllImport("user32.dll")]
-    private static extern void SwitchToThisWindow(nint hWnd, [MarshalAs(UnmanagedType.Bool)] bool fUnknown);
+    private static extern nint GetForegroundWindow();
 
     [ComImport]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

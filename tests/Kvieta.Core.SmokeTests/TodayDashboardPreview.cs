@@ -53,7 +53,7 @@ internal static class TodayDashboardPreview
                     {
                         application.Resources.MergedDictionaries.Add(new ResourceDictionary
                         {
-                            Source = new Uri($"/Kvieta;component/Themes/{theme}Theme.xaml", UriKind.Relative)
+                            Source = new Uri($"/Kvieta.Presentation;component/Themes/{theme}Theme.xaml", UriKind.Relative)
                         });
                         foreach (int width in new[] { 980, 380 })
                         {

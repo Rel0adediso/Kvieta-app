@@ -79,28 +79,35 @@ internal sealed class LocalNetworkHttpServer : IAsyncDisposable
 
     private async Task ServeAsync(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        List<Task> clients = [];
+        try
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                using TcpClient client = await _listener.AcceptTcpClientAsync(cancellationToken);
-                using CancellationTokenSource requestTimeout =
-                    CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                requestTimeout.CancelAfter(TimeSpan.FromSeconds(12));
-                await HandleClientAsync(client, requestTimeout.Token);
+                clients.RemoveAll(task => task.IsCompleted);
+                if (clients.Count >= 4)
+                {
+                    await Task.WhenAny(clients).WaitAsync(cancellationToken);
+                    continue;
+                }
+                TcpClient client = await _listener.AcceptTcpClientAsync(cancellationToken);
+                clients.Add(ServeClientAsync(client, cancellationToken));
             }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (SocketException) when (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch
-            {
-                // Malformed and disconnected clients must not stop the one-time endpoint.
-            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (SocketException) when (cancellationToken.IsCancellationRequested) { }
+        finally { await Task.WhenAll(clients); }
+    }
+
+    private async Task ServeClientAsync(TcpClient client, CancellationToken cancellationToken)
+    {
+        using (client)
+        using (CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            timeout.CancelAfter(TimeSpan.FromSeconds(12));
+            try { await HandleClientAsync(client, timeout.Token); }
+            catch (OperationCanceledException) { /* Only this client's deadline elapsed. */ }
+            catch { /* Malformed/disconnected clients cannot stop the endpoint. */ }
         }
     }
 

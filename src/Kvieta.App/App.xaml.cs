@@ -17,12 +17,33 @@ public partial class App : System.Windows.Application
     private bool _controlCenterActivationInProgress;
     private AdminCredential? _guardianCredential;
     private DashboardRelayPublisher? _dashboardRelay;
+    private bool _startupUpdateWorker;
 
     public SystemThemeService ThemeService => _themeService;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args is ["--restore-legacy-policies", var legacyUserSid, var legacyTaskManager])
+        {
+            _startupUpdateWorker = true;
+            try
+            {
+                bool taskManagerRestored = legacyTaskManager != "restore-task-manager" || SessionTaskManagerControl.RestoreLegacyGuardianSession();
+                bool webRestored = await WebGuardService.RestoreLegacyPoliciesAsync(legacyUserSid);
+                Shutdown(taskManagerRestored && webRestored ? 0 : 1);
+            }
+            catch { Shutdown(1); }
+            return;
+        }
+
+        if (e.Args is [StartupUpdate.RegisterArgument or StartupUpdate.RemoveArgument or
+            StartupUpdate.PrepareArgument or StartupUpdate.ApplyArgument])
+        {
+            _startupUpdateWorker = true;
+            Shutdown(await AutomaticUpdateService.RunWorkerAsync(e.Args[0]));
+            return;
+        }
 
         if (e.Args.Any(argument => string.Equals(argument, "--uninstall-worker", StringComparison.OrdinalIgnoreCase)))
         {
@@ -102,6 +123,13 @@ public partial class App : System.Windows.Application
             {
                 _singleInstance.SignalPrimary();
             }
+            Shutdown();
+            return;
+        }
+
+        if (e.Args.Length == 0 && AutomaticUpdateService.TryLaunchPreparedUpdate())
+        {
+            _startupUpdateWorker = true;
             Shutdown();
             return;
         }
@@ -347,8 +375,11 @@ public partial class App : System.Windows.Application
 
         ReleaseControlCenterWindow();
 
-        SessionTaskManagerControl.SetTaskManagerDisabled(false);
-        DopamineTrapWatcher.Instance.Dispose();
+        if (!_startupUpdateWorker)
+        {
+            SessionTaskManagerControl.SetTaskManagerDisabled(false);
+            DopamineTrapWatcher.Instance.Dispose();
+        }
         _themeService.Dispose();
         base.OnExit(e);
     }

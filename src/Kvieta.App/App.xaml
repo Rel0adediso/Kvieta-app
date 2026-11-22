@@ -5,8 +5,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Themes/DarkTheme.xaml" />
-                <ResourceDictionary Source="Localization/Strings.tr.xaml" />
+                <ResourceDictionary Source="/Kvieta.Presentation;component/Themes/DarkTheme.xaml" />
+                <ResourceDictionary Source="/Kvieta.Presentation;component/Localization/Strings.tr.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <Style x:Key="SectionExpanderStyle" TargetType="Expander">

@@ -1,0 +1,19 @@
+[
+  {
+    "version": "v1.0.0",
+    "en": [
+      "Redesigned dashboard with clearer screen-time and application usage insights.",
+      "Added English and Turkish interface support.",
+      "Introduced a pause screen for short-form videos.",
+      "Improved pairing, recovery and connection error handling.",
+      "Improved update checks and installer feedback."
+    ],
+    "tr": [
+      "Ekran süresi ve uygulama kullanımını daha anlaşılır gösteren yeni kontrol merkezi.",
+      "İngilizce ve Türkçe arayüz desteği.",
+      "Kısa video akışları için mola ekranı.",
+      "Eşleştirme, kurtarma ve bağlantı hatalarında iyileştirmeler.",
+      "Güncelleme kontrolü ve kurulum bildirimlerinde iyileştirmeler."
+    ]
+  }
+]

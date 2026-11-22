@@ -74,9 +74,22 @@ internal static class DashboardEndpointChecks
             Check(restarted.RemoteEnabled, "Remote opt-in did not survive restart.");
             using HttpClient client = Client(restarted.Origin, pin);
             Check((await client.PostAsJsonAsync("/v1/snapshot", Proof())).IsSuccessStatusCode, "Saved pairing could not reconnect.");
+            string oldRoom = DashboardRelay.Load(path)!.Relay!.Client.Room;
+            Check(await restarted.CreateAuthorizedInvitationAsync(_ => Task.FromResult(false), null) is null &&
+                restarted.PhoneName == "Test Android" && DashboardRelay.Load(path)!.Relay!.Client.Room == oldRoom,
+                "A denied replacement invitation changed the active pairing.");
+            string? authorizedRoom = null;
+            string? replacement = await restarted.CreateAuthorizedInvitationAsync(relay =>
+            {
+                authorizedRoom = relay?.Client.Room;
+                return Task.FromResult(true);
+            }, () => Task.FromResult<string?>("pinned-guardian-key"));
+            Check(authorizedRoom != oldRoom && replacement is not null && replacement.Contains($"room={authorizedRoom}&", StringComparison.Ordinal) &&
+                replacement.EndsWith("&guardianKey=pinned-guardian-key", StringComparison.Ordinal),
+                "The replacement QR did not contain the newly authorized room and Guardian key.");
             restarted.Revoke();
             var revokedState = DashboardRelay.Load(path)!;
-            Check(revokedState.Relay is null && revokedState.RevokedRelays?.Length == 1, "Remote revocation was not queued durably.");
+            Check(revokedState.Relay is null && revokedState.RevokedRelays?.Length == 2, "Remote revocation was not queued durably.");
             Check((await client.PostAsJsonAsync("/v1/snapshot", Proof())).StatusCode == HttpStatusCode.Forbidden, "Revoked phone retained access.");
         }
         await using (DashboardEndpoint revoked = await DashboardEndpoint.StartAsync(path, Snapshot, IPAddress.Loopback, 0))

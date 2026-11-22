@@ -4,10 +4,25 @@ namespace Kvieta.Core.Services;
 
 public static class SettingsPolicyComparer
 {
+    public static bool WebGuardChanged(ControlSettings current, ControlSettings desired) =>
+        current.WebGuardEnabled != desired.WebGuardEnabled ||
+        current.WebGuardEnabled && (current.SafeSearchEnforced != desired.SafeSearchEnforced ||
+            current.BlockShortFormVideo != desired.BlockShortFormVideo ||
+            !current.BlockedWebDomains.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(desired.BlockedWebDomains));
+
     public static bool HasRelaxation(ControlSettings current, ControlSettings desired)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(desired);
+
+        if (current.WebGuardEnabled &&
+            (!desired.WebGuardEnabled ||
+             current.SafeSearchEnforced && !desired.SafeSearchEnforced ||
+             current.BlockShortFormVideo && !desired.BlockShortFormVideo ||
+             current.BlockedWebDomains.Except(desired.BlockedWebDomains, StringComparer.OrdinalIgnoreCase).Any()))
+        {
+            return true;
+        }
 
         if (desired.PersonalChangeDelayMinutes < current.PersonalChangeDelayMinutes)
         {

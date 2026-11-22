@@ -282,4 +282,12 @@
     <sys:String x:Key="ShortFormVideoSwitch">Engelle</sys:String>
     <sys:String x:Key="BlockedDomainsTitle">Engellenen Web Siteleri</sys:String>
     <sys:String x:Key="AddDomainButton">Site Ekle</sys:String>
+    <sys:String x:Key="KvietaUpdatedTitle">Kvieta güncellendi!</sys:String>
+    <sys:String x:Key="GuardianUpdateTitle">Guardian güncellemesi var</sys:String>
+    <sys:String x:Key="GuardianUpdateDescription">Lütfen en güncel Kvieta kurulumunu indir.</sys:String>
+    <sys:String x:Key="GuardianUpdateAction">İndirme sayfasını aç</sys:String>
+    <sys:String x:Key="WhatsNewTitle">Neler yeni?</sys:String>
+    <sys:String x:Key="WhatsNewDismiss">Güncelleme bildirimini kapat</sys:String>
+    <sys:String x:Key="WhatsNewNoNotes">Bu derleme için henüz ayrı yenilik notları bulunmuyor.</sys:String>
+    <sys:String x:Key="WhatsNewUnavailable">Güncelleme notları açılamadı.</sys:String>
 </ResourceDictionary>

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -64,21 +65,27 @@ internal static class ElevatedPackageInstaller
     }
 
     public static async Task<int> RunAsync(
-        bool desktopShortcut,
+        bool? desktopShortcut,
         string? guardianPayload,
-        bool forceReinstall)
+        bool forceReinstall,
+        string? legacyUserSid = null)
     {
-        string root = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Kvieta",
-            "InstallerTemp");
-        string stagingDirectory = Path.Combine(root, Guid.NewGuid().ToString("N"));
+        using var identity = WindowsIdentity.GetCurrent();
+        if (!new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator)) return 5;
+
+        bool upgradingLegacy = SetupWindow.ReadInstalledVersion()?.Major is >= 2 and <= 6;
+        bool restoreLegacyTaskManager = upgradingLegacy &&
+            File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Kvieta", "guardian-process.json"));
+        bool preserveInstallation = desktopShortcut == null;
+        string stagingDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            "Kvieta-Setup-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(stagingDirectory);
-        GuardianMachineStateSnapshot guardianSnapshot = GuardianMachineStateSnapshot.Capture();
 
         try
         {
             HardenDirectory(stagingDirectory);
+            GuardianMachineStateSnapshot? guardianSnapshot = preserveInstallation ? null : GuardianMachineStateSnapshot.Capture();
             string msiPath = Path.Combine(stagingDirectory, "Kvieta.msi");
             await ExtractAndVerifyPayloadAsync(msiPath);
 
@@ -88,7 +95,6 @@ internal static class ElevatedPackageInstaller
                 "SetupLogs");
             Directory.CreateDirectory(logDirectory);
             string logPath = Path.Combine(logDirectory, $"Kvieta-setup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
-            string features = desktopShortcut ? "MainFeature,DesktopShortcutFeature" : "MainFeature";
 
             // Early alpha builds exposed uninstall only through Kvieta.exe. If that
             // file was removed manually, Windows Installer could remain registered
@@ -107,10 +113,12 @@ internal static class ElevatedPackageInstaller
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden
             };
-            foreach (string argument in new[] { "/i", msiPath, "/qn", "/norestart", $"ADDLOCAL={features}", "/L*v", logPath })
+            foreach (string argument in new[] { "/i", msiPath, "/qn", "/norestart", "/L*v", logPath })
             {
                 startInfo.ArgumentList.Add(argument);
             }
+            if (desktopShortcut is bool includeShortcut)
+                startInfo.ArgumentList.Add(includeShortcut ? "ADDLOCAL=MainFeature,DesktopShortcutFeature" : "ADDLOCAL=MainFeature");
             // SetupPlan classifies equal semantic versions as a repair, but each
             // test build can have a new MSI ProductCode. REINSTALL on a ProductCode
             // that is not installed makes Windows Installer preselect no features
@@ -138,6 +146,11 @@ internal static class ElevatedPackageInstaller
             try
             {
                 StopInstalledKvietaProcesses();
+                if (restartGuardianOnFailure)
+                {
+                    using ServiceController guardian = new("KvietaGuardian");
+                    guardian.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20));
+                }
                 using Process process = Process.Start(startInfo)
                     ?? throw new InvalidOperationException("Windows Installer could not be started.");
                 await process.WaitForExitAsync();
@@ -145,7 +158,7 @@ internal static class ElevatedPackageInstaller
             }
             catch
             {
-                guardianSnapshot.Restore();
+                guardianSnapshot?.Restore();
                 if (restartGuardianOnFailure)
                 {
                     TryStartGuardian();
@@ -155,7 +168,7 @@ internal static class ElevatedPackageInstaller
 
             if (installerExitCode is not (0 or 1641 or 3010))
             {
-                guardianSnapshot.Restore();
+                guardianSnapshot?.Restore();
                 if (restartGuardianOnFailure)
                 {
                     TryStartGuardian();
@@ -163,9 +176,44 @@ internal static class ElevatedPackageInstaller
                 return installerExitCode;
             }
 
+            if (upgradingLegacy)
+            {
+                try
+                {
+                    using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"Software\Kvieta", writable: true);
+                    key?.SetValue("LegacyWebGuardMigration", 1, Microsoft.Win32.RegistryValueKind.DWord);
+                }
+                catch (Exception exception)
+                {
+                    AppendRecoveryLog(logPath, $"Legacy Web Guard policy migration could not be scheduled: {exception.Message}");
+                }
+            }
+
+            if (upgradingLegacy && installerExitCode == 0)
+            {
+                try
+                {
+                    var migration = new ProcessStartInfo(
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Kvieta", "Kvieta.exe"))
+                    { UseShellExecute = false, CreateNoWindow = true };
+                    migration.ArgumentList.Add("--restore-legacy-policies");
+                    migration.ArgumentList.Add(legacyUserSid ?? identity.User!.Value);
+                    migration.ArgumentList.Add(restoreLegacyTaskManager ? "restore-task-manager" : "web-only");
+                    using var worker = Process.Start(migration);
+                    if (worker is null || !worker.WaitForExit(10000) || worker.ExitCode != 0)
+                        AppendRecoveryLog(logPath, "Legacy Windows policies could not be fully restored.");
+                }
+                catch (Exception exception)
+                {
+                    AppendRecoveryLog(logPath, $"Legacy Windows policy migration failed: {exception.Message}");
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(guardianPayload))
             {
-                return !restartGuardianOnFailure || TryStartGuardian()
+                bool shouldStartGuardian = restartGuardianOnFailure || (preserveInstallation && File.Exists(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Kvieta", "guardian-enrollment.json")));
+                return !shouldStartGuardian || TryStartGuardian()
                     ? installerExitCode
                     : GuardianStartFailedExitCode;
             }
@@ -177,7 +225,7 @@ internal static class ElevatedPackageInstaller
             }
             catch
             {
-                guardianSnapshot.Restore();
+                guardianSnapshot?.Restore();
                 if (restartGuardianOnFailure)
                 {
                     TryStartGuardian();
@@ -186,7 +234,7 @@ internal static class ElevatedPackageInstaller
             }
             if (provisioningExitCode != 0)
             {
-                guardianSnapshot.Restore();
+                guardianSnapshot?.Restore();
                 if (restartGuardianOnFailure)
                 {
                     TryStartGuardian();
@@ -202,7 +250,7 @@ internal static class ElevatedPackageInstaller
                 return installerExitCode;
             }
 
-            guardianSnapshot.Restore();
+            guardianSnapshot?.Restore();
             if (restartGuardianOnFailure)
             {
                 TryStartGuardian();
@@ -229,16 +277,28 @@ internal static class ElevatedPackageInstaller
 
             if (controller.Status != ServiceControllerStatus.StopPending)
             {
-                controller.Stop();
+                try
+                {
+                    controller.Stop();
+                }
+                catch (InvalidOperationException exception) when (HasWindowsError(exception, 1052))
+                {
+                    // Previous Guardian builds do not accept SCM stop. The installer
+                    // stops the verified installed processes before replacing the files.
+                    return true;
+                }
             }
             controller.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20));
             return true;
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException exception) when (HasWindowsError(exception, 1060))
         {
             return false;
         }
     }
+
+    private static bool HasWindowsError(InvalidOperationException exception, int errorCode) =>
+        exception.InnerException is Win32Exception error && error.NativeErrorCode == errorCode;
 
     private static bool TryRemoveOrphanedGuardianService(string logPath)
     {
@@ -358,7 +418,8 @@ internal static class ElevatedPackageInstaller
                         continue;
                     }
 
-                    process.Kill(entireProcessTree: true);
+                    // An in-app update can launch this Setup as a child process.
+                    process.Kill();
                     if (!process.WaitForExit(8000))
                     {
                         throw new InvalidOperationException(

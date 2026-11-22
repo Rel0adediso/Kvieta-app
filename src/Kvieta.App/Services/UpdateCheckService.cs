@@ -5,6 +5,8 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography.X509Certificates;
+using Kvieta.Core.Services;
 
 namespace Kvieta.App.Services;
 
@@ -18,7 +20,9 @@ public sealed record UpdateCheckResult(
     string? ReleaseNotes,
     DateTimeOffset? PublishedAt,
     bool HasError = false,
-    string? ErrorMessage = null
+    string? ErrorMessage = null,
+    StableUpdatePackage? StablePackage = null,
+    string? PreparedInstallerPath = null
 );
 
 public static class UpdateCheckService
@@ -28,7 +32,8 @@ public static class UpdateCheckService
         Timeout = TimeSpan.FromSeconds(10)
     };
 
-    private const string GitHubReleasesApiUrl = "https://api.github.com/repos/Rel0adediso/Kvieta-app/releases/latest";
+    private const string GitHubRepositoryApiUrl = "https://api.github.com/repos/Rel0adediso/Kvieta-app";
+    private const string GitHubReleasesApiUrl = GitHubRepositoryApiUrl + "/releases/latest";
 
     static UpdateCheckService()
     {
@@ -43,6 +48,15 @@ public static class UpdateCheckService
         string currentVersion = BuildInfo.Version;
         try
         {
+            if (ProtectionServiceManager.RegisteredPackageKind == "community" &&
+                BuildInfo.StablePublicKey is { Length: > 0 } publicKey)
+            {
+                if (await ReadStablePackageAsync(publicKey, cancellationToken).ConfigureAwait(false) is { } package)
+                {
+                    return new UpdateCheckResult(Version.Parse(package.Version) > Version.Parse(BuildInfo.AssemblyVersion),
+                        currentVersion, package.Version, package.Label, package.ReleaseUrl, package.DownloadUrl, null, null, StablePackage: package);
+                }
+            }
             using HttpResponseMessage response = await HttpClient.GetAsync(GitHubReleasesApiUrl, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
@@ -76,23 +90,52 @@ public static class UpdateCheckService
 
             string remoteTag = release.TagName;
             bool isNewer = IsRemoteVersionNewer(currentVersion, remoteTag);
+            if (isNewer && (!IsStableReleaseTag(remoteTag) ||
+                !await IsReleaseOnStableAsync(remoteTag, cancellationToken).ConfigureAwait(false)))
+            {
+                return new UpdateCheckResult(false, currentVersion, null, null, null, null, null, null,
+                    HasError: true, ErrorMessage: "The published release could not be verified against the stable branch.");
+            }
 
             string? setupDownloadUrl = release.Assets?
-                .FirstOrDefault(a => a.Name is not null && (a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || a.Name.EndsWith(".msi", StringComparison.OrdinalIgnoreCase)))
+                .FirstOrDefault(a => IsDownloadForRelease(a.BrowserDownloadUrl, remoteTag))
                 ?.BrowserDownloadUrl ?? release.HtmlUrl;
 
+            // Unsigned community releases use an explicit browser download, never an unverified auto-install.
+            string? signer = ProtectionServiceManager.RegisteredSignerThumbprint;
+            if (string.IsNullOrWhiteSpace(signer) || !Regex.IsMatch(signer, "^[a-fA-F0-9]{40}$"))
+                setupDownloadUrl = release.HtmlUrl;
+            if (!IsOfficialReleaseUrl(setupDownloadUrl)) setupDownloadUrl = "https://github.com/Rel0adediso/Kvieta-app/releases/latest";
             return new UpdateCheckResult(
                 IsUpdateAvailable: isNewer,
                 CurrentVersion: currentVersion,
                 LatestVersion: CleanVersionString(remoteTag),
                 ReleaseName: release.Name ?? remoteTag,
-                ReleaseUrl: release.HtmlUrl ?? "https://github.com/Rel0adediso/Kvieta-app/releases/latest",
+                ReleaseUrl: IsOfficialReleaseUrl(release.HtmlUrl) ? release.HtmlUrl : "https://github.com/Rel0adediso/Kvieta-app/releases/latest",
                 DownloadUrl: setupDownloadUrl,
                 ReleaseNotes: release.Body,
                 PublishedAt: release.PublishedAt);
         }
         catch (Exception ex)
         {
+            if (!cancellationToken.IsCancellationRequested && ProtectionServiceManager.RegisteredPackageKind == "community" &&
+                BuildInfo.StablePublicKey is { Length: > 0 } publicKey &&
+                (ex is HttpRequestException { StatusCode: null or >= System.Net.HttpStatusCode.InternalServerError } || ex is TaskCanceledException))
+            {
+                try
+                {
+                    var prepared = await Task.Run(() => StableUpdatePackage.FindPreparedAsync(StableSetupCache.DirectoryPath, publicKey,
+                        Version.Parse(BuildInfo.AssemblyVersion), cancellationToken), cancellationToken).ConfigureAwait(false);
+                    if (prepared is { } cached)
+                    {
+                        var package = cached.Package;
+                        return new UpdateCheckResult(true, currentVersion, package.Version, package.Label, package.ReleaseUrl,
+                            package.DownloadUrl, null, null, HasError: true, ErrorMessage: ex.Message,
+                            StablePackage: package, PreparedInstallerPath: cached.InstallerPath);
+                    }
+                }
+                catch (Exception cacheError) when (cacheError is IOException or UnauthorizedAccessException or OperationCanceledException) { }
+            }
             return new UpdateCheckResult(
                 IsUpdateAvailable: false,
                 CurrentVersion: currentVersion,
@@ -107,12 +150,50 @@ public static class UpdateCheckService
         }
     }
 
+    public static bool IsStableReleaseTag(string? tag) => tag is not null &&
+        Regex.IsMatch(tag, @"^v?[0-9]+\.[0-9]+\.[0-9]+\z", RegexOptions.CultureInvariant);
+
+    public static bool IsStableBranchComparison(string? status, int behindBy) =>
+        behindBy == 0 && status is "ahead" or "identical";
+
+    private static async Task<bool> IsReleaseOnStableAsync(string tag, CancellationToken cancellationToken)
+    {
+        // Resolve the actual tag and branch separately. The release's target_commitish
+        // is not necessarily the commit to which an existing tag points.
+        Task<string?> tagCommit = ReadCommitShaAsync("tags/" + Uri.EscapeDataString(tag), cancellationToken);
+        Task<string?> stableCommit = ReadCommitShaAsync("heads/stable", cancellationToken);
+        await Task.WhenAll(tagCommit, stableCommit).ConfigureAwait(false);
+        string? releaseSha = await tagCommit.ConfigureAwait(false);
+        string? stableSha = await stableCommit.ConfigureAwait(false);
+        if (releaseSha is null || stableSha is null) return false;
+        if (string.Equals(releaseSha, stableSha, StringComparison.OrdinalIgnoreCase)) return true;
+
+        using HttpResponseMessage response = await HttpClient.GetAsync(
+            $"{GitHubRepositoryApiUrl}/compare/{releaseSha}...{stableSha}?per_page=1", cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode) return false;
+        using JsonDocument comparison = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+        JsonElement root = comparison.RootElement;
+        return root.TryGetProperty("status", out JsonElement status) &&
+            root.TryGetProperty("behind_by", out JsonElement behind) && behind.TryGetInt32(out int behindBy) &&
+            IsStableBranchComparison(status.GetString(), behindBy);
+    }
+
+    private static async Task<string?> ReadCommitShaAsync(string reference, CancellationToken cancellationToken)
+    {
+        using HttpRequestMessage request = new(HttpMethod.Get, $"{GitHubRepositoryApiUrl}/commits/{reference}");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.sha"));
+        using HttpResponseMessage response = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode) return null;
+        string sha = (await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)).Trim();
+        return Regex.IsMatch(sha, "^[0-9a-fA-F]{40}$") ? sha : null;
+    }
+
     public static async Task<string?> DownloadUpdateAsync(
         string downloadUrl,
         IProgress<double>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(downloadUrl) || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri))
+        if (!IsOfficialDownloadUrl(downloadUrl) || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri))
         {
             return null;
         }
@@ -132,53 +213,52 @@ public static class UpdateCheckService
         }
 
         string targetPath = Path.Combine(updatesDirectory, rawFileName);
-        string tempPath = targetPath + ".downloading";
+        string tempPath = Path.Combine(updatesDirectory,
+            $"{Guid.NewGuid():N}.downloading{Path.GetExtension(rawFileName)}");
 
         try
         {
+            using CancellationTokenSource downloadTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            downloadTimeout.CancelAfter(TimeSpan.FromMinutes(15));
+            CancellationToken downloadToken = downloadTimeout.Token;
             using HttpResponseMessage response = await HttpClient.GetAsync(
                 downloadUrl,
                 HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken).ConfigureAwait(false);
+                downloadToken).ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
             long? totalBytes = response.Content.Headers.ContentLength;
+            const long maximumBytes = 256L * 1024 * 1024;
+            if (totalBytes > maximumBytes) throw new InvalidDataException("Update exceeds the download size limit.");
 
-            using (Stream sourceStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
-            using (FileStream targetStream = new(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            using (Stream sourceStream = await response.Content.ReadAsStreamAsync(downloadToken).ConfigureAwait(false))
+            using (FileStream targetStream = new(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
             {
                 byte[] buffer = new byte[81920];
                 long totalRead = 0;
                 int bytesRead;
 
-                while ((bytesRead = await sourceStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                while ((bytesRead = await sourceStream.ReadAsync(buffer, downloadToken).ConfigureAwait(false)) > 0)
                 {
-                    await targetStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
                     totalRead += bytesRead;
+                    if (totalRead > maximumBytes) throw new InvalidDataException("Update exceeds the download size limit.");
+                    await targetStream.WriteAsync(buffer.AsMemory(0, bytesRead), downloadToken).ConfigureAwait(false);
 
                     if (totalBytes is > 0)
                     {
                         progress?.Report((double)totalRead / totalBytes.Value * 100.0);
                     }
                 }
+                if (totalRead == 0 || (totalBytes.HasValue && totalRead != totalBytes.Value))
+                    throw new InvalidDataException("The update download is incomplete.");
             }
 
-            if (File.Exists(targetPath))
+            if (!IsExpectedPublisher(tempPath))
             {
-                File.Delete(targetPath);
-            }
-            File.Move(tempPath, targetPath);
-
-            // Authenticode verification
-            if (!BuildInfo.IsDevelopmentBuild)
-            {
-                if (!AuthenticodeTrustVerifier.IsTrusted(targetPath))
-                {
-                    try { File.Delete(targetPath); } catch { }
-                    throw new InvalidOperationException("Downloaded update failed Authenticode signature verification.");
-                }
+                throw new InvalidOperationException("The update publisher could not be verified against the installed certificate. Check the official release notes for publisher or certificate changes before proceeding.");
             }
 
+            File.Move(tempPath, targetPath, overwrite: true);
             return targetPath;
         }
         catch
@@ -188,7 +268,27 @@ public static class UpdateCheckService
         }
     }
 
-    public static bool ApplyUpdate(string installerPath)
+    public static async Task<string> DownloadStableAsync(StableUpdatePackage package, IProgress<double> progress)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(15));
+        return await Task.Run(() => package.StageAsync(HttpClient, StableSetupCache.DirectoryPath, progress, timeout.Token), timeout.Token).ConfigureAwait(false);
+    }
+
+    internal static async Task<StableUpdatePackage?> ReadStablePackageAsync(string publicKey, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(15));
+        using var feed = await HttpClient.GetAsync(StableUpdatePackage.FeedUrl, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
+        if (feed.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        feed.EnsureSuccessStatusCode();
+        await feed.Content.LoadIntoBufferAsync(1024 * 1024, timeout.Token).ConfigureAwait(false);
+        return StableUpdatePackage.Verify(await feed.Content.ReadAsByteArrayAsync(timeout.Token).ConfigureAwait(false), publicKey);
+    }
+
+    internal static Task<string> StageStartupUpdateAsync(StableUpdatePackage package, CancellationToken token) =>
+        package.StageAsync(HttpClient, StartupUpdate.CacheDirectory, null, token);
+
+    public static bool ApplyUpdate(string installerPath, StableUpdatePackage? stablePackage = null)
     {
         if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
         {
@@ -197,6 +297,21 @@ public static class UpdateCheckService
 
         try
         {
+            using var lockedPackage = File.OpenRead(installerPath);
+            if (stablePackage != null)
+            {
+                if (ProtectionServiceManager.RegisteredPackageKind != "community" ||
+                    BuildInfo.StablePublicKey is not { Length: > 0 } publicKey ||
+                    !stablePackage.CanApplySetup(lockedPackage, publicKey, Version.Parse(BuildInfo.AssemblyVersion), BuildInfo.GuardianRevision))
+                    return false;
+
+                File.WriteAllText(installerPath + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
+                var setup = new ProcessStartInfo(installerPath) { UseShellExecute = true };
+                setup.ArgumentList.Add("--apply-stable-update");
+                using var installation = Process.Start(setup);
+                return installation != null;
+            }
+            if (!IsExpectedPublisher(installerPath)) return false;
             var startInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = installerPath,
@@ -205,12 +320,14 @@ public static class UpdateCheckService
 
             if (installerPath.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
             {
-                startInfo.FileName = "msiexec.exe";
-                startInfo.Arguments = $"/i \"{installerPath}\" /passive";
+                startInfo.FileName = Path.Combine(Environment.SystemDirectory, "msiexec.exe");
+                startInfo.ArgumentList.Add("/i");
+                startInfo.ArgumentList.Add(installerPath);
+                startInfo.ArgumentList.Add("/passive");
             }
             else
             {
-                startInfo.Arguments = "--elevated-install";
+                startInfo.Arguments = string.Empty;
             }
 
             System.Diagnostics.Process.Start(startInfo);
@@ -226,29 +343,40 @@ public static class UpdateCheckService
         }
     }
 
-    public static bool IsRemoteVersionNewer(string currentVersion, string remoteTag)
+    public static bool IsRemoteVersionNewer(string currentVersion, string remoteTag) => ReleaseVersion.IsNewer(currentVersion, remoteTag);
+
+    public static bool IsOfficialReleaseUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) &&
+        uri.Scheme == "https" && uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) && uri.IsDefaultPort &&
+        string.IsNullOrEmpty(uri.UserInfo) && uri.AbsolutePath.StartsWith("/Rel0adediso/Kvieta-app/releases/", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsOfficialDownloadUrl(string? value) => IsOfficialReleaseUrl(value) &&
+        new Uri(value!).AbsolutePath.StartsWith("/Rel0adediso/Kvieta-app/releases/download/", StringComparison.OrdinalIgnoreCase) &&
+        (value!.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || value.EndsWith(".msi", StringComparison.OrdinalIgnoreCase));
+
+    public static bool IsDownloadForRelease(string? value, string tag)
     {
-        if (string.IsNullOrWhiteSpace(remoteTag))
+        if (!IsStableReleaseTag(tag) || !IsOfficialDownloadUrl(value)) return false;
+        Uri uri = new(value!);
+        string prefix = $"/Rel0adediso/Kvieta-app/releases/download/{tag}/";
+        if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal) ||
+            !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) return false;
+
+        string fileName = Uri.UnescapeDataString(uri.AbsolutePath[prefix.Length..]);
+        return Regex.IsMatch(fileName, @"^[A-Za-z0-9][A-Za-z0-9._-]*\.(exe|msi)\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    private static bool IsExpectedPublisher(string path)
+    {
+        string? pinned = ProtectionServiceManager.RegisteredSignerThumbprint;
+        if (string.IsNullOrWhiteSpace(pinned) || !Regex.IsMatch(pinned, "^[a-fA-F0-9]{40}$") || !AuthenticodeTrustVerifier.IsTrusted(path)) return false;
+        try
         {
-            return false;
+#pragma warning disable SYSLIB0057
+            using X509Certificate2 signer = new(X509Certificate.CreateFromSignedFile(path));
+#pragma warning restore SYSLIB0057
+            return pinned.Equals(signer.Thumbprint, StringComparison.OrdinalIgnoreCase);
         }
-
-        string curClean = CleanVersionString(currentVersion);
-        string remClean = CleanVersionString(remoteTag);
-
-        if (string.Equals(curClean, remClean, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (Version.TryParse(curClean, out Version? curVer) && Version.TryParse(remClean, out Version? remVer))
-        {
-            return remVer > curVer;
-        }
-
-        double curNum = ExtractNumericValue(curClean);
-        double remNum = ExtractNumericValue(remClean);
-        return remNum > curNum;
+        catch { return false; }
     }
 
     private static string CleanVersionString(string input)

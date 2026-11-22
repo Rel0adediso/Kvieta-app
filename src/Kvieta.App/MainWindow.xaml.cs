@@ -177,6 +177,7 @@ public partial class MainWindow : Window
         ResetSettingsScrollPosition();
         _overviewTimer.Start();
         _isInitializing = false;
+        await LoadWhatsNewAsync();
         await ShowFirstRunGuideAsync();
         if (!IsVisible) return;
         if (_openManagerDeviceOnLoad)
@@ -1866,9 +1867,21 @@ public partial class MainWindow : Window
                 return;
             }
 
-            SessionSurfaceWindow sessionWindow = new();
+            SessionSurfaceWindow sessionWindow = new(
+                isDirectSession: true,
+                requirePinToExit: _viewModel.IsFamilyMode,
+                returnToControlCenter: true);
+            _backgroundSessionWindow = sessionWindow;
+            _ownsBackgroundSessionWindow = true;
+            AttachSessionEvents();
             sessionWindow.Closed += async (_, _) =>
             {
+                if (_backgroundSessionWindow == sessionWindow)
+                {
+                    _backgroundSessionWindow = null;
+                    _ownsBackgroundSessionWindow = false;
+                    _sessionEventsAttached = false;
+                }
                 ShowInTaskbar = true;
                 Show();
                 Activate();

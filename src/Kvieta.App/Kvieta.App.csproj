@@ -21,8 +21,8 @@
     <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
     <DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants);KVIETA_DEVELOPMENT_BUILD</DefineConstants>
     <DefineConstants Condition="'$(Configuration)' == 'Release'">$(DefineConstants);KVIETA_PUBLIC_BUILD</DefineConstants>
-    <InformationalVersion Condition="'$(Configuration)' == 'Debug'">$(Version)+development</InformationalVersion>
-    <InformationalVersion Condition="'$(Configuration)' == 'Release'">$(Version)+public</InformationalVersion>
+    <InformationalVersion Condition="'$(Configuration)' == 'Debug'">$(KvietaReleaseLabel)+development</InformationalVersion>
+    <InformationalVersion Condition="'$(Configuration)' == 'Release'">$(KvietaReleaseLabel)+public</InformationalVersion>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -30,13 +30,21 @@
     <Page Remove="Controls/TimeWheelPicker.xaml" />
     <ProjectReference Include="../Kvieta.Controls/Kvieta.Controls.csproj" />
     <ProjectReference Include="../Kvieta.Core/Kvieta.Core.csproj" />
+    <ProjectReference Include="../Kvieta.Presentation/Kvieta.Presentation.csproj" />
+    <Compile Remove="ViewModels/ObservableObject.cs;ViewModels/UsageHistoryRows.cs;ViewModels/ApplicationUsageOverviewBuilder.cs" />
+    <Compile Remove="Services/ApplicationIconProvider.cs;Services/LocalizationService.cs;Services/SystemThemeService.cs" />
+    <Page Remove="Localization/*.xaml;Themes/*.xaml" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
     <PackageReference Include="System.Management" Version="10.0.0" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
     <AssemblyMetadata Include="RepositoryCommit" Value="$(RepositoryCommit)" Condition="'$(RepositoryCommit)' != ''" />
+    <AssemblyMetadata Include="KvietaStablePublicKey" Value="$(KvietaStablePublicKey)" Condition="'$(KvietaStablePublicKey)' != ''" />
+    <AssemblyMetadata Include="KvietaGuardianRevision" Value="$(KvietaGuardianRevision)" />
     <AssemblyMetadata Include="RepositoryDirty" Value="$(RepositoryDirty)" Condition="'$(RepositoryDirty)' != ''" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="../../companion-web/dist/companion.js" LogicalName="Kvieta.Companion.js" />
+    <Compile Remove="Services/ReleaseNotesCatalog.cs;WhatsNewWindow.xaml.cs" />
+    <Page Remove="WhatsNewWindow.xaml" />
   </ItemGroup>
 </Project>

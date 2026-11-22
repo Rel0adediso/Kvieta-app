@@ -2,13 +2,13 @@ name: Quality gates
 
 on:
   push:
-    branches: [main]
+    branches: [main, stable]
   pull_request:
   workflow_dispatch:
 
 concurrency:
   group: quality-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/stable' }}
 
 permissions:
   contents: read
@@ -18,10 +18,26 @@ jobs:
     name: Build and test
     runs-on: windows-latest
     timeout-minutes: 25
+    outputs:
+      installer_version: ${{ steps.metadata.outputs.installer_version }}
+      release_label: ${{ steps.metadata.outputs.release_label }}
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Read release metadata
+        id: metadata
+        shell: pwsh
+        run: |
+          [xml]$metadata = Get-Content -Raw Directory.Build.props
+          $version = [string]$metadata.Project.PropertyGroup.Version
+          $label = [string]$metadata.Project.PropertyGroup.KvietaReleaseLabel
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $label -notmatch '^v\d+\.\d+\.\d+$') {
+            throw 'Installer version and release label must be explicitly defined in Directory.Build.props.'
+          }
+          "installer_version=$version" >> $env:GITHUB_OUTPUT
+          "release_label=$label" >> $env:GITHUB_OUTPUT
 
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
@@ -42,6 +58,10 @@ jobs:
       - name: Verify documentation consistency
         shell: pwsh
         run: ./scripts/verify-documentation.ps1
+
+      - name: Verify stable feed advancement
+        shell: pwsh
+        run: ./tests/stable-feed-advance.tests.ps1
 
       - name: Build Debug
         shell: pwsh
@@ -65,29 +85,134 @@ jobs:
 
       - name: Publish public single-file executable
         shell: pwsh
+        env:
+          INSTALLER_VERSION: ${{ steps.metadata.outputs.installer_version }}
         run: |
           dotnet publish src/Kvieta.App/Kvieta.App.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
             --no-restore `
-            -p:Version=1.0.0 `
+            -p:Version=$env:INSTALLER_VERSION `
             -p:PublishSingleFile=true `
             -p:PublishDir='${{ runner.temp }}\kvieta-public\'
 
       - name: Verify public publish output
         shell: pwsh
-        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\kvieta-public' -ExpectedVersion 1.0.0
+        env:
+          INSTALLER_VERSION: ${{ steps.metadata.outputs.installer_version }}
+          RELEASE_LABEL: ${{ steps.metadata.outputs.release_label }}
+        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\kvieta-public' -ExpectedVersion $env:INSTALLER_VERSION -ExpectedReleaseLabel $env:RELEASE_LABEL
+
+  desktop-update-check:
+    name: Test desktop delta and signed update
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Package two isolated test builds and verify update
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:RUNNER_TEMP 'kvieta-desktop-tools'
+          $output = Join-Path $env:RUNNER_TEMP 'kvieta-desktop-update-check'
+          dotnet tool install vpk --tool-path $tools --version 1.2.161
+          if ($LASTEXITCODE -ne 0) { throw 'Velopack tool installation failed.' }
+          $rsa = [Security.Cryptography.RSA]::Create(2048)
+          try {
+            $env:KVIETA_DESKTOP_PUBLIC_KEY = [Convert]::ToBase64String($rsa.ExportSubjectPublicKeyInfo())
+            $env:KVIETA_DESKTOP_PRIVATE_KEY = [Convert]::ToBase64String($rsa.ExportPkcs8PrivateKey())
+            foreach ($version in @('7.0.41', '7.0.42')) {
+              ./scripts/build-desktop-update.ps1 -Version $version -Vpk (Join-Path $tools 'vpk.exe') -OutputDirectory $output -FrameworkDependent
+            }
+            $full = Get-ChildItem $output -Filter '*7.0.42*full.nupkg' | Select-Object -First 1
+            if (-not $full) { throw 'The full desktop test package is missing.' }
+            $extract = Join-Path $env:RUNNER_TEMP 'kvieta-desktop-full-ui-check'
+            [IO.Compression.ZipFile]::ExtractToDirectory($full.FullName, $extract)
+            $probe = Start-Process -FilePath (Join-Path $extract 'lib/app/Kvieta.Desktop.exe') `
+              -ArgumentList '--verify-control-center-ui' -WindowStyle Hidden -Wait -PassThru
+            if ($probe.ExitCode -ne 0) { throw 'The real control center did not load from the desktop package.' }
+            $updater = (Get-ChildItem $tools -Recurse -Filter Update.exe | Select-Object -First 1).FullName
+            dotnet run --project tests/Kvieta.Desktop.SmokeTests -c Release -- $output $updater
+            if ($LASTEXITCODE -ne 0) { throw 'Desktop update checks failed.' }
+            foreach ($version in @('7.0.43', '7.0.44')) {
+              ./scripts/build-desktop-update.ps1 -Version $version -Vpk (Join-Path $tools 'vpk.exe') -OutputDirectory $output -FrameworkDependent
+            }
+            $envelope = Get-Content (Join-Path $output 'desktop.json') -Raw | ConvertFrom-Json
+            $payload = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($envelope.Payload)) | ConvertFrom-Json
+            $versions = @($payload.Assets.Version | Sort-Object -Unique)
+            if (($versions -join ',') -ne '7.0.42,7.0.43,7.0.44') { throw 'Desktop feed did not retain the latest three releases.' }
+          } finally {
+            $rsa.Dispose()
+            Remove-Item Env:KVIETA_DESKTOP_PUBLIC_KEY -ErrorAction SilentlyContinue
+            Remove-Item Env:KVIETA_DESKTOP_PRIVATE_KEY -ErrorAction SilentlyContinue
+          }
+
+  installed-upgrade-check:
+    name: Test installed Family upgrade
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build and install two Setup packages
+        shell: pwsh
+        run: |
+          $key = [Security.Cryptography.RSA]::Create(2048)
+          try {
+            $env:KvietaStablePublicKey = [Convert]::ToBase64String($key.ExportSubjectPublicKeyInfo())
+            $env:KVIETA_STABLE_PRIVATE_KEY = [Convert]::ToBase64String($key.ExportPkcs8PrivateKey())
+            ./scripts/build-test-installer.ps1 -Version 7.0.41 -ReleaseLabel v1.0.41 -CommunityRelease -StableBuild
+            ./scripts/build-test-installer.ps1 -Version 7.0.42 -ReleaseLabel v1.0.42 -CommunityRelease -StableBuild
+            $next = 'artifacts/installer-community/7.0.42/Kvieta-Setup-v1.0.42.exe'
+            $feed = Join-Path $env:RUNNER_TEMP 'kvieta-signed-fixture.json'
+            ./scripts/write-stable-feed.ps1 -Setup $next -Version 7.0.42 -Label v1.0.42 -OutputPath $feed
+            ./tests/stable-upgrade.tests.ps1 `
+              -PreviousSetup artifacts/installer-community/7.0.41/Kvieta-Setup-v1.0.41.exe `
+              -NextSetup $next -NextFeed $feed -ExpectedVersion 7.0.42
+          } finally {
+            $key.Dispose()
+            Remove-Item Env:KvietaStablePublicKey,Env:KVIETA_STABLE_PRIVATE_KEY -ErrorAction SilentlyContinue
+          }
+      - name: Upload Windows setup logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installed-upgrade-logs
+          path: C:/ProgramData/Kvieta/SetupLogs/
 
   package:
-    name: Package community alpha installer
+    name: Package community installer
     runs-on: windows-latest
-    needs: validate
+    needs: [validate, desktop-update-check, installed-upgrade-check]
     timeout-minutes: 25
+    env:
+      KvietaStablePublicKey: ${{ vars.KVIETA_STABLE_PUBLIC_KEY }}
+      INSTALLER_VERSION: ${{ needs.validate.outputs.installer_version }}
+      RELEASE_LABEL: ${{ needs.validate.outputs.release_label }}
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Require a stable update verification key
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:KvietaStablePublicKey)) {
+            throw 'Stable updates cannot be published: configure KVIETA_STABLE_PUBLIC_KEY before building the stable branch.'
+          }
+          $key = [Security.Cryptography.RSA]::Create()
+          try {
+            $bytes = [Convert]::FromBase64String($env:KvietaStablePublicKey)
+            $read = 0
+            $key.ImportSubjectPublicKeyInfo($bytes, [ref]$read)
+            if ($read -ne $bytes.Length -or $key.KeySize -lt 2048) { throw 'Invalid RSA public key.' }
+          } finally { $key.Dispose() }
 
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
@@ -99,20 +224,96 @@ jobs:
 
       - name: Build community installer
         shell: pwsh
-        run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel v1.0.0 -CommunityRelease
+        run: |
+          $stable = $env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -eq 'refs/heads/stable'
+          ./scripts/build-test-installer.ps1 -Version $env:INSTALLER_VERSION -ReleaseLabel $env:RELEASE_LABEL -CommunityRelease -StableBuild:$stable
 
       - name: Verify package manifest
         shell: pwsh
         run: |
           ./scripts/verify-release-manifest.ps1 `
-            -ManifestPath './artifacts/installer-community/1.0.0/release-manifest.json' `
+            -ManifestPath "./artifacts/installer-community/$env:INSTALLER_VERSION/release-manifest.json" `
             -ExpectedCommit '${{ github.sha }}' `
             -ExpectedPackageKind community
 
       - name: Upload test package
         uses: actions/upload-artifact@v4
         with:
-          name: Kvieta-v1.0.0-community
-          path: artifacts/installer-community/1.0.0/
+          name: Kvieta-${{ needs.validate.outputs.release_label }}-community
+          path: artifacts/installer-community/${{ needs.validate.outputs.installer_version }}/
           if-no-files-found: error
           retention-days: 7
+
+  publish-stable:
+    name: Publish verified stable update
+    if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+    needs: [validate, package]
+    runs-on: windows-latest
+    environment: stable-updates
+    permissions:
+      contents: write
+    env:
+      INSTALLER_VERSION: ${{ needs.validate.outputs.installer_version }}
+      RELEASE_LABEL: ${{ needs.validate.outputs.release_label }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Kvieta-${{ needs.validate.outputs.release_label }}-community
+          path: package
+      - name: Check package before signing
+        shell: pwsh
+        run: ./scripts/verify-release-manifest.ps1 -ManifestPath package/release-manifest.json -ExpectedCommit $env:GITHUB_SHA -ExpectedPackageKind community
+      - name: Sign stable feed
+        shell: pwsh
+        env:
+          KvietaStablePublicKey: ${{ vars.KVIETA_STABLE_PUBLIC_KEY }}
+          KVIETA_STABLE_PRIVATE_KEY: ${{ secrets.KVIETA_STABLE_PRIVATE_KEY }}
+        run: ./scripts/write-stable-feed.ps1 -Setup "package/Kvieta-Setup-$env:RELEASE_LABEL.exe" -Version $env:INSTALLER_VERSION -Label $env:RELEASE_LABEL -OutputPath "$env:RUNNER_TEMP/stable.json"
+      - name: Publish package and advance feed
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KvietaStablePublicKey: ${{ vars.KVIETA_STABLE_PUBLIC_KEY }}
+        run: |
+          $repo = "repos/$env:GITHUB_REPOSITORY"
+          $tip = gh api "$repo/git/ref/heads/stable" --jq .object.sha
+          if ($LASTEXITCODE -ne 0 -or $tip -ne $env:GITHUB_SHA) { throw 'This commit is no longer the stable tip.' }
+          $tag = "stable-$env:INSTALLER_VERSION"
+          $setup = "package/Kvieta-Setup-$env:RELEASE_LABEL.exe"
+          gh release view $tag --json tagName 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            gh release download $tag --pattern ([IO.Path]::GetFileName($setup)) --dir "$env:RUNNER_TEMP/published"
+            if ($LASTEXITCODE -ne 0 -or (Get-FileHash $setup).Hash -ne (Get-FileHash "$env:RUNNER_TEMP/published/$([IO.Path]::GetFileName($setup))").Hash) {
+              throw 'A different setup already exists for this build.'
+            }
+          } else {
+            gh release create $tag $setup "$setup.sha256" --target $env:GITHUB_SHA --title "$env:RELEASE_LABEL (build $env:INSTALLER_VERSION)" --prerelease --latest=false --notes "Kvieta stable update"
+            if ($LASTEXITCODE -ne 0) { throw 'Could not publish stable package.' }
+          }
+          gh api "$repo/git/ref/heads/stable-feed" --silent 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh api "$repo/git/refs" -f ref=refs/heads/stable-feed -f sha=$env:GITHUB_SHA --silent
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create stable-feed branch.' }
+          }
+          $existing = gh api "$repo/contents/stable.json?ref=stable-feed" 2>$null
+          $existingFeed = $LASTEXITCODE -eq 0
+          $sha = $null
+          if ($existingFeed) {
+            $entry = $existing | ConvertFrom-Json
+            $sha = $entry.sha
+            $previousEnvelope = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($entry.content))
+            ./scripts/assert-stable-feed-advance.ps1 -PreviousEnvelope $previousEnvelope `
+              -NextEnvelope (Get-Content "$env:RUNNER_TEMP/stable.json" -Raw) `
+              -PublicKey $env:KvietaStablePublicKey -ExpectedVersion $env:INSTALLER_VERSION
+          }
+          $tip = gh api "$repo/git/ref/heads/stable" --jq .object.sha
+          if ($LASTEXITCODE -ne 0 -or $tip -ne $env:GITHUB_SHA) { throw 'This commit is no longer the stable tip.' }
+          $content = [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:RUNNER_TEMP/stable.json"))
+          # Pass the JSON body on stdin so block maps cannot exceed Windows command line limits.
+          $body = @{ branch='stable-feed'; message="Publish $tag"; content=$content }
+          if ($existingFeed) { $body.sha = $sha }
+          $body | ConvertTo-Json -Compress | gh api --method PUT "$repo/contents/stable.json" --input - --silent
+          if ($LASTEXITCODE -ne 0) { throw 'Could not advance stable update feed.' }

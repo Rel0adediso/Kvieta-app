@@ -31,6 +31,18 @@ if (args.Contains("--phone-window-checks", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--whats-new-window-check", StringComparer.Ordinal))
+{
+    WhatsNewChecks.RunUi();
+    return;
+}
+
+if (args.Contains("--local-timeout-checks", StringComparer.Ordinal))
+{
+    await LocalNetworkTimeoutChecks.RunAsync();
+    return;
+}
+
 if (args.Contains("--companion-preview", StringComparer.Ordinal))
 {
     await using LocalManagerDeviceEnrollmentEndpoint previewEndpoint =
@@ -68,10 +80,13 @@ if (args.Length == 2 && args[0] == "--dashboard-interop")
     return;
 }
 
+await V1RegressionChecks.RunAsync();
+if (args.Contains("--v1-checks", StringComparer.Ordinal)) return;
 MobileTimeRequestChecks.Run();
 if (args.Contains("--mobile-time-checks", StringComparer.Ordinal)) return;
 await DashboardEndpointChecks.RunAsync();
 if (args.Contains("--dashboard-checks", StringComparer.Ordinal)) return;
+await LocalNetworkTimeoutChecks.RunAsync();
 
 ControlSettings settings = new();
 #if KVIETA_DEVELOPMENT_BUILD

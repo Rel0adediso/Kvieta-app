@@ -113,7 +113,7 @@ public sealed class AppUsageHistoryRow : ObservableObject
     public bool HasFallbackIcon => Icon is null;
     public string CategoryLabel => LocalizationService.Get(ApplicationCategoryKey(Name));
 
-    internal static string ApplicationCategoryKey(string name)
+    public static string ApplicationCategoryKey(string name)
     {
         string app = Path.GetFileNameWithoutExtension(name).ToLowerInvariant();
         if (new[] { "browser", "chrome", "msedge", "firefox", "opera", "brave", "vivaldi" }.Any(app.Contains))
@@ -176,7 +176,7 @@ public sealed class UsageHistoryEventRow
     };
 }
 
-internal static class UsageHistoryFormatting
+public static class UsageHistoryFormatting
 {
     public static string FormatDuration(long seconds)
     {

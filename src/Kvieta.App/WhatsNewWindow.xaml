@@ -1,0 +1,54 @@
+<Window x:Class="Kvieta.App.WhatsNewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource WhatsNewTitle}" Width="560" Height="520" MinWidth="380" MinHeight="310"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+        Background="{DynamicResource BackgroundBrush}" Foreground="{DynamicResource TextBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock Text="{DynamicResource WhatsNewTitle}" FontSize="26" FontWeight="SemiBold"/>
+            <TextBlock x:Name="VersionRange" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <TextBlock x:Name="NoNotes" Text="{DynamicResource WhatsNewNoNotes}" Visibility="Collapsed"
+                           Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap"/>
+                <ItemsControl x:Name="ReleaseSections">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="12" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1" Padding="16" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Heading}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,9"/>
+                                    <ItemsControl ItemsSource="{Binding Changes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="16"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="•" Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" LineHeight="20"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+        <Button Grid.Row="2" Content="{DynamicResource Done}" HorizontalAlignment="Right" MinWidth="92"
+                Background="{DynamicResource PrimaryBrush}" Foreground="{DynamicResource PrimaryForegroundBrush}"
+                Padding="15,8" BorderThickness="0" Margin="0,16,0,0" IsCancel="True" Click="Done_Click"/>
+    </Grid>
+</Window>

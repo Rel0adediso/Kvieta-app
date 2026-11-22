@@ -8,39 +8,44 @@ public partial class DashboardSharingWindow : Window
 {
     private readonly DashboardEndpoint? _endpoint;
     private readonly Func<Task> _manageRecovery;
+    private readonly Func<RelayCredentials?, Task<bool>> _authorizePolicy;
+    private readonly Func<Task<string?>>? _readGuardianKey;
+    private bool _renewing;
     private static string T(string tr, string en) => LocalizationService.CurrentLanguage == LanguagePreference.English ? en : tr;
 
-    public DashboardSharingWindow(DashboardEndpoint? endpoint, Func<Task> manageRecovery)
+    public DashboardSharingWindow(DashboardEndpoint? endpoint, Func<Task> manageRecovery, Func<RelayCredentials?, Task<bool>>? authorizePolicy = null, Func<Task<string?>>? readGuardianKey = null)
     {
         InitializeComponent();
         _endpoint = endpoint;
         _manageRecovery = manageRecovery;
+        _authorizePolicy = authorizePolicy ?? (_ => Task.FromResult(false));
+        _readGuardianKey = readGuardianKey;
         Heading.Text = T("Kvieta Mobil", "Kvieta Mobile");
         Explanation.Text = T("Bilgisayarındaki günü telefonundan takip et. Kvieta Mobil uygulamasında Bilgisayar bağla → QR kodunu okut'a dokun.",
             "Follow your day from your phone. In Kvieta Mobile, tap Connect computer → Scan computer QR.");
         UsageTitle.Text = T("Kvieta Mobil Bağlantısı", "Kvieta Mobile Connection");
-        UsagePermission.Text = T("Yetki: kullanım özetini görme, uzaktan kilitleme ve ek süre taleplerini yanıtlama. Planı ve PIN'i değiştiremez.", "Permission: view usage summaries, remote lock, and answer extra-time requests. Cannot change the plan or PIN.");
+        UsagePermission.Text = T("Yetki: kullanım özetini görme, uzaktan kilitleme ve ek süre taleplerini yanıtlama. Plan, uygulama ve web kurallarını yönetebilir. PIN kurtarma yetkisi ayrıdır.", "Permission: view usage summaries, remote lock, and answer extra-time requests. Can manage schedules, app rules and web rules. PIN recovery is separate.");
         ManualInvite.Header = T("QR okutamıyorum · Daveti elle gir", "Cannot scan? Enter invitation manually");
         RecoverySection.Header = T("PIN kurtarma yetkisi", "PIN recovery permission");
         RecoveryHint.Text = T("Mevcut güvenilir telefonun burada korunur. Kurtarma, telefon tarayıcısına ayrıca verilen bir yetkidir; Kvieta Mobil bu yetkiyi otomatik almaz.",
             "Your existing trusted phone is preserved here. Recovery is a separate permission held by the phone browser; Kvieta Mobile does not grant it automatically.");
         RecoveryButton.Content = T("Kurtarma telefonunu yönet", "Manage recovery phone");
-        SharingHint.Text = T("Paylaşılanlar: bilgisayar adı, kullanım süreleri, en çok kullanılan uygulamalar, uzaktan kilit durumu ve ek süre talepleri. Kvieta Mobil planı veya PIN'i değiştiremez.",
-            "Shared: computer name, usage totals, most-used applications, remote lock status, and extra-time requests. Kvieta Mobile cannot change your plan or PIN.");
+        SharingHint.Text = T("Paylaşılanlar: bilgisayar adı, kullanım süreleri, en çok kullanılan uygulamalar, uzaktan kilit durumu ve ek süre talepleri. Eşleşmiş telefon plan, uygulama ve web kurallarını yönetebilir.",
+            "Shared: computer name, usage totals, most-used applications, remote lock status, and extra-time requests. The paired phone can manage schedules, app rules and web rules.");
         ApproveButton.Content = T("Kodlar aynı · Onayla", "Codes match · Approve");
         RenewButton.Content = T("Yeni bağlantı oluştur", "Create a new invitation");
         RevokeButton.Content = T("Kvieta Mobil erişimini kaldır", "Revoke Kvieta Mobile access");
         RemoteButton.Content = T("Dışarıdan erişimi aç", "Enable remote access");
         if (_endpoint is not null) _endpoint.Changed += EndpointChanged;
+        UsagePermission.Text += T(" Aile ayarlarını değiştirmek için telefonda yönetici PIN onayı gerekir.", " Family policy changes require administrator PIN approval on the phone.");
         UpdateRecovery();
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e)
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         if (_endpoint is { CanPair: true } && _endpoint.PhoneName is null)
         {
-            try { _endpoint.EnableRemote(); } catch { }
-            Renew();
+            await RenewAsync();
         }
         else Update();
     }
@@ -59,7 +64,8 @@ public partial class DashboardSharingWindow : Window
         if (_endpoint.RemoteEnabled)
             SharingHint.Text = T("Özet yaklaşık her dakika güncellenir; bekleyen süre talepleri daha sık kontrol edilir. Bilgisayar kapalıysa son kayıt gösterilir. Sunucu bir günden eski özeti iletmez.",
                 "Summaries update about once a minute; pending time requests are checked more often. When the computer is off, the last record is shown. The server does not deliver summaries older than a day.");
-        RemoteButton.Visibility = paired && !_endpoint.RemoteEnabled ? Visibility.Visible : Visibility.Collapsed;
+        RemoteButton.Visibility = paired ? Visibility.Visible : Visibility.Collapsed;
+        RemoteButton.Content = T("Telefon yönetimini yetkilendir", "Authorize phone management");
         RemoteHint.Text = !paired ? "" : _endpoint.RemoteEnabled
             ? T("Uzaktan erişim açık. Telefonda aynı Wi-Fi'dayken Özeti yenile'ye bir kez bas. Sonra mobil veriden de bağlanabilirsin. Kvieta çalışırken bu pencere kapalı olsa da özet paylaşılır.",
                 "Remote access enabled. Refresh once on your phone while on the same Wi-Fi. Then mobile data works too. Summaries continue while Kvieta runs, even with this window closed.")
@@ -77,16 +83,21 @@ public partial class DashboardSharingWindow : Window
             : T("Bağlantı geçerli. QR kodunu Kvieta Mobil uygulamasından okut.", "Invitation valid. Scan this QR code using the Kvieta Mobile app.");
         if (!paired && !_endpoint.CanPair) StatusText.Text = T("QR eşleştirmesi için özel bir yerel ağa bağlanıp bu ekranı yeniden aç.", "Connect to a private local network and reopen this screen to pair with QR.");
     }
-    private void Renew()
+    private async Task RenewAsync()
     {
+        if (_renewing) return;
         if (_endpoint is not { CanPair: true }) { Update(); return; }
+        _renewing = true;
+        RenewButton.IsEnabled = RevokeButton.IsEnabled = RemoteButton.IsEnabled = false;
         try
         {
-            if (!_endpoint.RemoteEnabled)
+            string? invitation = await _endpoint.CreateAuthorizedInvitationAsync(_authorizePolicy, _readGuardianKey);
+            if (invitation is null)
             {
-                try { _endpoint.EnableRemote(); } catch { }
+                StatusText.Text = T("Telefon yönetim yetkisi kaydedilemedi. PIN ile yeniden açıp tekrar dene.", "Could not authorize phone management. Reopen with your PIN and retry.");
+                return;
             }
-            InvitationBox.Text = _endpoint.CreateInvitation();
+            InvitationBox.Text = invitation;
             QrImage.Source = QrCodeImageService.Create(InvitationBox.Text);
             Update();
 
@@ -105,11 +116,16 @@ public partial class DashboardSharingWindow : Window
             });
         }
         catch (Exception) { StatusText.Text = T("Davet oluşturulamadı. Tekrar dene.", "Could not create invitation. Try again."); }
+        finally
+        {
+            _renewing = false;
+            RenewButton.IsEnabled = RevokeButton.IsEnabled = RemoteButton.IsEnabled = true;
+        }
     }
-    private void Renew_Click(object sender, RoutedEventArgs e) => Renew();
-    private void Remote_Click(object sender, RoutedEventArgs e)
+    private async void Renew_Click(object sender, RoutedEventArgs e) => await RenewAsync();
+    private async void Remote_Click(object sender, RoutedEventArgs e)
     {
-        try { _endpoint?.EnableRemote(); Update(); }
+        try { _endpoint?.EnableRemote(); if (!await _authorizePolicy(DashboardRelay.Load(DashboardRelay.StorePath)?.Relay)) throw new InvalidOperationException(); Update(); }
         catch (Exception) { StatusText.Text = T("Uzaktan erişim açılamadı.", "Could not enable remote access."); }
     }
     private void Approve_Click(object sender, RoutedEventArgs e)
@@ -124,7 +140,7 @@ public partial class DashboardSharingWindow : Window
     {
         if (System.Windows.MessageBox.Show(this, T("Kvieta Mobil uygulamasının bu bilgisayara erişimi kaldırılacak. PIN kurtarma yetkisi etkilenmez.",
             "Remove Kvieta Mobile access for this computer? PIN recovery is unaffected."), T("Kvieta Mobil erişimini kaldır", "Revoke Kvieta Mobile access"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
-        try { _endpoint?.Revoke(); Renew(); }
+        try { _endpoint?.Revoke(); if (!await _authorizePolicy(null)) throw new InvalidOperationException("Could not revoke phone policy authority."); await RenewAsync(); }
         catch (Exception)
         {
             StatusText.Text = T("Erişim kaydı güncellenemedi. Paylaşımı durdurmak için Kvieta'yı kapat.", "Could not update access. Close Kvieta to stop sharing.");

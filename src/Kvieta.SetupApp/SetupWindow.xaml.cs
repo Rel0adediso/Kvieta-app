@@ -35,10 +35,14 @@ public partial class SetupWindow : Window
     private bool _languageChosen;
     private bool _pinVisible;
     private bool _pinRepeatVisible;
+    private readonly bool _applyStableUpdate;
+    private bool CanApplyPreservingUpdate => _packageAction == SetupPackageAction.Update &&
+        ReadInstallerValue("PackageKind") as string == "community";
     private WizardPage _page = WizardPage.Language;
 
-    public SetupWindow()
+    public SetupWindow(bool applyStableUpdate = false)
     {
+        _applyStableUpdate = applyStableUpdate;
         InitializeComponent();
         ScheduleDaysControl.ItemsSource = _plan.Schedule;
     }
@@ -70,6 +74,14 @@ public partial class SetupWindow : Window
         }
         _packageAction = SetupPlan.DeterminePackageAction(_installedVersion, _packageVersion);
         _openedForExistingInstallation = _installedVersion is not null;
+        if (_applyStableUpdate && !CanApplyPreservingUpdate)
+        {
+            MessageBox.Show(this,
+                "Bu güncelleme kurulu Kvieta sürümüne uygulanamıyor.\nThis update cannot be applied to the installed version of Kvieta.",
+                "Kvieta");
+            Close();
+            return;
+        }
 
         try
         {
@@ -86,8 +98,13 @@ public partial class SetupWindow : Window
             else
             {
                 bool settingsFileExists = File.Exists(_settingsStore.FilePath);
-                _existingSettings = await _settingsStore.LoadAsync();
-                _hasExistingSettings = settingsFileExists && _existingSettings.SetupCompleted;
+                if (CanApplyPreservingUpdate)
+                    _existingSettings = settingsFileExists
+                        ? await new JsonSettingsStore(_settingsStore.FilePath, readOnly: true).LoadAsync()
+                        : null;
+                else
+                    _existingSettings = await _settingsStore.LoadAsync();
+                _hasExistingSettings = settingsFileExists && _existingSettings?.SetupCompleted == true;
             }
         }
         catch
@@ -106,6 +123,8 @@ public partial class SetupWindow : Window
             _languageChosen = true;
             _hasExistingSettings = true;
             ShowPage(WizardPage.Existing);
+            if (_applyStableUpdate)
+                await ApplyExistingUpdateAsync();
         }
         else
         {
@@ -203,7 +222,10 @@ public partial class SetupWindow : Window
         _plan.ExistingChoice = SetupChoice.KeepExisting;
         if (_openedForExistingInstallation)
         {
-            await InstallAsync();
+            if (CanApplyPreservingUpdate)
+                await ApplyExistingUpdateAsync();
+            else
+                await InstallAsync();
             return;
         }
 
@@ -589,7 +611,55 @@ public partial class SetupWindow : Window
 
     private async void Install_Click(object sender, RoutedEventArgs e) => await InstallAsync();
     private void ErrorBack_Click(object sender, RoutedEventArgs e) => ShowPage(WizardPage.Summary);
-    private async void Retry_Click(object sender, RoutedEventArgs e) => await InstallAsync();
+    private async void Retry_Click(object sender, RoutedEventArgs e)
+    {
+        if (_plan.ExistingChoice != SetupChoice.ConfigureNew && CanApplyPreservingUpdate)
+            await ApplyExistingUpdateAsync();
+        else
+            await InstallAsync();
+    }
+
+    private async Task ApplyExistingUpdateAsync()
+    {
+        if (_installationInProgress) return;
+        _installationInProgress = true;
+        CloseButton.IsEnabled = false;
+        ShowPage(WizardPage.Installing);
+        try
+        {
+            int exitCode = await RunElevatedInstallerAsync(null, preserveInstallation: true);
+            if (exitCode == ElevatedPackageInstaller.GuardianStartFailedExitCode)
+                throw new InvalidOperationException(T(
+                    "Kvieta güncellendi ancak Guardian başlatılamadı. Windows'u yeniden başlatıp koruma durumunu kontrol et.",
+                    "Kvieta was updated, but Guardian could not start. Restart Windows and check the protection status."));
+            if (exitCode is not (0 or 1641 or 3010))
+                throw new InvalidOperationException(T(
+                    $"Güncelleme {exitCode} koduyla durdu. Günlükler ProgramData\\Kvieta\\SetupLogs klasöründe.",
+                    $"The update stopped with code {exitCode}. Logs are in ProgramData\\Kvieta\\SetupLogs."));
+
+            await RememberPreviousReleaseAsync();
+            if (exitCode == 0)
+                LaunchInstalledKvieta(string.Empty);
+            else
+                MessageBox.Show(this, T("Güncellemeyi tamamlamak için Windows'u yeniden başlat.", "Restart Windows to finish the update."), "Kvieta");
+            await RememberSetupForUpdatesAsync();
+            _installationInProgress = false;
+            Close();
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
+        {
+            ShowPage(WizardPage.Existing);
+        }
+        catch (Exception exception)
+        {
+            ShowInstallError(exception.Message);
+        }
+        finally
+        {
+            _installationInProgress = false;
+            CloseButton.IsEnabled = true;
+        }
+    }
 
     private async Task InstallAsync()
     {
@@ -672,7 +742,9 @@ public partial class SetupWindow : Window
             {
                 launchArguments += " --pair-manager-device";
             }
+            await RememberPreviousReleaseAsync();
             LaunchInstalledKvieta(launchArguments.Trim());
+            await RememberSetupForUpdatesAsync();
             settingsStaged = false;
             await Task.Delay(650);
             _installationInProgress = false;
@@ -702,7 +774,60 @@ public partial class SetupWindow : Window
         }
     }
 
-    private async Task<int> RunElevatedInstallerAsync(string? guardianPayload)
+    private async Task RememberPreviousReleaseAsync()
+    {
+        if (_installedVersion is not { } previousVersion || previousVersion >= _packageVersion) return;
+        try
+        {
+            string previousLabel = _installedReleaseLabel ?? previousVersion.ToString();
+            if (previousVersion.Major is >= 2 and <= 6 &&
+                (string.IsNullOrWhiteSpace(_installedReleaseLabel) || previousLabel.EndsWith("-alpha", StringComparison.OrdinalIgnoreCase)))
+                previousLabel = $"Alpha {previousVersion.Major}.{previousVersion.Minor}";
+            await new JsonDisplayPreferencesStore().RememberPreviousReleaseAsync(new ReleaseIdentity(previousLabel, previousVersion.ToString()));
+        }
+        catch { /* Optional display state cannot affect installation. */ }
+    }
+
+    private async Task RememberSetupForUpdatesAsync()
+    {
+        if (StartupUpdate.Enabled || ReadInstallerValue("PackageKind") as string != "community" ||
+            Environment.ProcessPath is not { } source)
+            return;
+
+        string directory = StableSetupCache.DirectoryPath;
+        string target = Path.Combine(directory, StableSetupCache.FileName(_packageVersion.ToString(3)));
+        string temporary = target + "." + Guid.NewGuid().ToString("N") + ".partial";
+        try
+        {
+            Directory.CreateDirectory(directory);
+            if (!File.Exists(target))
+            {
+                await using (var input = File.OpenRead(source))
+                await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 128 * 1024, useAsync: true))
+                    await input.CopyToAsync(output);
+                File.Move(temporary, target);
+            }
+
+            foreach (string cached in Directory.EnumerateFiles(directory, StableSetupCache.FilePattern))
+            {
+                if (StableSetupCache.ReadVersion(cached) is { } version && version < _packageVersion)
+                {
+                    File.Delete(cached);
+                    File.Delete(cached + ".json");
+                }
+            }
+        }
+        catch (IOException) { /* A cache failure cannot undo an installed update. */ }
+        catch (UnauthorizedAccessException) { }
+        finally
+        {
+            try { File.Delete(temporary); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    private async Task<int> RunElevatedInstallerAsync(string? guardianPayload, bool preserveInstallation = false)
     {
         string executable = Environment.ProcessPath
             ?? throw new InvalidOperationException(T("Kurulum yolu bulunamadı.", "The setup path could not be resolved."));
@@ -714,11 +839,18 @@ public partial class SetupWindow : Window
             WindowStyle = ProcessWindowStyle.Hidden
         };
         startInfo.ArgumentList.Add("--elevated-install");
-        if (_packageAction == SetupPackageAction.Repair)
+        if (_installedVersion?.Major is >= 2 and <= 6 && WindowsIdentity.GetCurrent().User is { } user)
+        {
+            startInfo.ArgumentList.Add("--legacy-user-sid");
+            startInfo.ArgumentList.Add(user.Value);
+        }
+        if (preserveInstallation)
+            startInfo.ArgumentList.Add("--preserve-installation");
+        else if (_packageAction == SetupPackageAction.Repair)
         {
             startInfo.ArgumentList.Add("--force-reinstall");
         }
-        if (_plan.DesktopShortcut) startInfo.ArgumentList.Add("--desktop-shortcut");
+        if (!preserveInstallation && _plan.DesktopShortcut) startInfo.ArgumentList.Add("--desktop-shortcut");
         if (!string.IsNullOrWhiteSpace(guardianPayload))
         {
             startInfo.ArgumentList.Add("--guardian-payload");
@@ -1192,19 +1324,19 @@ public partial class SetupWindow : Window
             : releaseLabel;
     }
 
-    private static Version GetPackageVersion() =>
+    internal static Version GetPackageVersion() =>
         Assembly.GetExecutingAssembly().GetName().Version is { } version
             ? new Version(version.Major, version.Minor, Math.Max(0, version.Build))
             : new Version(1, 0, 0);
 
-    private static Version? ReadInstalledVersion()
+    internal static Version? ReadInstalledVersion()
     {
         return ReadInstallerValue("InstalledVersion") is string value && Version.TryParse(value, out Version? version)
             ? version
             : null;
     }
 
-    private static object? ReadInstallerValue(string name)
+    internal static object? ReadInstallerValue(string name)
     {
         try
         {

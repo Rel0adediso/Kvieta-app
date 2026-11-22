@@ -11,7 +11,13 @@
     Scope="perMachine">
 
     <SummaryInformation Description="Kvieta local screen-time awareness and control" />
+    <?ifdef KvietaPatchCertificate?>
+    <PatchCertificates>
+      <DigitalCertificate Id="KvietaPatchPublisher" SourceFile="$(var.KvietaPatchCertificate)" />
+    </PatchCertificates>
+    <?endif?>
     <MajorUpgrade
+      Schedule="afterInstallInitialize"
       AllowSameVersionUpgrades="$(var.KvietaAllowSameVersionUpgrades)"
       DowngradeErrorMessage="A newer version of Kvieta is already installed." />
     <!-- Kvieta.exe is already a compressed single-file bundle. MSZIP keeps the MSI
@@ -33,6 +39,17 @@
       Execute="immediate"
       Impersonate="yes"
       Return="asyncNoWait" />
+
+    <CustomAction
+      Id="RemoveStartupUpdateTasks"
+      FileRef="KvietaExecutable"
+      ExeCommand="--remove-startup-updates"
+      Execute="deferred"
+      Impersonate="no"
+      Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="RemoveStartupUpdateTasks" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Kvieta" />

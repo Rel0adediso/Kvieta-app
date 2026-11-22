@@ -28,7 +28,8 @@ public sealed class JsonSettingsStore
     public bool LastLoadRecoveredFromBackup => _file.LastLoadRecoveredFromBackup;
     public bool LastLoadMigrated => _file.LastLoadMigrated;
 
-    public async Task<ControlSettings> LoadAsync(CancellationToken cancellationToken = default)
+    public async Task<ControlSettings> LoadAsync(CancellationToken cancellationToken = default,
+        Func<ControlSettings, bool>? reconcileWebGuard = null)
     {
         if (_readOnly)
         {
@@ -44,6 +45,11 @@ public sealed class JsonSettingsStore
 
         if (settings.PendingChange is { } pending && pending.ApplyAfterUtc <= DateTimeOffset.UtcNow)
         {
+            ControlSettings previous = settings;
+            bool needsWebGuard = SettingsPolicyComparer.WebGuardChanged(settings, pending.TargetSettings);
+            if (needsWebGuard && reconcileWebGuard?.Invoke(pending.TargetSettings) != true)
+                return settings;
+
             settings = pending.TargetSettings;
             settings.PendingChange = null;
             if (settings.SchemaVersion < 9)
@@ -56,7 +62,15 @@ public sealed class JsonSettingsStore
             NormalizePersonalProtection(settings);
             settings.SetupCompleted = true;
             settings.AwarenessTrackingEnabled = settings.Mode == UsageMode.Insights || settings.AwarenessTrackingEnabled;
-            await SaveAsync(settings, cancellationToken);
+            try
+            {
+                await SaveAsync(settings, cancellationToken);
+            }
+            catch
+            {
+                if (needsWebGuard) reconcileWebGuard!(previous);
+                throw;
+            }
         }
 
         return settings;

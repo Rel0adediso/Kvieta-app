@@ -176,9 +176,7 @@ public sealed class DashboardEndpoint : IAsyncDisposable
                     Save(next);
                     _store = next;
                 }
-                RelayClientSettings relay = _store.Relay.Client;
-                long expires = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds();
-                return $"kvieta-companion://pair?v=2&origin={Uri.EscapeDataString(relay.Origin)}&room={relay.Room}&readToken={relay.ReadToken}&key={Uri.EscapeDataString(relay.Key)}&decisionToken={relay.DecisionToken}&expires={expires}";
+                return FormatRelayInvitation(_store.Relay, null);
             }
             _pending = null;
             _token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -186,6 +184,54 @@ public sealed class DashboardEndpoint : IAsyncDisposable
             _attempts = 0;
             return $"kvieta-companion://pair?v=1&origin={Uri.EscapeDataString(Origin)}&pin={CertificatePin}&token={_token}&expires={_expires.ToUnixTimeSeconds()}";
         }
+    }
+
+    public async Task<string?> CreateAuthorizedInvitationAsync(
+        Func<RelayCredentials?, Task<bool>> authorize, Func<Task<string?>>? readGuardianKey)
+    {
+        DashboardStore previous;
+        DashboardStore next;
+        RelayCredentials relay;
+        lock (_gate)
+        {
+            previous = _store;
+            relay = (previous.Phone is null ? previous.Relay ?? RelayCredentials.Create() : RelayCredentials.Create()).Upgrade();
+            next = previous with { Phone = null, Relay = relay };
+            if (previous.Phone is not null && previous.Relay is { } oldRelay)
+                next = next with { RevokedRelays = [.. previous.RevokedRelays ?? [], oldRelay] };
+        }
+
+        if (!await authorize(relay)) return null;
+        string invitation;
+        try
+        {
+            string? guardianKey = readGuardianKey is null ? null :
+                await readGuardianKey() ?? throw new InvalidOperationException("Guardian did not supply its pairing key.");
+            invitation = FormatRelayInvitation(relay, guardianKey);
+            lock (_gate)
+            {
+                if (!ReferenceEquals(previous, _store)) throw new InvalidOperationException("The pairing changed.");
+                Save(next);
+                _store = next;
+                _pending = null;
+                _token = "";
+            }
+        }
+        catch
+        {
+            await authorize(previous.Relay);
+            throw;
+        }
+        Changed?.Invoke();
+        return invitation;
+    }
+
+    private static string FormatRelayInvitation(RelayCredentials credentials, string? guardianKey)
+    {
+        RelayClientSettings relay = credentials.Client;
+        long expires = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds();
+        string invitation = $"kvieta-companion://pair?v=2&origin={Uri.EscapeDataString(relay.Origin)}&room={relay.Room}&readToken={relay.ReadToken}&key={Uri.EscapeDataString(relay.Key)}&decisionToken={relay.DecisionToken}&expires={expires}";
+        return guardianKey is null ? invitation : invitation + "&guardianKey=" + Uri.EscapeDataString(guardianKey);
     }
 
     private IResult Propose(DashboardPairRequest request)

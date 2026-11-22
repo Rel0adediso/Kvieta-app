@@ -127,9 +127,7 @@ public sealed class KvietaGuardianService : ServiceBase
 
             try
             {
-                await Task.WhenAny(
-                    Task.Delay(TimeSpan.FromSeconds(5), cancellationToken),
-                    WatchWakeGate.WaitAsync(cancellationToken));
+                await WatchWakeGate.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -140,14 +138,28 @@ public sealed class KvietaGuardianService : ServiceBase
 
     private static async Task<bool> ApplyDuePersonalRelaxationAsync(CancellationToken cancellationToken)
     {
+        await ProtectionPolicyChannel.PolicyWriteGate.WaitAsync(cancellationToken);
+        try { return await ApplyDuePersonalRelaxationCoreAsync(cancellationToken); }
+        finally { ProtectionPolicyChannel.PolicyWriteGate.Release(); }
+    }
+
+    private static async Task<bool> ApplyDuePersonalRelaxationCoreAsync(CancellationToken cancellationToken)
+    {
         GuardianEnrollment? enrollment = ProtectionServiceManager.LoadEnrollment();
         if (enrollment is null || !File.Exists(ProtectionServiceManager.ProtectedSettingsPath))
         {
             return false;
         }
 
-        ControlSettings settings = await new JsonSettingsStore(
-            ProtectionServiceManager.ProtectedSettingsPath).LoadAsync(cancellationToken);
+        string path = ProtectionServiceManager.ProtectedSettingsPath;
+        ControlSettings before = await new JsonSettingsStore(path, readOnly: true).LoadAsync(cancellationToken);
+        ControlSettings settings = await new JsonSettingsStore(path).LoadAsync(cancellationToken,
+            target => WebGuardService.ApplyDirect(WebGuardService.FromSettings(target) with { UserSid = enrollment.UserSid }));
+        if (before.PendingChange is not null && settings.PendingChange is null && settings.RequiresGuardian)
+        {
+            await new JsonSettingsStore(enrollment.SettingsPath).SaveAsync(settings, cancellationToken);
+            return true;
+        }
         if (settings.RequiresGuardian)
         {
             return false;

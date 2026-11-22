@@ -282,4 +282,12 @@
     <sys:String x:Key="ShortFormVideoSwitch">Block</sys:String>
     <sys:String x:Key="BlockedDomainsTitle">Blocked Websites</sys:String>
     <sys:String x:Key="AddDomainButton">Add Site</sys:String>
+    <sys:String x:Key="KvietaUpdatedTitle">Kvieta has been updated!</sys:String>
+    <sys:String x:Key="GuardianUpdateTitle">Guardian update available</sys:String>
+    <sys:String x:Key="GuardianUpdateDescription">Please download the latest Kvieta Setup.</sys:String>
+    <sys:String x:Key="GuardianUpdateAction">Open download page</sys:String>
+    <sys:String x:Key="WhatsNewTitle">What's new?</sys:String>
+    <sys:String x:Key="WhatsNewDismiss">Dismiss update notice</sys:String>
+    <sys:String x:Key="WhatsNewNoNotes">There are no separate release notes for this build yet.</sys:String>
+    <sys:String x:Key="WhatsNewUnavailable">The update notes could not be opened.</sys:String>
 </ResourceDictionary>

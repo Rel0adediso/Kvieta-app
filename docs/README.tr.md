@@ -21,7 +21,9 @@ Windows'ta ekran süresini anlamanın ve yönetmenin sakin, yerel yolu.
 
 Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilinçli hale getirir. Planlar, kurallar, kullanım geçmişi, kimlik bilgileri ve kurtarma verileri Windows cihazında kalır. Kvieta hesabı gerekmez.
 
-## Kvieta v1.0.0'ı indir
+## Kvieta v1.0.0 — yayın hazırlığında
+
+Aşağıdaki bağlantılar yayın için planlanan adreslerdir; ancak yayınlandıktan sonra kullanılabilir.
 
 [**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/v1.0.0/Kvieta-Setup-v1.0.0.exe)
 
@@ -57,17 +59,21 @@ sınırlar [Kvieta v1.0.0 yayın sayfasında](https://github.com/Rel0adediso/kvi
 
 - Zen arayüz yenilemesi: Mica arka plan efekti, sakin adaçayı renk paleti ve dairesel Bugün kontrol paneli.
 - Mindful Dopamin Bariyeri: Shorts, Reels ve TikTok gibi kısa video döngülerinde araya giren sakinleştirici mola penceresi ve ana sayfaya yönlendirme.
-- Sıkıştırılmış tek dosya (single-file) mimarisi: %64 boyut optimizasyonu (215 MB'tan 78 MB'a düşürüldü).
-- Kusursuz sistem kurtarma: beklenmeyen kilitlenmelerde dahi başlangıç ve çıkışta Görev Yöneticisi'ni otomatik geri yükleme ve temiz uninstaller Web Guard sıfırlaması.
-- Güçlendirilmiş kernel zırhı ve kesintisiz yerel mobil eşlikçi senkronizasyonu.
+- Sıkıştırılmış tek dosya dağıtımı; Setup EXE ve içindeki uygulamanın boyutları farklıdır. Kesin boyutlar son manifestte yer alır.
+- Kvieta tarafından değiştirilen politikaları geri alma; diğer uygulamalara ait ayarları koruma. Çökme ve yükseltme senaryoları son Windows test matrisinde doğrulanır.
+- Standart kullanıcı hesabında Windows süreç erişim izinleri ve Guardian gözetimi. Kernel sürücüsü veya yöneticiye karşı mutlak koruma değildir.
 
 ## Gizlilik tasarımın parçası
 
-Kvieta zorunlu bulut hesabı kullanmaz ve ekran süresi geçmişini bir Kvieta servisine göndermez. İsteğe bağlı telefon yardımcısı bilgisayar tarafından sunulur ve şu anda telefonun bilgisayara yerel ağdan erişebilmesini gerektirir. Onay mesajları imzalı, kısa ömürlü, origin kontrollü ve hız sınırlıdır; yönetici PIN'ini veya kurtarma kodlarını içermez.
+Kvieta zorunlu bulut hesabı kullanmaz. Kullanım geçmişi bilgisayarda kalır. İsteğe bağlı dışarıdan telefon erişimi açıldığında uçtan uca şifrelenmiş özet Cloudflare üzerinden iletilir; yerel paylaşım da kullanılabilir. Eşleştirme, telefon ekranında açıklanan yetkileri verir. Yönetici PIN doğrulama verileri ve kurtarma kodları özete eklenmez.
+
+Community paketlerinde Authenticode imzası yoktur. Stable kanalı yapılandırıldığında ilk Setup, güncellemeleri arka planda indirip doğrulayan Windows görevlerini kaydeder. Hazır güncelleme, Kvieta’yı bir sonraki açışında kurulur. Windows yönetici onayı ilk Setup sırasında gerekir. Eski bir sürümden geçiş için yeni Setup’ı bir kez çalıştır.
 
 ## Projenin durumu
 
-**Kvieta v1.0.0 resmi sürümdür.**
+**Kvieta v1.0.0 yayın hazırlığındadır; bu değişiklikle yayınlanmamıştır.**
+
+Görünen sürüm v1.0.0, dahili MSI/dosya sürümü Alpha 6.x üzerine yükseltme için 7.0.0 olur. Eski Alpha güncelleyicilerinde elle indirme gerekebilir. Son adayda yerinde yükseltme doğrulanmalıdır.
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.

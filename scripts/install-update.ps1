@@ -75,13 +75,14 @@ function Test-KvietaHealth([version]$ExpectedVersion) {
         return $false
     }
 
-    $productVersion = (Get-Item -LiteralPath $executable).VersionInfo.ProductVersion
+    $productVersion = (Get-Item -LiteralPath $executable).VersionInfo.FileVersion
     if ([string]::IsNullOrWhiteSpace($productVersion)) {
         return $false
     }
 
     $binaryVersionText = $productVersion.Split('+')[0]
-    return [version]$binaryVersionText -eq $ExpectedVersion
+    $numericVersion = [version]$binaryVersionText
+    return [version]::new($numericVersion.Major, $numericVersion.Minor, $numericVersion.Build) -eq $ExpectedVersion
 }
 
 function Invoke-Msi([string]$Action, [string]$Target, [string]$LogName, [string[]]$Properties = @()) {

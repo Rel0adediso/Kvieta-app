@@ -1,18 +1,28 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '1.0.0',
+    [string]$Version = '7.0.0',
+
+    [string]$BuildRoot = $env:PUBLIC,
 
     [ValidatePattern('^[0-9A-Za-z][0-9A-Za-z.-]*$')]
-    [string]$ReleaseLabel = '1.0.0-alpha',
+    [string]$ReleaseLabel = 'v1.0.0',
 
-    [switch]$CommunityRelease
+    [switch]$CommunityRelease,
+    [switch]$StableBuild
 )
 
 $ErrorActionPreference = 'Stop'
+if ($StableBuild -and (-not $CommunityRelease -or -not $PSBoundParameters.ContainsKey('ReleaseLabel'))) {
+    throw 'A stable build requires a community Release package and an explicit public release label.'
+}
+if (-not $StableBuild -and $Version -ne '7.0.0' -and (-not $PSBoundParameters.ContainsKey('ReleaseLabel') -or $ReleaseLabel -eq 'v1.0.0')) {
+    throw 'Specify the corresponding release label when changing the installer version.'
+}
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $packageKind = if ($CommunityRelease) { 'community' } else { 'test' }
 $buildConfiguration = if ($CommunityRelease) { 'Release' } else { 'Debug' }
+$allowSameVersionUpgrades = if ($StableBuild) { 'no' } else { 'yes' }
 $artifactKind = if ($CommunityRelease) { 'community' } else { 'test' }
 $publishedArtifactDirectory = Join-Path $repositoryRoot "artifacts\publish-$artifactKind\win-x64"
 $installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer-$artifactKind\$Version"
@@ -30,8 +40,8 @@ if (-not (Test-Path -LiteralPath $dotnet)) {
 }
 
 # Native Windows cabinet tooling is not Unicode-safe for every temporary path.
-$cabinetTempDirectory = Join-Path $env:PUBLIC 'KvietaBuildTemp'
-$wixStagingDirectory = Join-Path $env:PUBLIC "KvietaBuildStaging\$artifactKind\$Version"
+$cabinetTempDirectory = Join-Path $BuildRoot 'KvietaBuildTemp'
+$wixStagingDirectory = Join-Path $BuildRoot "KvietaBuildStaging\$artifactKind\$Version"
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
@@ -48,6 +58,7 @@ $sourceCommit = ((& git -C $repositoryRoot rev-parse HEAD) | Select-Object -Firs
 $repositoryDirty = @(& git -C $repositoryRoot status --porcelain --untracked-files=normal).Count -gt 0
 
 & $dotnet publish $applicationProject `
+    -m:1 `
     -c $buildConfiguration `
     -r win-x64 `
     --self-contained true `
@@ -65,6 +76,7 @@ Copy-Item -LiteralPath (Join-Path $publishDirectory 'Kvieta.exe') `
 $publishedExecutableHash = (Get-FileHash -LiteralPath (Join-Path $publishDirectory 'Kvieta.exe') -Algorithm SHA256).Hash
 
 & $dotnet build $installerProject `
+    -m:1 `
     -c Release `
     -p:KvietaVersion=$Version `
     -p:KvietaReleaseLabel=$ReleaseLabel `
@@ -72,7 +84,7 @@ $publishedExecutableHash = (Get-FileHash -LiteralPath (Join-Path $publishDirecto
     -p:KvietaSignerThumbprint=$(if ($CommunityRelease) { 'UNSIGNED-COMMUNITY-BUILD' } else { 'UNSIGNED-DEVELOPMENT-BUILD' }) `
     -p:KvietaPackageKind=$packageKind `
     -p:KvietaExecutableSha256=$publishedExecutableHash `
-    -p:KvietaAllowSameVersionUpgrades=yes `
+    -p:KvietaAllowSameVersionUpgrades=$allowSameVersionUpgrades `
     -p:SuppressSpecificWarnings=1076 `
     -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
     -p:OutputPath="$wixOutputDirectory"
@@ -97,6 +109,7 @@ Set-Content -LiteralPath "$installer.sha256" `
     -Encoding ascii
 
 & $dotnet publish $setupProject `
+    -m:1 `
     -c Release `
     -r win-x64 `
     --self-contained true `

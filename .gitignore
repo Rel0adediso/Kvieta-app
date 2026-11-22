@@ -10,3 +10,36 @@ txt.env
 *.user
 *.suo
 release-bin/
+/AGENTS.md
+
+# Machine-local configuration and IDE files
+.idea/
+.claude/
+.codex/
+.agents/
+.wrangler/
+.vscode/
+node_modules/
+
+# Environment files and private signing material
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+*.jks
+*.keystore
+*service-account*.json
+*credentials*.json
+*secrets*.json
+
+# Local diagnostics and data
+*.log
+*.dmp
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm

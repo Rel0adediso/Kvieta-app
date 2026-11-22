@@ -77,8 +77,8 @@ public sealed class SystemThemeService : IDisposable
         try
         {
             Uri packUri = new(isLight
-                ? "pack://application:,,,/Kvieta;component/Themes/LightTheme.xaml"
-                : "pack://application:,,,/Kvieta;component/Themes/DarkTheme.xaml", UriKind.RelativeOrAbsolute);
+                ? "pack://application:,,,/Kvieta.Presentation;component/Themes/LightTheme.xaml"
+                : "pack://application:,,,/Kvieta.Presentation;component/Themes/DarkTheme.xaml", UriKind.RelativeOrAbsolute);
 
             ResourceDictionary dictionary = new() { Source = packUri };
 
@@ -101,7 +101,7 @@ public sealed class SystemThemeService : IDisposable
             {
                 ResourceDictionary dictionary = new()
                 {
-                    Source = new Uri(isLight ? "Themes/LightTheme.xaml" : "Themes/DarkTheme.xaml", UriKind.Relative)
+                    Source = new Uri(isLight ? "/Kvieta.Presentation;component/Themes/LightTheme.xaml" : "/Kvieta.Presentation;component/Themes/DarkTheme.xaml", UriKind.Relative)
                 };
 
                 if (_activeDictionary is not null)

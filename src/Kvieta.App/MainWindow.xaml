@@ -605,6 +605,7 @@
                 <Grid Grid.Column="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="60"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Border Background="{DynamicResource SurfaceBrush}" BorderThickness="0">
@@ -629,7 +630,69 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                    <TabControl x:Name="MainTabs" Grid.Row="1" Focusable="False" SelectedIndex="{Binding SelectedPageIndex, Mode=TwoWay}" Background="Transparent" BorderThickness="0" SelectionChanged="MainTabs_SelectionChanged">
+                    <StackPanel Grid.Row="1">
+                    <Border x:Name="WhatsNewBanner" Visibility="Collapsed"
+                            Margin="24,12,24,0" Padding="12,7" CornerRadius="10"
+                            Background="{DynamicResource PrimarySoftBrush}" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Click="WhatsNew_Click" Style="{StaticResource SecondaryButtonStyle}" Background="Transparent" BorderThickness="0" Padding="0"
+                                    Cursor="Hand" HorizontalContentAlignment="Stretch"
+                                    AutomationProperties.Name="{DynamicResource WhatsNewTitle}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="NoticeSurface" Background="Transparent" Padding="4,2" CornerRadius="7">
+                                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="NoticeSurface" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                <Setter TargetName="NoticeSurface" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="30" Height="30" CornerRadius="8" Background="{DynamicResource PrimaryBrush}" VerticalAlignment="Center">
+                                        <TextBlock Text="✓" Foreground="{DynamicResource PrimaryForegroundBrush}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource KvietaUpdatedTitle}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+                                        <TextBlock x:Name="WhatsNewBannerRange" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{DynamicResource WhatsNewTitle}" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
+                            <Button Grid.Column="1" Content="×" ToolTip="{DynamicResource WhatsNewDismiss}"
+                                    AutomationProperties.Name="{DynamicResource WhatsNewDismiss}" Click="DismissWhatsNew_Click"
+                                    Margin="12,0,0,0" Width="30" Height="30" Padding="0" Style="{StaticResource SecondaryButtonStyle}"/>
+                        </Grid>
+                    </Border>
+                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="24,12,24,0" Padding="16,9"
+                                HorizontalContentAlignment="Stretch" Click="DownloadUpdate_Click"
+                                Visibility="{Binding IsGuardianUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{DynamicResource GuardianUpdateAction}" Margin="14,0,0,0"
+                                           Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource GuardianUpdateTitle}" FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource GuardianUpdateDescription}" FontSize="11"
+                                               Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Button>
+                    </StackPanel>
+                    <TabControl x:Name="MainTabs" Grid.Row="2" Focusable="False" SelectedIndex="{Binding SelectedPageIndex, Mode=TwoWay}" Background="Transparent" BorderThickness="0" SelectionChanged="MainTabs_SelectionChanged">
                         <TabControl.Resources>
                             <Style TargetType="TabItem">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -1857,10 +1920,11 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <Button x:Name="CheckUpdatesButton" Content="{Binding UpdateStatusText}" Style="{StaticResource SecondaryButtonStyle}" FontSize="11" Padding="12,6" Click="CheckUpdates_Click"/>
                                                 <Button x:Name="DownloadUpdateButton" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" Content="{Binding UpdateBadgeText}" Style="{StaticResource PrimaryButtonStyle}" FontSize="11" Margin="10,0,0,0" Padding="12,6" Click="DownloadUpdate_Click"/>
-                                            </StackPanel>
+                                                <Button Content="{DynamicResource WhatsNewTitle}" Style="{StaticResource SecondaryButtonStyle}" FontSize="11" Margin="10,0,0,0" Padding="12,6" Click="WhatsNew_Click"/>
+                                            </WrapPanel>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding BuildInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" TextAlignment="Right"/>
                                                 <TextBlock Text="{Binding InstallationInformationText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="10" TextAlignment="Right" Margin="0,2,0,0"/>

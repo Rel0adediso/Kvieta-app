@@ -1208,6 +1208,12 @@ public sealed record GuardianEnrollment(
     string UserSid,
     string SettingsPath,
     AdminCredential AdminPin,
-    AdminCredential? PreviousAdminPin = null);
+    AdminCredential? PreviousAdminPin = null,
+    string? MobilePolicyRoom = null,
+    string? MobilePolicyKey = null,
+    long MobilePolicySequence = 0,
+    string? MobilePolicyPrivateKey = null,
+    string? PreviousMobilePolicyRoom = null,
+    long PreviousMobilePolicySequence = 0);
 
 public sealed record GuardianProcessState(int ProcessId, int SessionId, long StartTimeUtcTicks);
