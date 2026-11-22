@@ -29,7 +29,8 @@ $settingsPath = Join-Path $fixture 'settings.json'
 @{
     SchemaVersion = 10
     SetupCompleted = $true
-    Mode = 'Family'
+    # The Family enum is stored as "Protected" for settings-file compatibility.
+    Mode = 'Protected'
     AdminPin = @{
         Version = 1
         Iterations = 210000
