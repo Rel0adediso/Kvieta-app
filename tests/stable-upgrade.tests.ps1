@@ -42,6 +42,12 @@ $payload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($request))
 
 $installed = Invoke-Setup $PreviousSetup @('--elevated-install', '--guardian-payload', $payload)
 if ($installed -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
+    $programData = Join-Path $env:ProgramData 'Kvieta'
+    $guardianLog = Join-Path $programData 'guardian-install.log'
+    if (Test-Path -LiteralPath $guardianLog) { Get-Content -LiteralPath $guardianLog -Tail 20 }
+    Get-ChildItem (Join-Path $programData 'SetupLogs') -Filter '*.log' -ErrorAction SilentlyContinue |
+        Select-String -Pattern 'Guardian provisioning exited with code' |
+        ForEach-Object { $_.Line }
     throw "The baseline Family installation failed (exit $installed)."
 }
 

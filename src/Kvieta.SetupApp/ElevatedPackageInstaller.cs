@@ -234,6 +234,7 @@ internal static class ElevatedPackageInstaller
             }
             if (provisioningExitCode != 0)
             {
+                AppendRecoveryLog(logPath, $"Guardian provisioning exited with code {provisioningExitCode}.");
                 guardianSnapshot?.Restore();
                 if (restartGuardianOnFailure)
                 {
