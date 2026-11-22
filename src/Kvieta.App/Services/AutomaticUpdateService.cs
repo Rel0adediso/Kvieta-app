@@ -33,8 +33,7 @@ internal static class AutomaticUpdateService
         try
         {
             using var identity = WindowsIdentity.GetCurrent();
-            if (identity.IsSystem || new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator))
-                return false;
+            if (identity.IsSystem) return false;
             if (StartupUpdate.ReadyVersion(CurrentVersion, DateTimeOffset.UtcNow) is not { } target) return false;
 
             var launch = new ProcessStartInfo(StartupUpdate.SetupPath(target)) { UseShellExecute = false };

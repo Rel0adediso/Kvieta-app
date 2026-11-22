@@ -91,6 +91,10 @@ while ([DateTimeOffset]::UtcNow -lt $deadline) {
     Start-Sleep -Milliseconds 500
 }
 if (-not $reopened -or $attempt.ExitCode -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
+    foreach ($taskName in $launchTask, 'Kvieta Apply Update', 'Kvieta Install Update') {
+        $info = Get-ScheduledTaskInfo -TaskName $taskName -ErrorAction SilentlyContinue
+        if ($null -ne $info) { Write-Output "$taskName last result $($info.LastTaskResult), last run $($info.LastRunTime)" }
+    }
     throw "The automated protected upgrade did not reopen Kvieta or restart Guardian (installer exit $($attempt.ExitCode))."
 }
 $registeredVersion = (Get-ItemProperty -LiteralPath 'HKLM:\Software\Kvieta').InstalledVersion

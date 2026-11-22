@@ -88,8 +88,7 @@ internal static class StartupUpdateInstaller
     public static async Task ResumeAfterUpdateAsync()
     {
         using var identity = WindowsIdentity.GetCurrent();
-        if (!Environment.UserInteractive || identity.IsSystem ||
-            new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator)) return;
+        if (!Environment.UserInteractive || identity.IsSystem) return;
         using var waiter = new Mutex(true, @"Local\KvietaStartupUpdateWaiter", out bool ownsMutex);
         if (!ownsMutex) return;
 
