@@ -159,7 +159,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Build and install two Setup packages
+      - name: Test same-version replacement and a signed startup update
         shell: pwsh
         run: |
           $key = [Security.Cryptography.RSA]::Create(2048)
@@ -247,10 +247,39 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  candidate-acceptance:
+    name: Test candidate upgrade from Alpha 6.5
+    runs-on: windows-latest
+    needs: [validate, package]
+    timeout-minutes: 15
+    env:
+      INSTALLER_VERSION: ${{ needs.validate.outputs.installer_version }}
+      RELEASE_LABEL: ${{ needs.validate.outputs.release_label }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Kvieta-${{ needs.validate.outputs.release_label }}-community
+          path: package
+      - name: Upgrade, repair, and uninstall the packaged candidate
+        shell: pwsh
+        run: |
+          ./scripts/verify-release-manifest.ps1 -ManifestPath package/release-manifest.json -ExpectedCommit $env:GITHUB_SHA -ExpectedPackageKind community
+          ./tests/release-candidate.tests.ps1 -Candidate "package/Kvieta-Setup-$env:RELEASE_LABEL.exe" -ExpectedVersion $env:INSTALLER_VERSION
+      - name: Upload acceptance logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-acceptance-logs
+          path: |
+            C:/ProgramData/Kvieta/SetupLogs/
+            C:/ProgramData/Kvieta/guardian-install.log
+            ${{ runner.temp }}/kvieta-candidate-uninstall.log
+
   publish-stable:
     name: Publish verified stable update
     if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-    needs: [validate, package]
+    needs: [validate, package, candidate-acceptance]
     runs-on: windows-latest
     environment: stable-updates
     permissions:
