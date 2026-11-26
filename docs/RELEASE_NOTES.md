@@ -6,7 +6,7 @@
 - Improved Web Guard policy ownership and cleanup, including preservation of unrelated browser settings.
 - Family remote locks persist across restarts and day rollover. Personal web restrictions follow the configured change delay.
 - More reliable phone commands, pairing, recovery, and handling of network timeouts. The Android companion requires an update to support the new [Family policy authorization protocol](mobile-parent-policy-v1.md).
-- Updated the release checker and installer for community updates. The visible version is v1.0.0; the Windows MSI and file version is 7.0.0 to support upgrades from Alpha 6.x.
+- Updated the release checker and installer for community updates. The visible version is v1.0.0. Windows MSI and file version 7.0.1 supports upgrades from Alpha 6.x and earlier 7.0.0 preview packages.
 - Improved bilingual feedback when protection or cleanup cannot complete.
 
 ### Validation and known limitations

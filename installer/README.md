@@ -1,4 +1,4 @@
-> Current release target: public label v1.0.0, numeric MSI/FileVersion 7.0.0.
+> Current release target: public label v1.0.0, numeric MSI/FileVersion 7.0.1.
 > The numeric version remains above Alpha 6.x; do not reset it to 1.0.0.
 
 # Kvieta installer
@@ -11,7 +11,7 @@ Build a release package from the repository root:
 
 ```powershell
 .\scripts\build-installer.ps1 `
-  -Version 7.0.0 `
+  -Version 7.0.1 `
   -SigningCertificateThumbprint <trusted-code-signing-certificate-thumbprint>
 ```
 
@@ -55,7 +55,7 @@ cannot reliably process a Windows user profile path containing Turkish character
 Build an unsigned development installer for local testing (never for distribution):
 
 ```powershell
-.\scripts\build-test-installer.ps1 -Version 7.0.0 -ReleaseLabel 1.0.0-alpha
+.\scripts\build-test-installer.ps1 -Version 7.0.1 -ReleaseLabel 1.0.0-alpha
 ```
 
 Build the unsigned **Kvieta Alpha 3** package in Release configuration, without
@@ -63,12 +63,12 @@ development/test bypasses:
 
 ```powershell
 .\scripts\build-test-installer.ps1 `
-  -Version 7.0.0 `
+  -Version 7.0.1 `
   -ReleaseLabel Alpha-3 `
   -CommunityRelease
 ```
 
-Community output is written to `artifacts\installer-community\7.0.0`. Windows
+Community output is written to `artifacts\installer-community\7.0.1`. Windows
 SmartScreen may display an unknown-publisher warning because this package is
 intentionally unsigned.
 

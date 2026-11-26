@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '7.0.0',
+    [string]$Version = '7.0.1',
 
     [string]$BuildRoot = $env:PUBLIC,
 
@@ -16,7 +16,7 @@ $ErrorActionPreference = 'Stop'
 if ($StableBuild -and (-not $CommunityRelease -or -not $PSBoundParameters.ContainsKey('ReleaseLabel'))) {
     throw 'A stable build requires a community Release package and an explicit public release label.'
 }
-if (-not $StableBuild -and $Version -ne '7.0.0' -and (-not $PSBoundParameters.ContainsKey('ReleaseLabel') -or $ReleaseLabel -eq 'v1.0.0')) {
+if (-not $StableBuild -and $Version -ne '7.0.1' -and (-not $PSBoundParameters.ContainsKey('ReleaseLabel') -or $ReleaseLabel -eq 'v1.0.0')) {
     throw 'Specify the corresponding release label when changing the installer version.'
 }
 $repositoryRoot = Split-Path -Parent $PSScriptRoot

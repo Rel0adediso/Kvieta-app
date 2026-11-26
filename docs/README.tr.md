@@ -73,7 +73,7 @@ Community paketlerinde Authenticode imzası yoktur. Stable kanalı yapılandır�
 
 **Kvieta v1.0.0 yayın hazırlığındadır; bu değişiklikle yayınlanmamıştır.**
 
-Görünen sürüm v1.0.0, dahili MSI/dosya sürümü Alpha 6.x üzerine yükseltme için 7.0.0 olur. Eski Alpha güncelleyicilerinde elle indirme gerekebilir. Son adayda yerinde yükseltme doğrulanmalıdır.
+Görünen sürüm v1.0.0. Dahili MSI/dosya sürümü 7.0.1 olduğu için Alpha 6.x ve MSI sürümü 7.0.0 olan önizleme paketleri yükseltilebilir. Eski Alpha güncelleyicilerinde elle indirme gerekebilir. Son adayda yerinde yükseltme doğrulanmalıdır.
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.

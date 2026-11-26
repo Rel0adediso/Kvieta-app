@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Candidate,
-    [Parameter(Mandatory)][version]$ExpectedVersion
+    [Parameter(Mandatory)][version]$ExpectedVersion,
+    [string]$PreviousSetup,
+    [version]$PreviousVersion = '6.5.0'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,10 +25,12 @@ function Invoke-InstallerProcess([string]$path, [string[]]$arguments) {
 
 $fixture = Join-Path $env:RUNNER_TEMP 'kvieta-candidate'
 New-Item -ItemType Directory -Path $fixture | Out-Null
-$alpha = Join-Path $fixture 'Kvieta-Setup-Alpha-6.5.exe'
-Invoke-WebRequest -Uri 'https://github.com/Rel0adediso/Kvieta-app/releases/download/kvieta-alpha-6.5/Kvieta-Setup-Alpha-6.5.exe' -OutFile $alpha
-if ((Get-FileHash -LiteralPath $alpha).Hash -ne 'b3bbb4f7d58422b3e34e13ece5a6c2615d1a6dd1d1b94680ed9599f767dd7bc7') {
-    throw 'The published Alpha 6.5 Setup did not match the pinned release hash.'
+if (-not $PreviousSetup) {
+    $PreviousSetup = Join-Path $fixture 'Kvieta-Setup-Alpha-6.5.exe'
+    Invoke-WebRequest -Uri 'https://github.com/Rel0adediso/Kvieta-app/releases/download/kvieta-alpha-6.5/Kvieta-Setup-Alpha-6.5.exe' -OutFile $PreviousSetup
+    if ((Get-FileHash -LiteralPath $PreviousSetup).Hash -ne 'b3bbb4f7d58422b3e34e13ece5a6c2615d1a6dd1d1b94680ed9599f767dd7bc7') {
+        throw 'The published Alpha 6.5 Setup did not match the pinned release hash.'
+    }
 }
 
 $password = ConvertTo-SecureString ("Test!" + [guid]::NewGuid().ToString('N')) -AsPlainText -Force
@@ -45,13 +49,13 @@ $settings = Join-Path $fixture 'settings.json'
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $settings -Encoding utf8NoBOM
 $request = @{ UserSid = $user.SID.Value; SettingsPath = $settings } | ConvertTo-Json -Compress
 $payload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($request))
-$alphaExit = Invoke-InstallerProcess $alpha @('--elevated-install', '--guardian-payload', $payload)
-if ($alphaExit -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
-    throw "The published Alpha 6.5 Family installation failed (exit $alphaExit)."
+$previousExit = Invoke-InstallerProcess $PreviousSetup @('--elevated-install', '--guardian-payload', $payload)
+if ($previousExit -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
+    throw "The previous Family installation failed (exit $previousExit)."
 }
-$alphaProduct = Get-ItemProperty -LiteralPath $installerKey
-if ([version]$alphaProduct.InstalledVersion -ne [version]'6.5.0') {
-    throw 'The fixture did not install the published Alpha 6.5 version.'
+$previousProduct = Get-ItemProperty -LiteralPath $installerKey
+if ([version]$previousProduct.InstalledVersion -ne $PreviousVersion) {
+    throw "The fixture did not install version $PreviousVersion."
 }
 
 $programData = Join-Path $env:ProgramData 'Kvieta'
@@ -62,13 +66,13 @@ $product = Get-ItemProperty -LiteralPath $installerKey
 $application = Join-Path $env:ProgramFiles 'Kvieta/Kvieta.exe'
 if ($upgrade -ne 0 -or [version]$product.InstalledVersion -ne $ExpectedVersion -or
     (Get-Item -LiteralPath $application).VersionInfo.FileVersion -ne "$ExpectedVersion.0" -or
-    $product.ProductCode -eq $alphaProduct.ProductCode -or
-    (Test-Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($alphaProduct.ProductCode)") -or
+    $product.ProductCode -eq $previousProduct.ProductCode -or
+    (Test-Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($previousProduct.ProductCode)") -or
     (Get-Service KvietaGuardian).Status -ne 'Running') {
-    throw "Setup did not replace Alpha 6.5 with the candidate and restart Guardian (exit $upgrade)."
+    throw "Setup did not replace build $PreviousVersion with the candidate and restart Guardian (exit $upgrade)."
 }
 if (Compare-Object $before @(Get-FileHash -LiteralPath $protectedFiles) -Property Path, Hash) {
-    throw 'Upgrading from Alpha 6.5 changed the protected installation data.'
+    throw "Upgrading from build $PreviousVersion changed the protected installation data."
 }
 
 $repair = Invoke-InstallerProcess $application @('--windows-admin-verification', '--audit-event', 'recovery.installer.repair')
@@ -88,4 +92,4 @@ if ($uninstall -ne 0 -or (Test-Path -LiteralPath $installerKey) -or
 foreach ($task in 'Kvieta Prepare Update', 'Kvieta Apply Update', 'Kvieta Install Update') {
     if (Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue) { throw "Uninstall left the $task scheduled task." }
 }
-Write-Output 'The packaged candidate upgraded the published Alpha 6.5, passed administrator repair, and uninstalled.'
+Write-Output "The packaged candidate upgraded build $PreviousVersion, passed administrator repair, and uninstalled."

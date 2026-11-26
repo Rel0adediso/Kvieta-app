@@ -34,7 +34,7 @@ SmartScreen may show an **Unknown publisher** warning.
 The standalone MSI, checksum files, release manifest, detailed notes, and known
 limitations are on the [Kvieta v1.0.0 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/v1.0.0). Verify the Setup EXE with the attached `.sha256` file before running it.
 
-> **Upgrade plan:** v1.0.0 uses numeric installer/file version **7.0.0** to remain above Alpha 6.x. The visible product version remains v1.0.0. Validate an in-place upgrade from your deployed Alpha before publishing; preserve settings, history, recovery material and protected policy. Older Alpha updaters may require a manual download.
+> **Upgrade plan:** v1.0.0 uses numeric installer/file version **7.0.1**, above both Alpha 6.x and earlier preview builds with MSI version 7.0.0. Validate an in-place upgrade from your deployed Alpha before publishing and verify that settings, history, recovery material and protected policy are preserved. Older Alpha updaters may require a manual download.
 
 ## Choose the relationship you want with time
 

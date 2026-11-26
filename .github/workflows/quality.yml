@@ -227,9 +227,7 @@ jobs:
 
       - name: Build community installer
         shell: pwsh
-        run: |
-          $stable = $env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -eq 'refs/heads/stable'
-          ./scripts/build-test-installer.ps1 -Version $env:INSTALLER_VERSION -ReleaseLabel $env:RELEASE_LABEL -CommunityRelease -StableBuild:$stable
+        run: ./scripts/build-test-installer.ps1 -Version $env:INSTALLER_VERSION -ReleaseLabel $env:RELEASE_LABEL -CommunityRelease -StableBuild
 
       - name: Verify package manifest
         shell: pwsh
@@ -248,10 +246,14 @@ jobs:
           retention-days: 7
 
   candidate-acceptance:
-    name: Test candidate upgrade from Alpha 6.5
+    name: Test candidate upgrade from ${{ matrix.previous }}
     runs-on: windows-latest
     needs: [validate, package]
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        previous: ['Alpha 6.5', '7.0.0 preview']
     env:
       INSTALLER_VERSION: ${{ needs.validate.outputs.installer_version }}
       RELEASE_LABEL: ${{ needs.validate.outputs.release_label }}
@@ -261,16 +263,35 @@ jobs:
         with:
           name: Kvieta-${{ needs.validate.outputs.release_label }}-community
           path: package
+      - uses: actions/checkout@v4
+        if: matrix.previous == '7.0.0 preview'
+        with:
+          ref: dda2b43169bbb5efc830bb89420e19c6f7eac830
+          path: previous
+      - uses: actions/setup-dotnet@v4
+        if: matrix.previous == '7.0.0 preview'
+        with:
+          dotnet-version: 10.0.x
+      - name: Rebuild the 7.0.0 preview
+        if: matrix.previous == '7.0.0 preview'
+        shell: pwsh
+        run: ./previous/scripts/build-test-installer.ps1 -Version 7.0.0 -ReleaseLabel v1.0.0 -CommunityRelease
       - name: Upgrade, repair, and uninstall the packaged candidate
         shell: pwsh
+        env:
+          PREVIOUS: ${{ matrix.previous }}
         run: |
           ./scripts/verify-release-manifest.ps1 -ManifestPath package/release-manifest.json -ExpectedCommit $env:GITHUB_SHA -ExpectedPackageKind community
-          ./tests/release-candidate.tests.ps1 -Candidate "package/Kvieta-Setup-$env:RELEASE_LABEL.exe" -ExpectedVersion $env:INSTALLER_VERSION
+          $options = @{}
+          if ($env:PREVIOUS -eq '7.0.0 preview') {
+            $options = @{ PreviousSetup = 'previous/artifacts/installer-community/7.0.0/Kvieta-Setup-v1.0.0.exe'; PreviousVersion = '7.0.0' }
+          }
+          ./tests/release-candidate.tests.ps1 -Candidate "package/Kvieta-Setup-$env:RELEASE_LABEL.exe" -ExpectedVersion $env:INSTALLER_VERSION @options
       - name: Upload acceptance logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: candidate-acceptance-logs
+          name: candidate-acceptance-logs-${{ strategy.job-index }}
           path: |
             C:/ProgramData/Kvieta/SetupLogs/
             C:/ProgramData/Kvieta/guardian-install.log

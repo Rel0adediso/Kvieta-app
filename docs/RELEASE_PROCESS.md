@@ -12,14 +12,13 @@ Every Kvieta version must follow this process:
 8. Attach the matching installer, verification manifest, and SHA-256 values. State clearly whether the package is Authenticode-signed.
 
 Current target: **Kvieta v1.0.0**, not yet published. Public tag/label: `v1.0.0`.
-Numeric MSI/FileVersion: **7.0.0**; keep this separate from the product label.
-Previously distributed Alpha 4.x–6.x packages have higher numeric versions than
-1.0.0. Never lower the installer version or enable arbitrary downgrades.
+Numeric MSI/FileVersion: **7.0.1**. This exceeds the previously distributed Alpha
+4.x–6.x and 7.0.0 preview packages. Never lower the installer version or enable arbitrary downgrades.
 
 `main` is the development branch; `stable` is the approved release branch.
 Both run the same quality gates. CI reads the package and release versions
 from `Directory.Build.props`. For each approved update, increment both the
-release label and the numeric MSI version (for example `v1.0.1` and `7.0.1`),
+release label and the numeric MSI version (for example `v1.0.1` and `7.0.2`),
 merge the tested change into `stable`, and complete the acceptance checks
 before publishing a matching release tag and verified package. Updates
 offered in the app must have a published release tag whose commit is in the
@@ -29,10 +28,10 @@ Never publish an unsigned package as a silent executable update.
 Build unsigned community artifacts with:
 
 ```powershell
-./scripts/build-test-installer.ps1 -Version 7.0.0 -ReleaseLabel v1.0.0 -CommunityRelease
+./scripts/build-test-installer.ps1 -Version 7.0.1 -ReleaseLabel v1.0.0 -CommunityRelease -StableBuild
 ```
 
-Output: `artifacts/installer-community/7.0.0`. Rebuild after every accepted source
+Output: `artifacts/installer-community/7.0.1`. Rebuild after every accepted source
 change; never attach the previous 1.0.0 artifacts. Verify the exact candidate commit
 and hash, then complete Windows installation, upgrade, recovery and uninstall acceptance tests. The stable feed signs
 the exact community Setup executable and records its block hashes. Kvieta can reuse matching blocks from an earlier cached
