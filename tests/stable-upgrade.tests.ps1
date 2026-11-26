@@ -92,6 +92,13 @@ $setupName = "Kvieta-Setup-$ExpectedVersion-win-x64.exe"
 Copy-Item -LiteralPath $NextSetup -Destination (Join-Path $cache $setupName)
 Copy-Item -LiteralPath $NextFeed -Destination (Join-Path $cache "$setupName.json")
 Set-Content -LiteralPath (Join-Path $cache 'pending.version') -Value $ExpectedVersion.ToString() -NoNewline
+$attemptPath = Join-Path $cache 'attempt.json'
+$previousAttemptTime = [DateTimeOffset]::UtcNow.AddHours(-2)
+@{
+    Version = $ExpectedVersion.ToString()
+    StartedAt = $previousAttemptTime.ToString('o')
+    ExitCode = 1603
+} | ConvertTo-Json -Compress | Set-Content -LiteralPath $attemptPath -Encoding utf8NoBOM
 
 $installedExecutable = Join-Path $env:ProgramFiles 'Kvieta/Kvieta.exe'
 $interactiveUser = (Get-CimInstance Win32_ComputerSystem).UserName
@@ -103,16 +110,17 @@ Register-ScheduledTask -TaskName $launchTask -Action $action -Principal $princip
 Start-ScheduledTask -TaskName $launchTask
 
 $deadline = [DateTimeOffset]::UtcNow.AddMinutes(4)
-$attemptPath = Join-Path $cache 'attempt.json'
 $attempt = $null
 $reopened = $false
 while ([DateTimeOffset]::UtcNow -lt $deadline) {
     if (Test-Path -LiteralPath $attemptPath) {
         $attempt = Get-Content -LiteralPath $attemptPath -Raw | ConvertFrom-Json
-        if ($null -ne $attempt.ExitCode -and $attempt.ExitCode -ne 0) { break }
-        if ($attempt.ExitCode -eq 0) {
-            $reopened = $null -ne (Get-CimInstance Win32_Process -Filter "Name='Kvieta.exe'" |
-                Where-Object { $_.CommandLine -like '*--resume-after-startup-update*' } | Select-Object -First 1)
+        if ([DateTimeOffset]$attempt.StartedAt -gt $previousAttemptTime) {
+            if ($null -ne $attempt.ExitCode -and $attempt.ExitCode -ne 0) { break }
+            if ($attempt.ExitCode -eq 0) {
+                $reopened = $null -ne (Get-CimInstance Win32_Process -Filter "Name='Kvieta.exe'" |
+                    Where-Object { $_.CommandLine -like '*--resume-after-startup-update*' } | Select-Object -First 1)
+            }
             if ($reopened) { break }
         }
     }

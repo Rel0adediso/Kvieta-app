@@ -126,12 +126,15 @@ internal static class StartupUpdateInstaller
 
     private static async Task<int?> RequestAndWaitAsync(Version target)
     {
+        // A retry can leave the previous attempt on disk until the scheduled task starts.
+        var earliestStart = DateTimeOffset.UtcNow - StartupUpdate.InstallationTimeout;
         var clock = Stopwatch.StartNew();
         if (!await StartupUpdate.RequestTaskAsync(StartupUpdate.ApplyTask)) return null;
 
         while (clock.Elapsed < StartupUpdate.InstallationTimeout)
         {
-            if (StartupUpdate.ReadAttempt() is { } attempt && attempt.Version >= target)
+            if (StartupUpdate.ReadAttempt() is { } attempt && attempt.Version == target &&
+                attempt.StartedAt >= earliestStart)
             {
                 if (attempt.ExitCode != null) return attempt.ExitCode;
             }
