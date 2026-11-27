@@ -306,12 +306,21 @@ public static class ProtectionServiceManager
         ProcessStartInfo startInfo = new()
         {
             FileName = Path.Combine(Environment.SystemDirectory, "msiexec.exe"),
-            Arguments = $"/fa {productCode} /passive /norestart",
             UseShellExecute = requestElevation,
             Verb = requestElevation ? "runas" : string.Empty,
             CreateNoWindow = !requestElevation,
             WindowStyle = ProcessWindowStyle.Hidden
         };
+        foreach (string argument in new[] { "/fa", productCode, "/qn", "/norestart" })
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+        string logDirectory = Path.Combine(ProtectionDataDirectory, "SetupLogs");
+        if (Directory.Exists(logDirectory))
+        {
+            startInfo.ArgumentList.Add("/L*v");
+            startInfo.ArgumentList.Add(Path.Combine(logDirectory, $"Kvieta-repair-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Environment.ProcessId}.log"));
+        }
 
         try
         {

@@ -105,6 +105,9 @@ do {
 } while ($true)
 if ($uninstall -ne 0 -or (Test-Path -LiteralPath $installerKey) -or
     (Get-Service KvietaGuardian -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $application)) {
+    Get-CimInstance Win32_Process -Filter "Name='msiexec.exe'" | Select-Object ProcessId, ParentProcessId, CommandLine | Format-List
+    Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'MsiInstaller' } -MaxEvents 12 -ErrorAction SilentlyContinue |
+        Select-Object TimeCreated, Id, Message | Format-List
     throw "The MSI uninstall did not remove the candidate and Guardian (exit $uninstall)."
 }
 foreach ($task in 'Kvieta Prepare Update', 'Kvieta Apply Update', 'Kvieta Install Update') {
