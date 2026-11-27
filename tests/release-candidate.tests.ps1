@@ -88,7 +88,7 @@ if (($policy | ConvertTo-Json -Depth 40 -Compress) -cne ($previousPolicy | Conve
 }
 
 $beforeRepair = @(Get-FileHash -LiteralPath $protectedFiles)
-$repairSource = Join-Path $env:ProgramFiles "Kvieta/Kvieta-Repair-$(([guid]$product.ProductCode).ToString('D')).msi"
+$repairSource = Join-Path $env:ProgramFiles 'Kvieta/Kvieta.msi'
 if (-not (Test-Path -LiteralPath $repairSource)) { throw 'Setup did not retain an MSI for offline repair.' }
 $standardUser = [pscredential]::new("$env:COMPUTERNAME\$($user.Name)", $password)
 $stop = Start-Process "$env:SystemRoot/System32/sc.exe" -ArgumentList @('stop', 'KvietaGuardian') `

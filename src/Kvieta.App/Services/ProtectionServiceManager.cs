@@ -298,7 +298,7 @@ public static class ProtectionServiceManager
     public static async Task<bool> RunProductRepairAsync(bool requestElevation = true)
     {
         if (!IsInstallerManaged || ReadInstallerValue("ProductCode") is not string productCode ||
-            !Guid.TryParse(productCode, out Guid registeredProduct))
+            !Guid.TryParse(productCode, out _))
         {
             return false;
         }
@@ -311,7 +311,7 @@ public static class ProtectionServiceManager
             CreateNoWindow = !requestElevation,
             WindowStyle = ProcessWindowStyle.Hidden
         };
-        string cachedSource = InstallerRepairSource.GetPath(registeredProduct);
+        string cachedSource = InstallerRepairSource.Path;
         bool hasCachedSource = File.Exists(cachedSource);
         string package = hasCachedSource ? cachedSource : productCode;
         // The /f switch ignores MSI properties. Keep the process that reports the

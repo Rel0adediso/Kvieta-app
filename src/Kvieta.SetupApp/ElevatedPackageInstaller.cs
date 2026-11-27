@@ -610,7 +610,7 @@ internal static class ElevatedPackageInstaller
                 return;
             }
 
-            File.Move(msiPath, InstallerRepairSource.GetPath(productCode), overwrite: true);
+            File.Move(msiPath, InstallerRepairSource.Path, overwrite: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
