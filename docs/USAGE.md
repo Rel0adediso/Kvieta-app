@@ -1,6 +1,6 @@
 # Kvieta usage and recovery guide
 
-> Current status: **Kvieta Alpha 4.2**. Community packages are unsigned previews intended for validation; they are not final public releases.
+> Current release: **Kvieta v1.0.0** for Windows x64. The community Setup is Authenticode-unsigned. Verify the download with its SHA-256 file.
 
 ## Interface and quick guide
 
@@ -26,13 +26,17 @@ start a focus session from Today.
 
 ## Installation and update
 
-1. Use only a package from this repository's GitHub Releases page or one built from your own source checkout.
+1. Download [Kvieta Setup v1.0.0](https://github.com/Rel0adediso/Kvieta-app/releases/tag/v1.0.0) from the official release page. The Windows Installer version is 7.0.1.
 2. Open `Kvieta-Setup-<version>.exe` and select English or Turkish.
 3. On a clean install, the wizard asks for the usage mode, protection level, device name, daily limit, Windows startup, and desktop shortcut preferences.
 4. If Kvieta is already installed, setup opens the **Update/Repair** screen directly. A newer package upgrades, the same version offers repair, and an older package is blocked from downgrading the installation.
 5. Administrator approval is requested only when Windows Installer needs it. New first-use settings are not saved if installation fails.
 
 Kvieta is installed under `C:\Program Files\Kvieta` by default. User settings and history are stored under `%LOCALAPPDATA%\Kvieta`; protected policy and Guardian state are stored under `%ProgramData%\Kvieta`. Update and repair are designed to preserve these areas.
+
+- **First upgrade to V1.** Run the new Setup over your existing Alpha or 7.0.0 preview installation and choose the update option.
+- **Desktop-only updates.** Kvieta verifies the signed update metadata and prepares the package in the background. A ready update installs on the next normal launch. Control Center displays **Kvieta updated** and **What’s new** afterward.
+- **Guardian updates.** Control Center displays **Guardian update available**. Open the linked official release page, download Setup and run the guided update.
 
 ## First-use modes
 
@@ -66,16 +70,24 @@ Review the weekly schedule, daily limit, and application rules, then select **Sa
 - **Unlimited:** Does not block; when local measurement is enabled, usage can still appear for awareness.
 - **Remove:** Removes only the Kvieta rule; it does not uninstall the program from Windows.
 
+### Short-video protection
+
+Enable **Short-form video protection** in the Web Guard settings to limit supported YouTube Shorts, Instagram Reels, Facebook Reels and TikTok pages. Save the setting and restart open browsers. Check browser compatibility if a page continues to load.
+
+### Phone pairing and Family policy
+
+Pair a compatible Kvieta Mobil build from the phone hub in Control Center. Review the permissions before approving the pairing. New Family policy commands require the updated [authorization protocol](mobile-parent-policy-v1.md). You can revoke a paired phone from the hub.
+
 ## System Health and Recovery Center
 
 The system health section under Settings reports application, installer, Guardian, and local-data status separately.
 
 - **Confirm clock:** Clears a clock warning after Windows administrator approval; it does not change the system clock.
 - **Restore settings:** Restores the last validated settings snapshot without deleting usage history.
-- **Repair installation:** Revalidates the application and Guardian installation without deleting schedules, PIN state, or history.
+- **Repair installation:** Uses the saved installer source when available and asks for Windows administrator approval. Schedules, PIN state and history are preserved.
 - **Diagnostic report:** Exports JSON that excludes PINs, recovery codes, window titles, and content.
 
-If Guardian is missing or unhealthy, protected use does not silently continue without protection. Approve repair as an administrator; if the problem remains, attach the diagnostic report to a bug report.
+If Guardian is missing or unhealthy, approve repair as a Windows administrator. If repair still fails, note the error code and check `%ProgramData%\Kvieta\SetupLogs` before filing a report. Review the diagnostic files before sharing them.
 
 ## My data
 

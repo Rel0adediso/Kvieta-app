@@ -27,8 +27,8 @@ timestamped and Authenticode-signed with that certificate.
 Verify a package before install or update:
 
 ```powershell
-.\artifacts\installer\1.0.0\verify-installer.ps1 `
-  -ManifestPath .\artifacts\installer\1.0.0\release-manifest.json
+.\artifacts\installer\7.0.1\verify-installer.ps1 `
+  -ManifestPath .\artifacts\installer\7.0.1\release-manifest.json
 ```
 
 Perform a verified manual update with an automatic rollback package:
@@ -36,7 +36,7 @@ Perform a verified manual update with an automatic rollback package:
 ```powershell
 .\artifacts\installer\1.0.1\install-update.ps1 `
   -ManifestPath .\artifacts\installer\1.0.1\release-manifest.json `
-  -RollbackManifestPath .\artifacts\installer\1.0.0\release-manifest.json
+  -RollbackManifestPath .\artifacts\installer\7.0.1\release-manifest.json
 ```
 
 The updater rejects same-version and downgrade attempts, verifies both packages
@@ -86,7 +86,7 @@ and MSI. Validate it without installing anything:
 
 ```powershell
 .\scripts\verify-release-manifest.ps1 `
-  -ManifestPath .\artifacts\installer-test\1.0.0\release-manifest.json `
+  -ManifestPath .\artifacts\installer-test\7.0.1\release-manifest.json `
   -ExpectedPackageKind test
 ```
 
@@ -97,15 +97,14 @@ choices, requests elevation only for the MSI transaction, saves settings only
 after a successful install, and launches the correct Kvieta surface. The standalone
 MSI remains beside it for managed and unattended deployment.
 
-For the current Kvieta preview, the release title shown to people is
-**Kvieta Alpha 3**. The Git tag and package-safe label use
-`kvieta-alpha-3` / `Alpha-3`, so the Setup filename is
-`Kvieta-Setup-Alpha-3.exe`. The numeric MSI version
-remains `1.0.0` for Windows Installer compatibility and is not used as the public
-release name.
-Development packages explicitly allow reinstalling another build with the same
-numeric MSI version, so alpha iterations do not pretend to be patch releases.
-Signed public builds keep same-version upgrades disabled.
+The [published Windows x64 release](https://github.com/Rel0adediso/Kvieta-app/releases/tag/v1.0.0)
+uses public tag `v1.0.0`, Setup filename `Kvieta-Setup-v1.0.0.exe`, and numeric
+MSI version `7.0.1`. Preview builds can allow same-version replacement. Stable
+releases keep it disabled and use increasing MSI versions.
+
+Guided Setup saves the installed MSI under Program Files for offline repair.
+Windows Installer removes this copy during uninstall. Installer diagnostics are
+under `%ProgramData%\Kvieta\SetupLogs`.
 
 On an interactive first install, the completion page offers a checked-by-default
 option to launch Kvieta. The launch action runs as the installing user and is not
@@ -115,7 +114,7 @@ The desktop shortcut is disabled by default and can be selected from the MSI's
 feature screen. It can also be enabled in an unattended install with:
 
 ```powershell
-msiexec /i Kvieta-1.0.0-win-x64.msi ADDLOCAL=MainFeature,DesktopShortcutFeature
+msiexec /i Kvieta-7.0.1-win-x64.msi ADDLOCAL=MainFeature,DesktopShortcutFeature
 ```
 
 User settings and usage history remain under the user's local application-data

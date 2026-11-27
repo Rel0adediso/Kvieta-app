@@ -11,7 +11,11 @@ Windows service recovery and Guardian supervision handle Task Manager-like termi
 - There is no absolute protection against someone with Windows administrator rights, physical disk access, or offline operating-system access.
 - Safe Mode, alternate boot media, firmware/boot changes, and kernel-level tooling are out of scope.
 - Kvieta is not a replacement for enterprise EDR, AppLocker, or WDAC.
-- Unsigned Development output is not a release package. The current Public Guardian path expects an installed client under Program Files with an Authenticode signer pinned by the installer. A separate unsigned community identity model is open V1 work and will not reuse the Development bypass.
+- The V1 community client is installed under Program Files. Guardian checks its installed identity and SHA-256 hash against the MSI registration. Authenticode-signed packages use signer verification. Development builds use separate settings.
+
+## Update trust
+
+V1 verifies the stable feed with the embedded public key and validates the downloaded Setup against the signed SHA-256 hash. The community Setup itself is Authenticode-unsigned. Changes to the Guardian revision require the guided Setup.
 
 ## Stored data
 

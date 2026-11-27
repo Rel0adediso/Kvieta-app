@@ -1,16 +1,20 @@
 # Kvieta kullanım ve kurtarma rehberi
 
-> Mevcut durum: **Kvieta Alpha 4.2**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
+> Güncel sürüm: Windows x64 için **Kvieta v1.0.0**. Topluluk Setup’ı Authenticode imzası taşımaz. İndirdiğiniz dosyayı SHA-256 özetiyle doğrulayın.
 
 ## Kurulum ve güncelleme
 
-1. Yalnız bu deponun GitHub Releases sayfasından veya kendi kaynak checkout'unuzdan ürettiğiniz paketi kullanın.
+1. [Kvieta Setup v1.0.0](https://github.com/Rel0adediso/Kvieta-app/releases/tag/v1.0.0) dosyasını resmî yayın sayfasından indirin. Windows Installer sürümü 7.0.1’dir.
 2. `Kvieta-Setup-<sürüm>.exe` dosyasını açın ve Türkçe ya da English seçin.
 3. Temiz kurulumda sihirbaz kullanım biçimi, koruma seviyesi, cihaz adı, günlük süre, Windows başlangıcı ve masaüstü kısayolunu sorar.
 4. Kvieta zaten kuruluysa kurucu doğrudan **Güncelle/Onar** ekranına gider. Daha yeni paket yükseltme yapar; aynı sürüm onarım sunar; eski paket downgrade'i engeller.
 5. Yönetici izni yalnız Windows Installer işlemi gerektiğinde istenir. Kurulum başarısız olursa yeni ilk kullanım ayarları kaydedilmez.
 
 Kvieta varsayılan olarak `C:\Program Files\Kvieta` altına kurulur. Kullanıcı ayarları ve geçmiş `%LOCALAPPDATA%\Kvieta`, korunan policy ile Guardian durumu `%ProgramData%\Kvieta` altında tutulur. Güncelleme ve onarım bu alanları korur.
+
+- **V1’e ilk geçiş.** Yeni Setup’ı mevcut Alpha veya 7.0.0 önizleme kurulumunun üzerine çalıştırın ve güncelleme seçeneğini kullanın.
+- **Masaüstü güncellemeleri.** Kvieta imzalı güncelleme bilgisini doğrular ve paketi arka planda hazırlar. Hazır paket sonraki normal açılışta kurulur. Kontrol merkezinde **Kvieta güncellendi!** ve **Neler yeni?** görünür.
+- **Guardian güncellemeleri.** Kontrol merkezinde **Guardian güncellemesi var** bildirimi gösterilir. Bağlantıdan resmî yayın sayfasını açıp Setup’ı indirin ve kurulum sihirbazıyla güncelleyin.
 
 ## Arayüz ve hızlı rehber
 
@@ -66,16 +70,24 @@ Haftalık planı, günlük limiti ve uygulama kurallarını gözden geçirip **K
 - **Serbest:** Engellemez; yerel ölçüm açıksa farkındalık için kullanım süresini gösterebilir.
 - **Kaldır:** Yalnız uygulama kuralını siler; programı Windows'tan kaldırmaz.
 
+### Kısa video koruması
+
+Web Koruması ayarlarında **Dopamin Tuzağı Koruması (Shorts & Reels)** seçeneğini etkinleştirin. Desteklenen YouTube Shorts, Instagram Reels, Facebook Reels ve TikTok sayfalarında çalışır. Ayarı kaydedip açık tarayıcıları yeniden başlatın.
+
+### Telefon eşleştirme ve Aile kuralları
+
+Kontrol merkezindeki telefon bölümünden uyumlu bir Kvieta Mobil sürümünü eşleştirin. Onaylamadan önce istenen izinleri inceleyin. Yeni Aile ilkesi komutları güncel [yetkilendirme protokolünü](mobile-parent-policy-v1.md) gerektirir. Telefon bağlantısını aynı bölümden kaldırabilirsiniz.
+
 ## Sağlık ve Kurtarma Merkezi
 
 Ayarlar altındaki sistem sağlığı bölümü uygulama, installer, Guardian ve yerel veri durumunu ayrı ayrı gösterir.
 
 - **Saati onayla:** Yanlış saat uyarısını Windows yönetici onayıyla temizler; sistem saatini değiştirmez.
 - **Ayarları geri yükle:** Son doğrulanmış ayar kopyasını geri getirir; kullanım geçmişini silmez.
-- **Kurulumu onar:** Uygulama ve Guardian kurulumunu yeniden doğrular; planı, PIN'i ve geçmişi silmez.
+- **Kurulumu onar:** Varsa saklanan kurulum kaynağını kullanır ve Windows yönetici onayı ister. Planları, PIN kaydını ve kullanım geçmişini korur.
 - **Tanılama raporu:** PIN, kurtarma kodu, pencere başlığı ve içerik toplamayan bir JSON raporu dışa aktarır.
 
-Guardian eksik veya bozuksa korunan kullanım sessizce korumasız devam etmez. Onarımı yönetici olarak onaylayın; sorun sürerse tanılama raporuyla birlikte hata bildirimi oluşturun.
+Guardian eksik veya sağlıksızsa onarımı Windows yöneticisi olarak onaylayın. Sorun sürerse hata kodunu not edip `%ProgramData%\Kvieta\SetupLogs` klasörünü kontrol edin. Hata bildirimi açmadan önce paylaşacağınız dosyaları inceleyin.
 
 ## Verilerim
 
