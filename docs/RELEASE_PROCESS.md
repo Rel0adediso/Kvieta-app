@@ -11,7 +11,7 @@ Every Kvieta version must follow this process:
 7. Publish a GitHub Release with the same English notes when release tooling is available.
 8. Attach the matching installer, verification manifest, and SHA-256 values. State clearly whether the package is Authenticode-signed.
 
-Current target: **Kvieta v1.0.0**, not yet published. Public tag/label: `v1.0.0`.
+Current target: **Kvieta v1.0.0**, published for Windows x64. Public tag/label: `v1.0.0`.
 Numeric MSI/FileVersion: **7.0.1**. This exceeds the previously distributed Alpha
 4.x–6.x and 7.0.0 preview packages. Never lower the installer version or enable arbitrary downgrades.
 

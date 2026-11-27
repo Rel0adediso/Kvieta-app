@@ -21,9 +21,7 @@ Windows'ta ekran süresini anlamanın ve yönetmenin sakin, yerel yolu.
 
 Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilinçli hale getirir. Planlar, kurallar, kullanım geçmişi, kimlik bilgileri ve kurtarma verileri Windows cihazında kalır. Kvieta hesabı gerekmez.
 
-## Kvieta v1.0.0 — yayın hazırlığında
-
-Aşağıdaki bağlantılar yayın için planlanan adreslerdir; ancak yayınlandıktan sonra kullanılabilir.
+## Windows x64 için Kvieta v1.0.0
 
 [**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/v1.0.0/Kvieta-Setup-v1.0.0.exe)
 
@@ -71,9 +69,9 @@ Community paketlerinde Authenticode imzası yoktur. Stable kanalı yapılandır�
 
 ## Projenin durumu
 
-**Kvieta v1.0.0 yayın hazırlığındadır; bu değişiklikle yayınlanmamıştır.**
+**Kvieta v1.0.0 Windows x64 için yayında.**
 
-Görünen sürüm v1.0.0. Dahili MSI/dosya sürümü 7.0.1 olduğu için Alpha 6.x ve MSI sürümü 7.0.0 olan önizleme paketleri yükseltilebilir. Eski Alpha güncelleyicilerinde elle indirme gerekebilir. Son adayda yerinde yükseltme doğrulanmalıdır.
+Görünen sürüm v1.0.0. MSI/dosya sürümü 7.0.1. Windows testlerinde Alpha 6.5 ve 7.0.0 önizlemesinden geçişte Guardian ayarlarının ve PIN kaydının korunduğu doğrulandı. Eski Alpha sürümlerinden geçmek için Setup'ı elle indirip çalıştırın.
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.

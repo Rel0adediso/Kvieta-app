@@ -1,11 +1,11 @@
 # Kvieta roadmap
 
-**Aktif hedef:** Kvieta v1.0.0 release preparation.
+**Aktif hedef:** Kvieta v1.0.0 follow-up validation on Windows.
 
 ## Windows v1.0
 
-- Complete installation, upgrade, recovery and uninstall acceptance tests on Windows.
-- Publish the Windows x64 community installer and its verification files once release checks pass.
+- The Windows x64 community installer and verification files are available from the v1.0.0 GitHub Release.
+- Extend physical-device coverage for installation, recovery, display scaling and Windows lifecycle behavior.
 - Keep support, known limitations and upgrade guidance up to date.
 
 ## After v1.0

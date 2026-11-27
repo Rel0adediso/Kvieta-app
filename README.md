@@ -21,9 +21,7 @@ A calm, local-first way to understand and manage screen time on Windows.
 
 Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
-## Kvieta v1.0.0 — preparing for release
-
-The links below are the planned release locations and become available only after publication.
+## Kvieta v1.0.0 for Windows x64
 
 [**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/v1.0.0/Kvieta-Setup-v1.0.0.exe)
 
@@ -34,7 +32,7 @@ SmartScreen may show an **Unknown publisher** warning.
 The standalone MSI, checksum files, release manifest, detailed notes, and known
 limitations are on the [Kvieta v1.0.0 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/v1.0.0). Verify the Setup EXE with the attached `.sha256` file before running it.
 
-> **Upgrade plan:** v1.0.0 uses numeric installer/file version **7.0.1**, above both Alpha 6.x and earlier preview builds with MSI version 7.0.0. Validate an in-place upgrade from your deployed Alpha before publishing and verify that settings, history, recovery material and protected policy are preserved. Older Alpha updaters may require a manual download.
+> **Upgrading:** v1.0.0 uses installer/file version **7.0.1**. Install it over Alpha 6.x or a 7.0.0 preview using the guided Setup. Windows release checks covered upgrading from Alpha 6.5 and a 7.0.0 preview, preserving Guardian policy and enrollment.
 
 ## Choose the relationship you want with time
 
@@ -71,13 +69,11 @@ Community releases are Authenticode-unsigned. With a configured stable channel, 
 
 ## Project status
 
-**Kvieta v1.0.0 is being prepared and has not been published by this change.**
+**Kvieta v1.0.0 is available for Windows x64.**
 
-- The source is usable today and the Windows package pipeline is in place.
-- Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
-- Community installers are intentionally unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
-- Rebuild the final Setup EXE, MSI, checksums and manifest from the accepted source commit; earlier artifacts do not contain the readiness fixes.
-- The broader installer, DPI, Guardian, escape-path, and Windows lifecycle matrix remains open before final `v1.0.0`.
+- Windows quality gates cover installation, upgrades, administrator repair, uninstall, and signed startup updates.
+- The release manifest identifies the exact source commit and package hashes.
+- Additional physical-device coverage, including display scaling and Windows lifecycle behavior, remains ongoing.
 
 See the [roadmap](docs/ROADMAP.md) for the remaining validation work and [release notes](docs/RELEASE_NOTES.md) for the detailed history.
 

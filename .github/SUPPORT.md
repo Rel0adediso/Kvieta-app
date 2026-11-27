@@ -25,4 +25,4 @@ Do not publish exploit details or secrets in a public issue. Until a private sec
 
 ## Release expectations
 
-Kvieta v1.0.0 is in release preparation. See the [roadmap](../docs/ROADMAP.md) for current priorities and the [release notes](../docs/RELEASE_NOTES.md) for known limitations.
+Kvieta v1.0.0 is the current Windows x64 release. See the [roadmap](../docs/ROADMAP.md) for current priorities and the [release notes](../docs/RELEASE_NOTES.md) for known limitations.

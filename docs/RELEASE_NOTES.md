@@ -1,6 +1,6 @@
 # Kvieta release notes
 
-## Kvieta v1.0.0 (release preparation)
+## Kvieta v1.0.0
 
 - Redesigned Windows dashboard with English and Turkish support, app usage insights, and a short-video pause surface.
 - Improved Web Guard policy ownership and cleanup, including preservation of unrelated browser settings.
@@ -11,7 +11,7 @@
 
 ### Validation and known limitations
 
-- Automated Debug/Release builds, smoke tests, public-package checks, and installer metadata/manifest checks have passed. Physical Windows installation, upgrade, recovery and uninstall tests remain pending.
+- Windows release checks passed for upgrades from the published Alpha 6.5 package and a 7.0.0 preview. The checks cover Guardian policy and enrollment preservation, administrator repair, uninstall, and authenticated startup updates. Physical-device coverage is tracked separately.
 - Community packages are Authenticode-unsigned. With a configured stable feed and startup update tasks registered by Setup, Kvieta verifies and prepares the next release in the background. Ready updates install on the next normal launch.
 - Previously altered browser policies may require manual restoration if their original values were never backed up. The uninstaller preserves policies it cannot safely identify as its own.
 - The Family protection boundary is documented in the [security model](SECURITY.md).
