@@ -23,7 +23,16 @@ merge the tested change into `stable`, and complete the acceptance checks
 before publishing a matching release tag and verified package. Updates
 offered in the app must have a published release tag whose commit is in the
 history of `stable`. Unpublished branch changes are not installable updates.
-Never publish an unsigned package as a silent executable update.
+Never offer a silent update unless the stable feed signature covers the exact
+Setup hash. This signature is separate from Windows Authenticode.
+
+Before the first stable build, configure the repository Actions variable
+`KVIETA_STABLE_PUBLIC_KEY` with the Base64 DER SubjectPublicKeyInfo for an RSA key
+of at least 2048 bits. Store the matching Base64 DER PKCS#8 private key as the
+`KVIETA_STABLE_PRIVATE_KEY` secret in the `stable-updates` environment. The
+packaged app embeds the public key to verify later updates. Back up the
+private key outside the repository and keep the public key consistent across
+releases. Keep release approval on that environment.
 
 Build unsigned community artifacts with:
 

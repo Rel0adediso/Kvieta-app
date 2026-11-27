@@ -20,7 +20,9 @@ public sealed class KvietaGuardianService : ServiceBase
     public KvietaGuardianService()
     {
         ServiceName = ProtectionServiceManager.ServiceName;
-        CanStop = false;
+        // Windows Installer must be able to stop the service during repair and uninstall.
+        // The Service Control Manager does not grant SERVICE_STOP to standard users.
+        CanStop = true;
         CanShutdown = true;
         AutoLog = false;
     }

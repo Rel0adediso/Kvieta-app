@@ -311,7 +311,8 @@ public static class ProtectionServiceManager
             CreateNoWindow = !requestElevation,
             WindowStyle = ProcessWindowStyle.Hidden
         };
-        foreach (string argument in new[] { "/fa", productCode, "/qn", "/norestart" })
+        // Keep the process that checks the result and restarts Guardian alive during repair.
+        foreach (string argument in new[] { "/fa", productCode, "/qn", "/norestart", "MSIRESTARTMANAGERCONTROL=DisableShutdown" })
         {
             startInfo.ArgumentList.Add(argument);
         }

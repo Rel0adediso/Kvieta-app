@@ -3,6 +3,6 @@
     <!-- Installer/FileVersion must exceed both Alpha 6.x and distributed 7.0.0 preview builds. -->
     <Version>7.0.1</Version>
     <KvietaReleaseLabel>v1.0.0</KvietaReleaseLabel>
-    <KvietaGuardianRevision>2</KvietaGuardianRevision>
+    <KvietaGuardianRevision>3</KvietaGuardianRevision>
   </PropertyGroup>
 </Project>

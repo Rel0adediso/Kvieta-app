@@ -88,8 +88,21 @@ if (($policy | ConvertTo-Json -Depth 40 -Compress) -cne ($previousPolicy | Conve
 }
 
 $beforeRepair = @(Get-FileHash -LiteralPath $protectedFiles)
+$standardUser = [pscredential]::new("$env:COMPUTERNAME\$($user.Name)", $password)
+$stop = Start-Process "$env:SystemRoot/System32/sc.exe" -ArgumentList @('stop', 'KvietaGuardian') `
+    -Credential $standardUser -WorkingDirectory $env:SystemRoot -PassThru
+try {
+    if (-not $stop.WaitForExit(15000) -or $stop.ExitCode -ne 5 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
+        throw 'A standard user must be denied permission to stop Guardian.'
+    }
+} finally {
+    $stop.Dispose()
+}
 $repair = Invoke-InstallerProcess $application @('--windows-admin-verification', '--audit-event', 'recovery.installer.repair')
-if ($repair -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
+$repairLog = Get-ChildItem -LiteralPath (Join-Path $programData 'SetupLogs') -Filter 'Kvieta-repair-*.log' |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($repair -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running' -or -not $repairLog -or
+    -not (Select-String -LiteralPath $repairLog.FullName -Pattern 'MainEngineThread is returning (0|3010)$' -Quiet)) {
     throw "The Windows administrator recovery repair failed (exit $repair)."
 }
 if (Compare-Object $beforeRepair @(Get-FileHash -LiteralPath $protectedFiles) -Property Path, Hash) {
