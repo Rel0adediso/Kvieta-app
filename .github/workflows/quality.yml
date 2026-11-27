@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Read release metadata
         id: metadata
@@ -40,7 +40,7 @@ jobs:
           "release_label=$label" >> $env:GITHUB_OUTPUT
 
       - name: Install .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           cache: true
@@ -109,8 +109,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Package two isolated test builds and verify update
@@ -155,8 +155,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Test same-version replacement and a signed startup update
@@ -183,7 +183,7 @@ jobs:
           }
       - name: Upload Windows setup logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: installed-upgrade-logs
           path: C:/ProgramData/Kvieta/SetupLogs/
@@ -200,7 +200,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Require a stable update verification key
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
@@ -218,7 +218,7 @@ jobs:
           } finally { $key.Dispose() }
 
       - name: Install .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           cache: true
@@ -238,7 +238,7 @@ jobs:
             -ExpectedPackageKind community
 
       - name: Upload test package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Kvieta-${{ needs.validate.outputs.release_label }}-community
           path: artifacts/installer-community/${{ needs.validate.outputs.installer_version }}/
@@ -258,17 +258,17 @@ jobs:
       INSTALLER_VERSION: ${{ needs.validate.outputs.installer_version }}
       RELEASE_LABEL: ${{ needs.validate.outputs.release_label }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: Kvieta-${{ needs.validate.outputs.release_label }}-community
           path: package
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: matrix.previous == '7.0.0 preview'
         with:
           ref: dda2b43169bbb5efc830bb89420e19c6f7eac830
           path: previous
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         if: matrix.previous == '7.0.0 preview'
         with:
           dotnet-version: 10.0.x
@@ -300,7 +300,7 @@ jobs:
           Copy-Item -Path $logs -Destination acceptance-logs -ErrorAction SilentlyContinue
       - name: Upload acceptance logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: candidate-acceptance-logs-${{ strategy.job-index }}
           path: acceptance-logs/
@@ -317,10 +317,10 @@ jobs:
       INSTALLER_VERSION: ${{ needs.validate.outputs.installer_version }}
       RELEASE_LABEL: ${{ needs.validate.outputs.release_label }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: Kvieta-${{ needs.validate.outputs.release_label }}-community
           path: package
