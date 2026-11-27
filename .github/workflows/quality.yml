@@ -191,7 +191,7 @@ jobs:
   package:
     name: Package community installer
     runs-on: windows-latest
-    needs: [validate, desktop-update-check, installed-upgrade-check]
+    needs: validate
     timeout-minutes: 25
     env:
       KvietaStablePublicKey: ${{ vars.KVIETA_STABLE_PUBLIC_KEY }}
@@ -308,7 +308,7 @@ jobs:
   publish-stable:
     name: Publish verified stable update
     if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-    needs: [validate, package, candidate-acceptance]
+    needs: [validate, package, candidate-acceptance, desktop-update-check, installed-upgrade-check]
     runs-on: windows-latest
     environment: stable-updates
     permissions:

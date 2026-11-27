@@ -246,15 +246,27 @@ public static class ProtectionServiceManager
             return 87;
         }
 
-        using Process process = Process.Start(new ProcessStartInfo
+        var startInfo = new ProcessStartInfo
         {
             FileName = Path.Combine(Environment.SystemDirectory, "msiexec.exe"),
             Arguments = $"/x {productCode} /passive /norestart",
             UseShellExecute = false,
             CreateNoWindow = true
-        }) ?? throw new InvalidOperationException("Windows Installer başlatılamadı.");
-        process.WaitForExit();
-        return process.ExitCode;
+        };
+        const int anotherInstallInProgress = 1618;
+        var clock = Stopwatch.StartNew();
+        while (true)
+        {
+            using Process process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Windows Installer başlatılamadı.");
+            process.WaitForExit();
+            if (process.ExitCode != anotherInstallInProgress || clock.Elapsed >= TimeSpan.FromSeconds(30))
+            {
+                return process.ExitCode;
+            }
+
+            Thread.Sleep(TimeSpan.FromSeconds(2));
+        }
     }
 
     public static void ScheduleCurrentUninstallWorkerCleanup()

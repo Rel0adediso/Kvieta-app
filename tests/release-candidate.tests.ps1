@@ -97,7 +97,12 @@ if (Compare-Object $beforeRepair @(Get-FileHash -LiteralPath $protectedFiles) -P
 }
 
 $logPath = Join-Path $env:RUNNER_TEMP 'kvieta-candidate-uninstall.log'
-$uninstall = Invoke-InstallerProcess "$env:SystemRoot/System32/msiexec.exe" @('/x', $product.ProductCode, '/qn', '/norestart', '/L*v', ('"' + $logPath + '"'))
+$uninstallDeadline = [DateTimeOffset]::UtcNow.AddSeconds(30)
+do {
+    $uninstall = Invoke-InstallerProcess "$env:SystemRoot/System32/msiexec.exe" @('/x', $product.ProductCode, '/qn', '/norestart', '/L*v', ('"' + $logPath + '"'))
+    if ($uninstall -ne 1618 -or [DateTimeOffset]::UtcNow -ge $uninstallDeadline) { break }
+    Start-Sleep -Seconds 2
+} while ($true)
 if ($uninstall -ne 0 -or (Test-Path -LiteralPath $installerKey) -or
     (Get-Service KvietaGuardian -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $application)) {
     throw "The MSI uninstall did not remove the candidate and Guardian (exit $uninstall)."
