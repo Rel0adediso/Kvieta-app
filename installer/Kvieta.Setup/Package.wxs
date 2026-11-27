@@ -80,6 +80,7 @@
     </UI>
 
     <Component Id="KvietaExecutableComponent" Directory="INSTALLFOLDER" Guid="*">
+      <RemoveFile Id="RemoveOfflineRepairSource" Name="Kvieta-Repair-*.msi" On="uninstall" />
       <File Id="KvietaExecutable" Source="$(var.KvietaPublishDir)\Kvieta.exe" KeyPath="yes">
         <Shortcut
           Id="StartMenuShortcut"

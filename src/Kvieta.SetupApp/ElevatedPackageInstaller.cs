@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.ServiceProcess;
 using System.Text;
+using Kvieta.Core.Services;
 
 namespace Kvieta.SetupApp;
 
@@ -189,6 +190,8 @@ internal static class ElevatedPackageInstaller
                 }
                 return installerExitCode;
             }
+
+            CacheRepairSource(msiPath, logPath);
 
             if (upgradingLegacy)
             {
@@ -587,6 +590,32 @@ internal static class ElevatedPackageInstaller
         string? productCode = ReadMsiProperty(msiPath, "ProductCode");
         return !string.IsNullOrWhiteSpace(productCode) &&
             MsiQueryProductState(productCode) == InstallState.Default;
+    }
+
+    private static void CacheRepairSource(string msiPath, string logPath)
+    {
+        try
+        {
+            if (!Guid.TryParse(ReadMsiProperty(msiPath, "ProductCode"), out Guid productCode) ||
+                !Guid.TryParse(SetupWindow.ReadInstallerValue("ProductCode") as string, out Guid registeredProduct) ||
+                productCode != registeredProduct)
+            {
+                AppendRecoveryLog(logPath, "The MSI product code could not be confirmed for offline repair.");
+                return;
+            }
+
+            if ((File.GetAttributes(StartupUpdate.InstallDirectory) & FileAttributes.ReparsePoint) != 0)
+            {
+                AppendRecoveryLog(logPath, "Offline repair source was skipped because the installation directory is a reparse point.");
+                return;
+            }
+
+            File.Move(msiPath, InstallerRepairSource.GetPath(productCode), overwrite: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            AppendRecoveryLog(logPath, $"The offline repair source could not be saved: {exception.Message}");
+        }
     }
 
     private static string? ReadMsiProperty(string msiPath, string propertyName)

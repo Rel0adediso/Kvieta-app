@@ -88,6 +88,8 @@ if (($policy | ConvertTo-Json -Depth 40 -Compress) -cne ($previousPolicy | Conve
 }
 
 $beforeRepair = @(Get-FileHash -LiteralPath $protectedFiles)
+$repairSource = Join-Path $env:ProgramFiles "Kvieta/Kvieta-Repair-$(([guid]$product.ProductCode).ToString('D')).msi"
+if (-not (Test-Path -LiteralPath $repairSource)) { throw 'Setup did not retain an MSI for offline repair.' }
 $standardUser = [pscredential]::new("$env:COMPUTERNAME\$($user.Name)", $password)
 $stop = Start-Process "$env:SystemRoot/System32/sc.exe" -ArgumentList @('stop', 'KvietaGuardian') `
     -Credential $standardUser -WorkingDirectory $env:SystemRoot -PassThru
@@ -117,7 +119,8 @@ do {
     Start-Sleep -Seconds 2
 } while ($true)
 if ($uninstall -ne 0 -or (Test-Path -LiteralPath $installerKey) -or
-    (Get-Service KvietaGuardian -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $application)) {
+    (Get-Service KvietaGuardian -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $application) -or
+    (Test-Path -LiteralPath $repairSource)) {
     Get-CimInstance Win32_Process -Filter "Name='msiexec.exe'" | Select-Object ProcessId, ParentProcessId, CommandLine | Format-List
     Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'MsiInstaller' } -MaxEvents 12 -ErrorAction SilentlyContinue |
         Select-Object TimeCreated, Id, Message | Format-List

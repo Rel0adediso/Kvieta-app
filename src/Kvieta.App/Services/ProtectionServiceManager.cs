@@ -298,7 +298,7 @@ public static class ProtectionServiceManager
     public static async Task<bool> RunProductRepairAsync(bool requestElevation = true)
     {
         if (!IsInstallerManaged || ReadInstallerValue("ProductCode") is not string productCode ||
-            !Guid.TryParse(productCode.Trim('{', '}'), out _))
+            !Guid.TryParse(productCode, out Guid registeredProduct))
         {
             return false;
         }
@@ -311,12 +311,16 @@ public static class ProtectionServiceManager
             CreateNoWindow = !requestElevation,
             WindowStyle = ProcessWindowStyle.Hidden
         };
+        string cachedSource = InstallerRepairSource.GetPath(registeredProduct);
+        bool hasCachedSource = File.Exists(cachedSource);
+        string package = hasCachedSource ? cachedSource : productCode;
         // The /f switch ignores MSI properties. Keep the process that reports the
         // result and restarts Guardian alive by disabling Restart Manager shutdown.
         foreach (string argument in new[]
         {
-            "/i", productCode, "/qn", "/norestart",
-            "REINSTALL=ALL", "REINSTALLMODE=a", "MSIRESTARTMANAGERCONTROL=Disable"
+            "/i", package, "/qn", "/norestart",
+            "REINSTALL=ALL", hasCachedSource ? "REINSTALLMODE=av" : "REINSTALLMODE=a",
+            "MSIRESTARTMANAGERCONTROL=Disable"
         })
         {
             startInfo.ArgumentList.Add(argument);
