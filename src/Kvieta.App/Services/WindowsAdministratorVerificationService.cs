@@ -52,7 +52,8 @@ public static class WindowsAdministratorVerificationService
             {
                 // Non-critical diagnostic
             }
-            return true;
+            return auditEvent != "recovery.installer.repair" ||
+                await ProtectionServiceManager.RunProductRepairAsync(requestElevation: false);
         }
 
         string? executable = Environment.ProcessPath;

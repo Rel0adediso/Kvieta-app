@@ -311,8 +311,13 @@ public static class ProtectionServiceManager
             CreateNoWindow = !requestElevation,
             WindowStyle = ProcessWindowStyle.Hidden
         };
-        // Keep the process that checks the result and restarts Guardian alive during repair.
-        foreach (string argument in new[] { "/fa", productCode, "/qn", "/norestart", "MSIRESTARTMANAGERCONTROL=DisableShutdown" })
+        // The /f switch ignores MSI properties. Keep the process that reports the
+        // result and restarts Guardian alive by disabling Restart Manager shutdown.
+        foreach (string argument in new[]
+        {
+            "/i", productCode, "/qn", "/norestart",
+            "REINSTALL=ALL", "REINSTALLMODE=a", "MSIRESTARTMANAGERCONTROL=DisableShutdown"
+        })
         {
             startInfo.ArgumentList.Add(argument);
         }
