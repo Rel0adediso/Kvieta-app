@@ -61,6 +61,7 @@ internal static class AutomaticUpdateService
                     RegisterTasks();
                     return 0;
                 case StartupUpdate.RemoveArgument when elevated:
+                    ProtectionServiceManager.ConfigureSafeBootRegistration(false);
                     RemoveTasks();
                     return 0;
                 case StartupUpdate.PrepareArgument when identity.IsSystem && Enabled:

@@ -118,13 +118,22 @@ do {
     if ($uninstall -ne 1618 -or [DateTimeOffset]::UtcNow -ge $uninstallDeadline) { break }
     Start-Sleep -Seconds 2
 } while ($true)
-if ($uninstall -ne 0 -or (Test-Path -LiteralPath $installerKey) -or
-    (Get-Service KvietaGuardian -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $application) -or
-    (Test-Path -LiteralPath $repairSource)) {
+$remainingRegistration = Get-ItemProperty -LiteralPath $installerKey -ErrorAction SilentlyContinue
+$remainingProduct = $null -ne $remainingRegistration.ProductCode -or
+    $null -ne $remainingRegistration.InstalledVersion -or
+    (Test-Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($product.ProductCode)")
+$remainingService = $null -ne (Get-Service KvietaGuardian -ErrorAction SilentlyContinue)
+$remainingFiles = (Test-Path -LiteralPath $application) -or (Test-Path -LiteralPath $repairSource)
+if ($uninstall -ne 0 -or $remainingProduct -or $remainingService -or $remainingFiles) {
     Get-CimInstance Win32_Process -Filter "Name='msiexec.exe'" | Select-Object ProcessId, ParentProcessId, CommandLine | Format-List
     Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'MsiInstaller' } -MaxEvents 12 -ErrorAction SilentlyContinue |
         Select-Object TimeCreated, Id, Message | Format-List
-    throw "The MSI uninstall did not remove the candidate and Guardian (exit $uninstall)."
+    throw "The MSI uninstall left installer state (exit $uninstall, registration $remainingProduct, service $remainingService, files $remainingFiles)."
+}
+foreach ($mode in 'Minimal', 'Network') {
+    if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\SafeBoot\$mode\KvietaGuardian") {
+        throw "Uninstall left the Guardian service registered for $mode Safe Mode."
+    }
 }
 foreach ($task in 'Kvieta Prepare Update', 'Kvieta Apply Update', 'Kvieta Install Update') {
     if (Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue) { throw "Uninstall left the $task scheduled task." }
