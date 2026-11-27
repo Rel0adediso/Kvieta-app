@@ -14,7 +14,7 @@ internal static class WhatsNewChecks
                 var app = new Kvieta.App.App();
                 app.InitializeComponent();
                 app.ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
-                var notice = new ReleaseNotice(new("v1.0.0", "7.0.0"), new("Alpha 6.5", "6.5.0"), true);
+                var notice = new ReleaseNotice(new("v1.0.0", "7.0.1"), new("Alpha 6.5", "6.5.0"), true);
                 foreach (LanguagePreference language in new[] { LanguagePreference.Turkish, LanguagePreference.English })
                 {
                     LocalizationService.SetLanguage(app, language);
@@ -80,8 +80,10 @@ internal static class WhatsNewChecks
         var migration = new JsonDisplayPreferencesStore(Path.Combine(directory, "whats-new-migration.json"));
         var alpha = new ReleaseIdentity("Alpha 6.5", "6.5.0");
         await migration.RememberPreviousReleaseAsync(alpha);
-        var migrated = await migration.ObserveReleaseAsync(new ReleaseIdentity("v1.0.0", "7.0.0"));
+        var migrated = await migration.ObserveReleaseAsync(new ReleaseIdentity("v1.0.0", "7.0.1"));
         check(migrated.Unread && migrated.Previous == alpha, "First upgrade from a legacy installer was not noticed.");
         check(ReleaseNotesCatalog.ForRelease(migrated).Count > 0, "Embedded V1 release notes are missing.");
+        var fromPreview = new ReleaseNotice(new("v1.0.0", "7.0.1"), new("v1.0.0", "7.0.0"), true);
+        check(ReleaseNotesCatalog.ForRelease(fromPreview).Count > 0, "The V1 preview upgrade did not show release notes.");
     }
 }

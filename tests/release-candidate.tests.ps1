@@ -40,6 +40,8 @@ $settings = Join-Path $fixture 'settings.json'
     SchemaVersion = 10
     SetupCompleted = $true
     Mode = 'Protected'
+    DefaultDailyLimitMinutes = 95
+    BlockedWebDomains = @('example.org')
     AdminPin = @{
         Version = 1
         Iterations = 210000
@@ -59,8 +61,11 @@ if ([version]$previousProduct.InstalledVersion -ne $PreviousVersion) {
 }
 
 $programData = Join-Path $env:ProgramData 'Kvieta'
-$protectedFiles = @($settings, (Join-Path $programData 'protected-settings.json'), (Join-Path $programData 'guardian-enrollment.json'))
-$before = @(Get-FileHash -LiteralPath $protectedFiles)
+$policyPath = Join-Path $programData 'protected-settings.json'
+$enrollmentPath = Join-Path $programData 'guardian-enrollment.json'
+$protectedFiles = @($settings, $policyPath, $enrollmentPath)
+$previousPolicy = Get-Content -LiteralPath $policyPath -Raw | ConvertFrom-Json -AsHashtable
+$previousEnrollment = (Get-FileHash -LiteralPath $enrollmentPath).Hash
 $upgrade = Invoke-InstallerProcess $Candidate @('--elevated-install', '--preserve-installation', '--legacy-user-sid', $user.SID.Value)
 $product = Get-ItemProperty -LiteralPath $installerKey
 $application = Join-Path $env:ProgramFiles 'Kvieta/Kvieta.exe'
@@ -71,15 +76,23 @@ if ($upgrade -ne 0 -or [version]$product.InstalledVersion -ne $ExpectedVersion -
     (Get-Service KvietaGuardian).Status -ne 'Running') {
     throw "Setup did not replace build $PreviousVersion with the candidate and restart Guardian (exit $upgrade)."
 }
-if (Compare-Object $before @(Get-FileHash -LiteralPath $protectedFiles) -Property Path, Hash) {
-    throw "Upgrading from build $PreviousVersion changed the protected installation data."
+$policy = Get-Content -LiteralPath $policyPath -Raw | ConvertFrom-Json -AsHashtable
+if (-not $previousPolicy.Contains('BlockShortFormVideo')) {
+    if ($policy.BlockShortFormVideo -ne $false) { throw 'The new short video policy was enabled during migration.' }
+    $policy.Remove('BlockShortFormVideo')
+}
+if (($policy | ConvertTo-Json -Depth 40 -Compress) -cne ($previousPolicy | ConvertTo-Json -Depth 40 -Compress) -or
+    (Get-FileHash -LiteralPath $enrollmentPath).Hash -ne $previousEnrollment -or
+    (Get-FileHash -LiteralPath $settings).Hash -ne (Get-FileHash -LiteralPath $policyPath).Hash) {
+    throw "Upgrading from build $PreviousVersion changed the existing policy, profile, or PIN enrollment."
 }
 
+$beforeRepair = @(Get-FileHash -LiteralPath $protectedFiles)
 $repair = Invoke-InstallerProcess $application @('--windows-admin-verification', '--audit-event', 'recovery.installer.repair')
 if ($repair -ne 0 -or (Get-Service KvietaGuardian).Status -ne 'Running') {
     throw "The Windows administrator recovery repair failed (exit $repair)."
 }
-if (Compare-Object $before @(Get-FileHash -LiteralPath $protectedFiles) -Property Path, Hash) {
+if (Compare-Object $beforeRepair @(Get-FileHash -LiteralPath $protectedFiles) -Property Path, Hash) {
     throw 'Administrator recovery repair changed protected installation data.'
 }
 

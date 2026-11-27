@@ -287,15 +287,23 @@ jobs:
             $options = @{ PreviousSetup = 'previous/artifacts/installer-community/7.0.0/Kvieta-Setup-v1.0.0.exe'; PreviousVersion = '7.0.0' }
           }
           ./tests/release-candidate.tests.ps1 -Candidate "package/Kvieta-Setup-$env:RELEASE_LABEL.exe" -ExpectedVersion $env:INSTALLER_VERSION @options
+      - name: Collect acceptance logs
+        if: failure()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path acceptance-logs -Force | Out-Null
+          $logs = @(
+            'C:/ProgramData/Kvieta/SetupLogs/*.log'
+            'C:/ProgramData/Kvieta/guardian-install.log'
+            "$env:RUNNER_TEMP/kvieta-candidate-uninstall.log"
+          )
+          Copy-Item -Path $logs -Destination acceptance-logs -ErrorAction SilentlyContinue
       - name: Upload acceptance logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: candidate-acceptance-logs-${{ strategy.job-index }}
-          path: |
-            C:/ProgramData/Kvieta/SetupLogs/
-            C:/ProgramData/Kvieta/guardian-install.log
-            ${{ runner.temp }}/kvieta-candidate-uninstall.log
+          path: acceptance-logs/
 
   publish-stable:
     name: Publish verified stable update

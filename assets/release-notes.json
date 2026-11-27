@@ -1,6 +1,7 @@
 [
   {
     "version": "v1.0.0",
+    "build": "7.0.1",
     "en": [
       "Redesigned dashboard with clearer screen-time and application usage insights.",
       "Added English and Turkish interface support.",
