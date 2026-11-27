@@ -316,7 +316,7 @@ public static class ProtectionServiceManager
         foreach (string argument in new[]
         {
             "/i", productCode, "/qn", "/norestart",
-            "REINSTALL=ALL", "REINSTALLMODE=a", "MSIRESTARTMANAGERCONTROL=DisableShutdown"
+            "REINSTALL=ALL", "REINSTALLMODE=a", "MSIRESTARTMANAGERCONTROL=Disable"
         })
         {
             startInfo.ArgumentList.Add(argument);
